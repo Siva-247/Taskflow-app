@@ -17,7 +17,6 @@ services:
   - type: web
     name: taskflow-frontend
     env: static
-    plan: free
     buildCommand: npm install && npm run build
     staticPublishPath: ./dist
     envVars:
