@@ -2,6 +2,7 @@ services:
   - type: web
     name: taskflow-backend
     env: node
+    plan: free
     rootDir: backend
     buildCommand: npm install
     startCommand: node server.js
@@ -16,6 +17,7 @@ services:
   - type: web
     name: taskflow-frontend
     env: static
+    plan: free
     buildCommand: npm install && npm run build
     staticPublishPath: ./dist
     envVars:
