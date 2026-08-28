@@ -87,7 +87,7 @@ export default function MyTeam() {
               ))}
             </div>
             {rows.map((row, i) => {
-              const isActive = row.user.isActive !== false;
+              const isActive = row.user.isActive === undefined || !!row.user.isActive;
               return (
                 <div
                   key={row.user.id}
