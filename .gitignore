@@ -1,0 +1,12 @@
+node_modules/
+backend/node_modules/
+dist/
+.env
+backend/.env
+*.log
+.DS_Store
+
+# Database WAL/SHM sidecar files regenerate automatically — only the main
+# .db file (with the seeded demo data) is meant to be committed.
+backend/database/taskflow.db-wal
+backend/database/taskflow.db-shm

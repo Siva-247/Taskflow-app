@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: taskflow-backend
+    env: node
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: TASKFLOW_SESSION_SECRET
+        generateValue: true
+      - key: NODE_ENV
+        value: development
+      - key: APP_URL
+        sync: false
+
+  - type: web
+    name: taskflow-frontend
+    env: static
+    buildCommand: npm install && npm run build
+    staticPublishPath: ./dist
+    envVars:
+      - key: VITE_API_BASE_URL
+        sync: false
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
