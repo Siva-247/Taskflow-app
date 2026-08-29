@@ -12,7 +12,7 @@ Core workflow: a task moves through **Draft → Pending Approval → To Do → I
 
 **Frontend** — React 18 + Vite, React Router (`HashRouter`), Context API for all shared state (no Redux/MobX). No CSS framework — inline styles.
 
-**Backend** — Node.js + Express, SQLite via `better-sqlite3` (raw SQL, no ORM), `bcryptjs` for password hashing.
+**Backend** — Node.js + Express, Postgres via `pg` (raw SQL, no ORM), hosted on Supabase, `bcryptjs` for password hashing.
 
 **Auth** — Email + password, bcrypt-hashed, HMAC-SHA256-signed session tokens (12-hour expiry, stateless — no session table). No third-party auth provider.
 
@@ -24,9 +24,10 @@ src/                      Frontend (React)
   data/mockData.js        Frontend-side constants (ROLES, STATUS, PRIORITY) — not a data source
 backend/
   routes/                 One file per resource (auth, users, teams, departments, tasks, ...)
-  database/               schema.sql, db.js (connection + statement cache), seed.js, migrate-*.mjs, setup-admin.mjs
+  database/               schema.postgres.sql, db.js (Postgres pool + query shim), seed.js, migrate-*.mjs
   auth/                   passwords.js (bcrypt), tokens.js (HMAC sessions)
   middleware/auth.js      requireAuth / requireRole
+  middleware/asyncRoute.js  Wraps every async handler so Express 4 catches rejected promises
   email/mailer.js         Optional SMTP for real password-reset emails
 ```
 
@@ -47,11 +48,19 @@ npm install
 node server.js
 ```
 
-Runs on `http://localhost:4000` by default. **Use `node server.js` directly rather than `npm start`** — on this project's Windows/Node/better-sqlite3 combination, the extra `npm`→`cmd.exe` process layer occasionally trips a native cleanup crash on exit; running `node` directly avoids it. If a start attempt ever crashes immediately on launch, just retry it once — the crash is a shutdown-timing race, not a code defect, and a fresh attempt reliably starts clean.
+Runs on `http://localhost:4000` by default. Requires `DATABASE_URL` to be set (see §6) — the server refuses to start without it.
 
 ## 5. Database Setup
 
-The SQLite file is created automatically on first run (`backend/database/taskflow.db`), with the schema in `schema.sql` and the AI department seeded via `seed.js`. No manual migration step is needed for a fresh install — `migrate-*.mjs` files under `backend/database/` are historical, one-off scripts already applied to this database and are kept only as a record of schema evolution.
+TaskFlow runs on Postgres (Supabase in production), not a local file — there's no "database appears automatically" step anymore. For a fresh Postgres database:
+
+```bash
+cd backend
+npm run migrate:schema   # creates every table (safe to re-run, uses IF NOT EXISTS)
+npm run seed              # populates the original AI-department demo data — only runs if the database is empty
+```
+
+`backend/database/migrate-data-to-postgres.mjs` is a one-time script used specifically to move this project's real historical data out of the old local SQLite file and into Postgres — not something a fresh setup needs. `migrate-*.mjs` files with SQLite-only logic are historical, already-applied one-off scripts kept as a record of schema evolution before this migration.
 
 ## 6. Environment Variables
 
@@ -61,7 +70,7 @@ Copy `backend/.env.example` to `backend/.env` and fill in real values as needed:
 |---|---|---|
 | `PORT` | API port | No — defaults to 4000 |
 | `TASKFLOW_SESSION_SECRET` | Signs session tokens | **Yes, for any real deployment** — the built-in fallback is a public, well-known dev value |
-| `DATABASE_PATH` | Where the SQLite file lives | No — defaults next to the source |
+| `DATABASE_URL` | Postgres connection string (Supabase or any Postgres host) | **Yes — the server won't start without it.** Use Supabase's "Session pooler" string, not "Direct connection" (the direct host is IPv6-only and won't resolve on most networks) |
 | `SMTP_HOST` / `SMTP_PORT` / `SMTP_SECURE` / `SMTP_USER` / `SMTP_PASS` / `SMTP_FROM` | Send real password-reset emails | No — without these, reset links show on-screen instead (clearly labeled "Dev mode") |
 | `APP_URL` | Base URL used to build the reset-email link | No — defaults to `http://localhost:5173` |
 
@@ -150,7 +159,7 @@ npm install && npm run build   # frontend — outputs to dist/
 cd backend && npm install      # backend has no build step, it's plain Node
 ```
 
-Serve `dist/` as static files behind whatever web server you use, and run `node backend/server.js` as a long-lived process (with a real `.env` — see §6). Set `DATABASE_PATH` to a persistent volume if your hosting environment doesn't keep the filesystem between deploys.
+Serve `dist/` as static files behind whatever web server you use, and run `node backend/server.js` as a long-lived process (with a real `.env` — see §6). Because the database is Postgres (Supabase), not a local file, runtime data survives every redeploy automatically — there's no persistent-disk requirement on the hosting side at all.
 
 ## 16. Complete Testing Workflow
 
@@ -158,6 +167,7 @@ See **[TESTING_GUIDE.md](TESTING_GUIDE.md)** for demo credentials and a full, or
 
 ## Troubleshooting
 
-- **Backend crashes immediately on startup** with a native `Statement::\`scalar deleting destructor'` error — this is a known Windows/Node/better-sqlite3 shutdown-timing race unrelated to any code change. Just run `node server.js` again.
-- **"Could not reach the backend server"** in the UI — the backend isn't running, or is running on a different port than the frontend expects (`http://localhost:4000`, hardcoded in `src/context/AppContext.jsx`).
+- **Backend exits immediately with `DATABASE_URL is not set`** — copy `.env.example` to `.env` and fill in a real Postgres connection string; see §6.
+- **Connecting to Supabase fails with `ENOTFOUND db.xxxx.supabase.co`** — that's Supabase's "Direct connection" host, which is IPv6-only and won't resolve on most networks. Use the "Session pooler" connection string instead (Supabase dashboard → Connect → Direct tab → Session pooler).
+- **"Could not reach the backend server"** in the UI — the backend isn't running, or `VITE_API_BASE_URL` (production) / the hardcoded `localhost:4000` fallback (dev) doesn't match where it's actually listening.
 - **Forgot-password shows a token on screen instead of sending an email** — expected without SMTP configured; see §6.
