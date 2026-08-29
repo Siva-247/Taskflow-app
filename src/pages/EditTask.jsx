@@ -8,7 +8,7 @@ import { roleHome } from '../utils.js';
 export default function EditTask() {
   const { taskId } = useParams();
   const navigate = useNavigate();
-  const { currentUser, users, tasks, updateTask, showToast } = useApp();
+  const { currentUser, users, tasks, updateTask, showToast, TODAY } = useApp();
 
   const task = tasks.find((t) => t.id === taskId);
   const canManage = task && (currentUser.id === task.createdBy || currentUser.role === ROLES.ADMIN);
@@ -66,6 +66,7 @@ export default function EditTask() {
     if (!description.trim()) e.description = true;
     if (!startDate) e.startDate = true;
     if (!dueDate) e.dueDate = true;
+    if (startDate && startDate < TODAY) e.startInPast = true;
     if (startDate && dueDate && dueDate < startDate) e.dateRange = true;
     return e;
   };
@@ -74,7 +75,7 @@ export default function EditTask() {
     const e = validate();
     setErrors(e);
     if (Object.keys(e).length > 0) {
-      showToast(e.dateRange ? "Due date can't be before the start date" : 'Fill in the required fields first');
+      showToast(e.dateRange ? "Due date can't be before the start date" : e.startInPast ? "Start date can't be in the past" : 'Fill in the required fields first');
       return;
     }
     try {
@@ -140,12 +141,13 @@ export default function EditTask() {
         <SectionLabel>Schedule</SectionLabel>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 22 }}>
           <Field label="Start date" required>
-            <TextInput type="date" value={startDate} onChange={setStartDate} />
+            <TextInput type="date" value={startDate} onChange={setStartDate} min={TODAY} />
           </Field>
           <Field label="Due date" required>
-            <TextInput type="date" value={dueDate} onChange={setDueDate} />
+            <TextInput type="date" value={dueDate} onChange={setDueDate} min={startDate || TODAY} />
           </Field>
         </div>
+        {errors.startInPast && <ErrorText>Start date can't be in the past.</ErrorText>}
         {errors.dateRange && <ErrorText>Due date can't be before the start date.</ErrorText>}
 
         <SectionLabel>Additional details</SectionLabel>

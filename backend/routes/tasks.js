@@ -29,6 +29,9 @@ router.post('/', requireRole('manager', 'team_lead', 'employee'), (req, res) => 
   if (!validation.ok) return res.status(403).json({ error: validation.error });
   // Drafts can be saved incomplete (dates may not make sense yet), but a task
   // being assigned right away must have a sane date range.
+  if (!b.isDraft && b.startDate && b.startDate < TODAY) {
+    return res.status(400).json({ error: "Start date can't be in the past" });
+  }
   if (!b.isDraft && b.startDate && b.dueDate && b.dueDate < b.startDate) {
     return res.status(400).json({ error: "Due date can't be before the start date" });
   }
@@ -66,6 +69,10 @@ router.post('/', requireRole('manager', 'team_lead', 'employee'), (req, res) => 
   } else if (pendingApproval) {
     insertTaskEvent(id, `${userName(req.user.id)} created "${b.title}" for ${assigneeName} — awaiting manager approval`);
     insertNotification(managerIdForDepartment(validation.teamId), req.user.id, 'creation_pending', `${userName(req.user.id)} needs your approval on "${b.title}"`, id);
+    // The team lead isn't the approver, but they should still know their own
+    // report is waiting on sign-off — insertNotification already no-ops when
+    // the creator IS the team lead, so this is safe to call unconditionally.
+    insertNotification(teamLeadId(validation.teamId), req.user.id, 'creation_pending', `${userName(req.user.id)} requested approval on "${b.title}"`, id);
   } else {
     insertTaskEvent(id, `Task created and assigned to ${assigneeName}`);
     insertGlobalActivity('created', `${userName(req.user.id)} assigned "${b.title}" to ${assigneeName}`, validation.teamId);
@@ -123,6 +130,9 @@ router.patch('/:id', (req, res) => {
 
   // Same rule as creation: a draft can still be saved with an incomplete/odd
   // date range, but anything that isn't staying a draft must make sense.
+  if (merged.status !== STATUS.DRAFT && merged.startDate && merged.startDate < TODAY) {
+    return res.status(400).json({ error: "Start date can't be in the past" });
+  }
   if (merged.status !== STATUS.DRAFT && merged.startDate && merged.dueDate && merged.dueDate < merged.startDate) {
     return res.status(400).json({ error: "Due date can't be before the start date" });
   }
@@ -142,6 +152,7 @@ router.patch('/:id', (req, res) => {
     const assigneeName = userName(merged.assigneeId);
     insertTaskEvent(req.params.id, `${userName(req.user.id)} created "${merged.title}" for ${assigneeName} — awaiting manager approval`);
     insertNotification(managerIdForDepartment(merged.teamId), req.user.id, 'creation_pending', `${userName(req.user.id)} needs your approval on "${merged.title}"`, req.params.id);
+    insertNotification(teamLeadId(merged.teamId), req.user.id, 'creation_pending', `${userName(req.user.id)} requested approval on "${merged.title}"`, req.params.id);
   } else if (publishing) {
     const assigneeName = userName(merged.assigneeId);
     insertTaskEvent(req.params.id, `Assigned to ${assigneeName}`);
@@ -168,6 +179,9 @@ router.post('/:id/publish', (req, res) => {
   if (!existing || existing.status !== STATUS.DRAFT || existing.created_by !== req.user.id) {
     return res.status(404).json({ error: 'Draft not found' });
   }
+  if (existing.start_date && existing.start_date < TODAY) {
+    return res.status(400).json({ error: "Start date can't be in the past" });
+  }
   if (existing.start_date && existing.due_date && existing.due_date < existing.start_date) {
     return res.status(400).json({ error: "Due date can't be before the start date" });
   }
@@ -177,6 +191,7 @@ router.post('/:id/publish', (req, res) => {
     prepare('UPDATE tasks SET status = ? WHERE id = ?').run(STATUS.PENDING_APPROVAL, req.params.id);
     insertTaskEvent(req.params.id, `${userName(req.user.id)} created "${existing.title}" for ${assigneeName} — awaiting manager approval`);
     insertNotification(managerIdForDepartment(existing.team_id), req.user.id, 'creation_pending', `${userName(req.user.id)} needs your approval on "${existing.title}"`, req.params.id);
+    insertNotification(teamLeadId(existing.team_id), req.user.id, 'creation_pending', `${userName(req.user.id)} requested approval on "${existing.title}"`, req.params.id);
     return res.json({ task: getTask(req.params.id), activity: null });
   }
 
