@@ -4,7 +4,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "migrate:schema": "node database/migrate-postgres-schema.mjs",
+    "migrate:data": "node database/migrate-data-to-postgres.mjs",
+    "seed": "node database/run-seed.mjs"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
@@ -12,6 +15,7 @@
     "cors": "^2.8.5",
     "dotenv": "^17.4.2",
     "express": "^4.19.2",
-    "nodemailer": "^9.0.5"
+    "nodemailer": "^9.0.5",
+    "pg": "^8.23.0"
   }
 }

@@ -1,6 +1,6 @@
 import { STATUS, TODAY } from './constants.js';
 import { hashPassword } from '../auth/passwords.js';
-import { prepare } from './db.js';
+import { prepare, withTransaction } from './db.js';
 
 const PRIORITY = { HIGH: 'High', MEDIUM: 'Medium', LOW: 'Low' };
 
@@ -157,52 +157,54 @@ const globalActivitySeed = [
   { id: 'act-seed-3', type: 'completed', text: 'Muthupandi completed "Build authentication API - OAuth flow"', teamId: 'team-2', atOffsetMs: 1000 * 60 * 60 * 26 },
 ];
 
-// Every statement here goes through the cached `prepare()` from db.js, never
-// raw db.prepare() — this function runs on every server startup (the
-// alreadySeeded check below always fires), and a fresh uncached Statement
-// created on every boot is exactly the pattern that has been observed to
-// crash Node's isolate cleanup natively (see db.js for the full story).
-export function seedIfEmpty(db) {
-  const alreadySeeded = prepare('SELECT COUNT(*) as n FROM users').get().n > 0;
-  if (alreadySeeded) return;
+// Deliberately NOT called automatically anywhere in server.js — seeding a
+// database is a one-time, explicit action (`npm run seed`), never something
+// that runs as a side effect of starting the API. Refuses to run against a
+// database that already has data, so it can never overwrite/duplicate a
+// real, already-populated database.
+export async function seedIfEmpty() {
+  const alreadySeeded = Number((await prepare('SELECT COUNT(*) as n FROM users').get()).n) > 0;
+  if (alreadySeeded) {
+    console.log('Database already has data — refusing to reseed.');
+    return;
+  }
 
   const seedPasswordHash = hashPassword(SEED_PASSWORD);
 
-  const insertMany = db.transaction(() => {
-    const insDept = prepare('INSERT INTO departments (id, name) VALUES (@id, @name)');
-    departments.forEach((d) => insDept.run(d));
+  await withTransaction(async (client) => {
+    const insDept = prepare('INSERT INTO departments (id, name) VALUES (@id, @name)', client);
+    for (const d of departments) await insDept.run(d);
 
-    const insTeam = prepare('INSERT INTO teams (id, name, department_id, lead_id) VALUES (@id, @name, @departmentId, @leadId)');
-    teams.forEach((tm) => insTeam.run(tm));
+    const insTeam = prepare('INSERT INTO teams (id, name, department_id, lead_id) VALUES (@id, @name, @departmentId, @leadId)', client);
+    for (const tm of teams) await insTeam.run(tm);
 
     const insUser = prepare(`INSERT INTO users (id, name, role, team_id, department_id, title, initial, email, password_hash, must_change_password)
-      VALUES (@id, @name, @role, @teamId, @departmentId, @title, @initial, @email, @passwordHash, @mustChangePassword)`);
-    users.forEach((u) => insUser.run({ ...u, passwordHash: seedPasswordHash }));
+      VALUES (@id, @name, @role, @teamId, @departmentId, @title, @initial, @email, @passwordHash, @mustChangePassword)`, client);
+    for (const u of users) await insUser.run({ ...u, passwordHash: seedPasswordHash });
 
     const insTask = prepare(`INSERT INTO tasks (id, title, description, instructions, team_id, assignee_id, priority, status, progress, start_date, due_date, estimated_effort, category, created_by, created_at)
-      VALUES (@id, @title, @description, '', @teamId, @assigneeId, @priority, @status, @progress, @startDate, @dueDate, @estimatedEffort, @category, @createdBy, @createdAt)`);
-    const insSubtask = prepare('INSERT INTO task_subtasks (id, task_id, title, done) VALUES (?, ?, ?, ?)');
-    const insComment = prepare('INSERT INTO comments (id, task_id, author_id, text, created_at) VALUES (?, ?, ?, ?, ?)');
-    const insEvent = prepare('INSERT INTO activity_logs (id, task_id, type, text, team_id, at) VALUES (?, ?, NULL, ?, NULL, ?)');
+      VALUES (@id, @title, @description, '', @teamId, @assigneeId, @priority, @status, @progress, @startDate, @dueDate, @estimatedEffort, @category, @createdBy, @createdAt)`, client);
+    const insSubtask = prepare('INSERT INTO task_subtasks (id, task_id, title, done) VALUES (?, ?, ?, ?)', client);
+    const insComment = prepare('INSERT INTO comments (id, task_id, author_id, text, created_at) VALUES (?, ?, ?, ?, ?)', client);
+    const insEvent = prepare('INSERT INTO activity_logs (id, task_id, type, text, team_id, at) VALUES (?, ?, NULL, ?, NULL, ?)', client);
 
     let eventSeq = 1;
-    tasks.forEach((task) => {
-      insTask.run({ ...task, createdAt: TODAY });
-      task.subtasks.forEach((s) => insSubtask.run(s.id, task.id, s.title, s.done ? 1 : 0));
-      task.comments.forEach((c) => insComment.run(c.id, task.id, c.authorId, c.text, c.createdAt));
+    for (const task of tasks) {
+      await insTask.run({ ...task, createdAt: TODAY });
+      for (const s of task.subtasks) await insSubtask.run(s.id, task.id, s.title, s.done ? 1 : 0);
+      for (const c of task.comments) await insComment.run(c.id, task.id, c.authorId, c.text, c.createdAt);
       const assigneeName = users.find((u) => u.id === task.assigneeId)?.name;
-      insEvent.run(`ev-seed-${eventSeq++}`, task.id, `Task created and assigned to ${assigneeName}`, TODAY);
-    });
+      await insEvent.run(`ev-seed-${eventSeq++}`, task.id, `Task created and assigned to ${assigneeName}`, TODAY);
+    }
 
     const insUpdate = prepare(`INSERT INTO daily_updates (id, user_id, task_id, task_title, date, status, task_completed, concepts_covered, practical_task, videos_completed, video_link)
-      VALUES (@id, @userId, NULL, @taskTitle, @date, @status, @taskCompleted, @conceptsCovered, @practicalTask, @videosCompleted, @videoLink)`);
-    dailyUpdates.forEach((u) => insUpdate.run(u));
+      VALUES (@id, @userId, NULL, @taskTitle, @date, @status, @taskCompleted, @conceptsCovered, @practicalTask, @videosCompleted, @videoLink)`, client);
+    for (const u of dailyUpdates) await insUpdate.run(u);
 
-    const insGlobal = prepare('INSERT INTO activity_logs (id, task_id, type, text, team_id, at) VALUES (?, NULL, ?, ?, ?, ?)');
+    const insGlobal = prepare('INSERT INTO activity_logs (id, task_id, type, text, team_id, at) VALUES (?, NULL, ?, ?, ?, ?)', client);
     const now = Date.now();
-    globalActivitySeed.forEach((a) => insGlobal.run(a.id, a.type, a.text, a.teamId, String(now - a.atOffsetMs)));
+    for (const a of globalActivitySeed) await insGlobal.run(a.id, a.type, a.text, a.teamId, String(now - a.atOffsetMs));
   });
 
-  insertMany();
   console.log(`Seeded database: ${users.length} users, ${tasks.length} tasks, ${dailyUpdates.length} daily updates.`);
 }

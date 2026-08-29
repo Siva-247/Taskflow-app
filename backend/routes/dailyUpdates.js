@@ -4,26 +4,27 @@ import { prepare } from '../database/db.js';
 import { TODAY } from '../database/constants.js';
 import { getGlobalActivity, insertGlobalActivity, scopeDailyUpdates } from '../database/helpers.js';
 import { requireAuth } from '../middleware/auth.js';
+import { asyncRoute } from '../middleware/asyncRoute.js';
 
 const router = Router();
 router.use(requireAuth);
 
-const SELECT_COLUMNS = `id, user_id as userId, task_id as taskId, task_title as taskTitle, date, status,
-  task_completed as taskCompleted, concepts_covered as conceptsCovered, practical_task as practicalTask,
-  videos_completed as videosCompleted, video_link as videoLink`;
+const SELECT_COLUMNS = `id, user_id as "userId", task_id as "taskId", task_title as "taskTitle", date, status,
+  task_completed as "taskCompleted", concepts_covered as "conceptsCovered", practical_task as "practicalTask",
+  videos_completed as "videosCompleted", video_link as "videoLink"`;
 
-router.get('/', (req, res) => {
-  const all = prepare(`SELECT ${SELECT_COLUMNS} FROM daily_updates ORDER BY rowid ASC`).all();
-  res.json(scopeDailyUpdates(req.user, all));
-});
+router.get('/', asyncRoute(async (req, res) => {
+  const all = await prepare(`SELECT ${SELECT_COLUMNS} FROM daily_updates ORDER BY seq ASC`).all();
+  res.json(await scopeDailyUpdates(req.user, all));
+}));
 
-router.post('/', (req, res) => {
+router.post('/', asyncRoute(async (req, res) => {
   const b = req.body;
   const id = `du-${randomUUID()}`;
 
   // userId always comes from the verified session, never the request body —
   // otherwise anyone could log a daily update as someone else.
-  prepare(`INSERT INTO daily_updates (id, user_id, task_id, task_title, date, status, task_completed, concepts_covered, practical_task, videos_completed, video_link)
+  await prepare(`INSERT INTO daily_updates (id, user_id, task_id, task_title, date, status, task_completed, concepts_covered, practical_task, videos_completed, video_link)
     VALUES (@id, @userId, @taskId, @taskTitle, @date, @status, @taskCompleted, @conceptsCovered, @practicalTask, @videosCompleted, @videoLink)`).run({
     id,
     userId: req.user.id,
@@ -38,20 +39,20 @@ router.post('/', (req, res) => {
     videoLink: b.videoLink || '',
   });
 
-  insertGlobalActivity('update', `${req.user.name} logged a daily update`, req.user.team_id);
+  await insertGlobalActivity('update', `${req.user.name} logged a daily update`, req.user.team_id);
 
-  const dailyUpdate = prepare(`SELECT ${SELECT_COLUMNS} FROM daily_updates WHERE id = ?`).get(id);
-  res.status(201).json({ dailyUpdate, activity: getGlobalActivity() });
-});
+  const dailyUpdate = await prepare(`SELECT ${SELECT_COLUMNS} FROM daily_updates WHERE id = ?`).get(id);
+  res.status(201).json({ dailyUpdate, activity: await getGlobalActivity() });
+}));
 
-router.patch('/:id', (req, res) => {
-  const existing = prepare('SELECT * FROM daily_updates WHERE id = ?').get(req.params.id);
+router.patch('/:id', asyncRoute(async (req, res) => {
+  const existing = await prepare('SELECT * FROM daily_updates WHERE id = ?').get(req.params.id);
   if (!existing) return res.status(404).json({ error: 'Daily update not found' });
   if (existing.user_id !== req.user.id) return res.status(403).json({ error: 'You can only edit your own daily updates' });
   if (existing.date !== TODAY) return res.status(403).json({ error: 'You can only edit a daily update from today' });
 
   const b = req.body;
-  prepare(`UPDATE daily_updates SET task_id=@taskId, task_title=@taskTitle, status=@status, task_completed=@taskCompleted,
+  await prepare(`UPDATE daily_updates SET task_id=@taskId, task_title=@taskTitle, status=@status, task_completed=@taskCompleted,
     concepts_covered=@conceptsCovered, practical_task=@practicalTask, videos_completed=@videosCompleted, video_link=@videoLink WHERE id=@id`).run({
     id: req.params.id,
     taskId: b.taskId ?? existing.task_id,
@@ -64,18 +65,18 @@ router.patch('/:id', (req, res) => {
     videoLink: b.videoLink ?? existing.video_link,
   });
 
-  const dailyUpdate = prepare(`SELECT ${SELECT_COLUMNS} FROM daily_updates WHERE id = ?`).get(req.params.id);
+  const dailyUpdate = await prepare(`SELECT ${SELECT_COLUMNS} FROM daily_updates WHERE id = ?`).get(req.params.id);
   res.json({ dailyUpdate });
-});
+}));
 
-router.delete('/:id', (req, res) => {
-  const existing = prepare('SELECT * FROM daily_updates WHERE id = ?').get(req.params.id);
+router.delete('/:id', asyncRoute(async (req, res) => {
+  const existing = await prepare('SELECT * FROM daily_updates WHERE id = ?').get(req.params.id);
   if (!existing) return res.status(404).json({ error: 'Daily update not found' });
   if (existing.user_id !== req.user.id) return res.status(403).json({ error: 'You can only delete your own daily updates' });
   if (existing.date !== TODAY) return res.status(403).json({ error: 'You can only delete a daily update from today' });
 
-  prepare('DELETE FROM daily_updates WHERE id = ?').run(req.params.id);
+  await prepare('DELETE FROM daily_updates WHERE id = ?').run(req.params.id);
   res.json({ ok: true });
-});
+}));
 
 export default router;
