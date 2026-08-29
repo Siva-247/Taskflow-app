@@ -28,8 +28,14 @@ export const PRIORITY = {
 
 export const CATEGORIES = ['Development', 'AI/ML', 'Testing', 'Documentation', 'Research'];
 
-// "Today" is fixed for the demo so overdue/due-today math stays deterministic.
-export const TODAY = '2026-08-25';
+// The real current date (viewer's local time), recomputed on every page
+// load. Built from getFullYear/Month/Date rather than toISOString() so it
+// reflects the viewer's local calendar day, not UTC's.
+function localToday() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+export const TODAY = localToday();
 
 export const departments = [
   { id: 'dept-ai', name: 'AI Department' },
