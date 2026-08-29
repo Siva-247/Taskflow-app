@@ -72,6 +72,7 @@ CREATE TABLE IF NOT EXISTS tasks (
   marks INTEGER,
   requested_due_date TEXT,
   extension_reason TEXT,
+  submission_note TEXT,
   seq BIGSERIAL
 );
 

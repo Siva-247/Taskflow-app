@@ -27,6 +27,7 @@ export async function getTask(taskId) {
     marks: task.marks,
     requestedDueDate: task.requested_due_date,
     extensionReason: task.extension_reason,
+    submissionNote: task.submission_note,
     subtasks,
     comments,
     activityLog,

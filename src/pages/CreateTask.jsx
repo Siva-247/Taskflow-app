@@ -217,12 +217,24 @@ export default function CreateTask() {
         {errors.category && <ErrorText>Enter a category, or pick one from the list.</ErrorText>}
 
         <SectionLabel>Assignment &amp; priority</SectionLabel>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 22 }}>
-          <Field label="Assign to" required>
-            <div style={{ ...(errors.assigneeId ? { borderRadius: 9, border: '1px solid var(--amber-fill)' } : {}) }}>
-              <Select value={assigneeId} onChange={setAssigneeId} options={assignableUsers.map((u) => ({ value: u.id, label: `${u.name} · ${u.title}` }))} />
-            </div>
-          </Field>
+        <div style={{ display: 'grid', gridTemplateColumns: currentUser.role === ROLES.EMPLOYEE ? '1fr 1fr' : '1fr 1fr 1fr', gap: 22 }}>
+          {currentUser.role === ROLES.EMPLOYEE ? (
+            <Field label="Assigned to">
+              <div style={{
+                display: 'flex', alignItems: 'center', height: 40, padding: '0 14px', borderRadius: 9,
+                border: '1px solid var(--border)', background: 'var(--field-bg)',
+                fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 13.5, color: 'var(--text-primary)',
+              }}>
+                You — {currentUser.name}
+              </div>
+            </Field>
+          ) : (
+            <Field label="Assign to" required>
+              <div style={{ ...(errors.assigneeId ? { borderRadius: 9, border: '1px solid var(--amber-fill)' } : {}) }}>
+                <Select value={assigneeId} onChange={setAssigneeId} options={assignableUsers.map((u) => ({ value: u.id, label: `${u.name} · ${u.title}` }))} />
+              </div>
+            </Field>
+          )}
           <Field label="Priority" required>
             <Select value={priority} onChange={setPriority} options={Object.values(PRIORITY).map((p) => ({ value: p, label: p }))} />
           </Field>

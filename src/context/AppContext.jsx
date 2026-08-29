@@ -403,9 +403,9 @@ export function AppProvider({ children }) {
     }
   }, [call, applyMutation, showToast]);
 
-  const submitForReview = useCallback(async (taskId) => {
+  const submitForReview = useCallback(async (taskId, note) => {
     try {
-      const result = await call(`/tasks/${taskId}/submit`, { method: 'POST' });
+      const result = await call(`/tasks/${taskId}/submit`, { method: 'POST', body: JSON.stringify({ note }) });
       applyMutation(result);
       showToast('Submitted for review');
     } catch (err) {

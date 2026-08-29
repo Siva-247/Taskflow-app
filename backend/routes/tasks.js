@@ -311,7 +311,12 @@ router.post('/:id/submit', asyncRoute(async (req, res) => {
   if (existing.assignee_id !== req.user.id) return res.status(403).json({ error: 'Only the assignee can submit this task' });
   if (existing.status === STATUS.PENDING_APPROVAL) return res.status(400).json({ error: 'This task is still waiting on manager approval' });
 
-  await prepare('UPDATE tasks SET status = ?, progress = 100 WHERE id = ?').run(STATUS.IN_REVIEW, req.params.id);
+  // A short note from the assignee — what they did, a deployed link, anything
+  // the reviewer should know — shown alongside the task once submitted.
+  // Optional: an empty note just clears whatever was there from a prior
+  // submit-request changes-resubmit cycle.
+  const note = typeof req.body.note === 'string' ? req.body.note.trim() : (existing.submission_note || '');
+  await prepare('UPDATE tasks SET status = ?, progress = 100, submission_note = ? WHERE id = ?').run(STATUS.IN_REVIEW, note, req.params.id);
   await insertTaskEvent(req.params.id, 'Submitted for review');
   await insertGlobalActivity('submitted', `${await userName(existing.assignee_id)} submitted "${existing.title}" for review`, existing.team_id);
   await insertNotification(await teamLeadId(existing.team_id), req.user.id, 'submitted', `${await userName(req.user.id)} submitted "${existing.title}" for review`, req.params.id);

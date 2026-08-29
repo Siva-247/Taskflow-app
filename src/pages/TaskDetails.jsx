@@ -19,6 +19,7 @@ export default function TaskDetails() {
 
   const [commentDraft, setCommentDraft] = useState('');
   const [progressDraft, setProgressDraft] = useState(null);
+  const [submissionNoteDraft, setSubmissionNoteDraft] = useState('');
   const [editingCommentId, setEditingCommentId] = useState(null);
   const [editCommentDraft, setEditCommentDraft] = useState('');
   const [pendingDeleteCommentId, setPendingDeleteCommentId] = useState(null);
@@ -321,7 +322,18 @@ export default function TaskDetails() {
                   onChange={(v) => setTaskStatus(task.id, v)}
                   options={[STATUS.TODO, STATUS.IN_PROGRESS].map((s) => ({ value: s, label: s }))}
                 />
-                <Button variant="primary" style={{ justifyContent: 'center' }} onClick={() => submitForReview(task.id)}>Submit for review</Button>
+                <div>
+                  <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12, color: 'var(--text-muted)', marginBottom: 6 }}>
+                    Notes for your reviewer (optional)
+                  </div>
+                  <TextArea
+                    value={submissionNoteDraft}
+                    onChange={setSubmissionNoteDraft}
+                    placeholder="What did you do? Add a deployed site link, a demo video, anything your reviewer should check."
+                    minHeight={60}
+                  />
+                </div>
+                <Button variant="primary" style={{ justifyContent: 'center' }} onClick={() => submitForReview(task.id, submissionNoteDraft)}>Submit for review</Button>
               </div>
             )}
             {isAssignee && task.status === STATUS.IN_REVIEW && (
@@ -332,6 +344,16 @@ export default function TaskDetails() {
             )}
             {!isAssignee && !canApprove && !canGiveMarks && !isPendingCreationApproval && !(isReviewer && hasPendingExtension) && (
               <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontSize: 13.5, color: 'var(--text-muted)' }}>Only the assignee can update this task.</div>
+            )}
+            {task.submissionNote && (task.status === STATUS.IN_REVIEW || task.status === STATUS.COMPLETED) && (
+              <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
+                <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 12, letterSpacing: '0.03em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>
+                  Notes from {assignee?.name}
+                </div>
+                <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13.5, color: 'var(--text-primary)', lineHeight: 1.6, marginTop: 6, whiteSpace: 'pre-wrap' }}>
+                  <Linkified text={task.submissionNote} />
+                </div>
+              </div>
             )}
 
             {hasPendingExtension && (
@@ -482,4 +504,20 @@ function DetailRow({ label, children }) {
 
 function Value({ children }) {
   return <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 13.5, color: 'var(--text-primary)' }}>{children}</span>;
+}
+
+// Turns a bare URL sitting in plain text (e.g. a pasted deployed-site link)
+// into an actual clickable link, without needing the person writing the note
+// to know any markdown/HTML — they just paste the link as-is. Splitting on a
+// capturing group interleaves the matched URLs into the result at odd
+// indices, so no separate (and stateful, error-prone) regex test is needed
+// to tell a URL segment apart from a plain-text one.
+const URL_RE = /(https?:\/\/[^\s]+)/g;
+function Linkified({ text }) {
+  const parts = text.split(URL_RE);
+  return parts.map((part, i) => (
+    i % 2 === 1
+      ? <a key={i} href={part} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-dark)', wordBreak: 'break-all' }}>{part}</a>
+      : <React.Fragment key={i}>{part}</React.Fragment>
+  ));
 }

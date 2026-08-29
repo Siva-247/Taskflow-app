@@ -35,6 +35,22 @@ export default function ManagerDashboard() {
   });
 
   const deptEmployees = users.filter((u) => u.departmentId === currentUser.departmentId && u.role === ROLES.EMPLOYEE);
+
+  // Ranked by average marks across every graded task (Submitted for Review or
+  // Completed tasks that have actually been marked) — someone with zero
+  // graded tasks isn't ranked at all, rather than showing a misleading 0%.
+  const performerStats = deptEmployees.map((u) => {
+    const graded = deptTasks.filter((t) => t.assigneeId === u.id && t.marks != null);
+    if (graded.length === 0) return null;
+    const avgMarks = Math.round(graded.reduce((sum, t) => sum + t.marks, 0) / graded.length);
+    const team = teams.find((tm) => tm.id === u.teamId);
+    return { user: u, teamId: u.teamId, teamName: team?.name?.replace("'s Team", '') || '—', avgMarks, gradedCount: graded.length };
+  }).filter(Boolean).sort((a, b) => b.avgMarks - a.avgMarks || b.gradedCount - a.gradedCount);
+
+  const overallTopPerformers = performerStats.slice(0, 3);
+  const topPerformersByTeam = deptTeams
+    .map((team) => ({ team, top3: performerStats.filter((p) => p.teamId === team.id).slice(0, 3) }))
+    .filter((row) => row.top3.length > 0);
   const workload = deptEmployees.map((u) => {
     const assigned = deptTasks.filter((t) => t.assigneeId === u.id && t.status !== STATUS.DRAFT);
     const uStats = statsFor(assigned);
@@ -95,6 +111,47 @@ export default function ManagerDashboard() {
           </div>
         </div>
       </Card>
+
+      {overallTopPerformers.length > 0 && (
+        <Card>
+          <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 15.5, color: 'var(--heading)' }}>Top performers</div>
+          <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 12.5, color: 'var(--text-muted)', marginTop: 2 }}>
+            Ranked by average marks across graded work
+          </div>
+
+          <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11.5, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-muted)', marginTop: 20 }}>
+            {department?.name || 'Department'}-wide
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginTop: 10 }}>
+            {overallTopPerformers.map((p, i) => <PerformerCard key={p.user.id} rank={i + 1} performer={p} onClick={() => navigate(`/tasks?assignee=${p.user.id}`)} />)}
+          </div>
+
+          {topPerformersByTeam.length > 0 && (
+            <>
+              <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11.5, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-muted)', marginTop: 24 }}>
+                By team
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(topPerformersByTeam.length, 2)}, 1fr)`, gap: 20, marginTop: 10 }}>
+                {topPerformersByTeam.map(({ team, top3 }) => (
+                  <div key={team.id} style={{ border: '1px solid var(--border)', borderRadius: 12, padding: '14px 16px' }}>
+                    <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 13.5, color: 'var(--text-primary)', marginBottom: 10 }}>{team.name}</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {top3.map((p, i) => (
+                        <div key={p.user.id} onClick={() => navigate(`/tasks?assignee=${p.user.id}`)} style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
+                          <RankBadge rank={i + 1} size={22} />
+                          <Avatar initial={p.user.initial} size={22} />
+                          <span style={{ flex: 1, fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 13, color: 'var(--text-primary)' }}>{p.user.name}</span>
+                          <span style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 13, color: 'var(--accent-dark)' }}>{p.avgMarks}%</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </Card>
+      )}
 
       <Card padded={false}>
         <div style={{ padding: '22px 26px 4px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -189,6 +246,50 @@ export default function ManagerDashboard() {
           </div>
         </Card>
       )}
+    </div>
+  );
+}
+
+// #1 gets the full accent color, #2/#3 step down in weight rather than
+// reaching for literal gold/silver/bronze — keeps the rank readable without
+// clashing with the app's own purple palette.
+const RANK_COLOR = { 1: 'var(--accent-dark)', 2: 'var(--accent)', 3: 'var(--text-muted)' };
+function RankBadge({ rank, size = 26 }) {
+  return (
+    <div style={{
+      width: size, height: size, borderRadius: '50%', flexShrink: 0,
+      background: RANK_COLOR[rank] || 'var(--text-muted)', color: '#FFFFFF',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: size * 0.5,
+    }}>
+      {rank}
+    </div>
+  );
+}
+
+function PerformerCard({ rank, performer, onClick }) {
+  return (
+    <div
+      onClick={onClick}
+      style={{
+        display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 8,
+        padding: '18px 12px', borderRadius: 12, cursor: 'pointer',
+        border: rank === 1 ? '1px solid var(--accent)' : '1px solid var(--border)',
+        background: rank === 1 ? 'var(--accent-soft)' : 'transparent',
+      }}
+    >
+      <RankBadge rank={rank} size={28} />
+      <Avatar initial={performer.user.initial} size={38} />
+      <div>
+        <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 13.5, color: 'var(--text-primary)' }}>{performer.user.name}</div>
+        <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>{performer.teamName}</div>
+      </div>
+      <div>
+        <span style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 20, color: 'var(--accent-dark)' }}>{performer.avgMarks}%</span>
+        <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 11.5, color: 'var(--text-muted)' }}>
+          avg · {performer.gradedCount} graded
+        </div>
+      </div>
     </div>
   );
 }
