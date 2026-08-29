@@ -31,19 +31,30 @@ export default function TaskList() {
 
   const visible = scopedTasks(currentUser).filter((t) => t.status !== STATUS.DRAFT);
 
+  // A task "is an approval request" if its creator needed sign-off to publish
+  // it in the first place (team lead or employee) — true for its whole life,
+  // not just while it's sitting at Pending Approval. Lets a team lead's
+  // Approvals view keep showing their reports' requests after they're
+  // resolved, instead of the item just vanishing the moment it's approved.
+  const isApprovalRequest = (task) => {
+    const creator = users.find((u) => u.id === task.createdBy);
+    return Boolean(creator && (creator.role === ROLES.TEAM_LEAD || creator.role === ROLES.EMPLOYEE));
+  };
+
   const availableTeams = teams.filter((team) => visible.some((task) => task.teamId === team.id));
   const availableAssignees = users.filter((u) => visible.some((task) => task.assigneeId === u.id));
 
   const filtered = useMemo(() => visible.filter((task) => {
+    if (status === 'Approval Requests' && !isApprovalRequest(task)) return false;
     if (status === 'Overdue' && bucketOf(task) !== 'overdue') return false;
-    if (status !== 'all' && status !== 'Overdue' && task.status !== status) return false;
+    if (status !== 'all' && status !== 'Overdue' && status !== 'Approval Requests' && task.status !== status) return false;
     if (priority !== 'all' && task.priority !== priority) return false;
     if (teamFilter !== 'all' && task.teamId !== teamFilter) return false;
     if (assigneeFilter !== 'all' && task.assigneeId !== assigneeFilter) return false;
     if (dueBefore && task.dueDate > dueBefore) return false;
     if (search.trim() && !task.title.toLowerCase().includes(search.trim().toLowerCase())) return false;
     return true;
-  }), [visible, status, priority, teamFilter, assigneeFilter, dueBefore, search, bucketOf]);
+  }), [visible, status, priority, teamFilter, assigneeFilter, dueBefore, search, bucketOf, users]);
 
   const showTeamColumn = availableTeams.length > 1;
 
@@ -73,7 +84,7 @@ export default function TaskList() {
             />
           </div>
           <div style={{ width: 158 }}>
-            <Select value={status} onChange={setStatus} options={[{ value: 'all', label: 'All statuses' }, ...STATUS_OPTIONS.map((s) => ({ value: s, label: s })), { value: 'Overdue', label: 'Overdue' }]} />
+            <Select value={status} onChange={setStatus} options={[{ value: 'all', label: 'All statuses' }, ...STATUS_OPTIONS.map((s) => ({ value: s, label: s })), { value: 'Overdue', label: 'Overdue' }, { value: 'Approval Requests', label: 'Approval Requests' }]} />
           </div>
           <div style={{ width: 140 }}>
             <Select value={priority} onChange={setPriority} options={[{ value: 'all', label: 'All priorities' }, ...PRIORITY_OPTIONS.map((p) => ({ value: p, label: p }))]} />
