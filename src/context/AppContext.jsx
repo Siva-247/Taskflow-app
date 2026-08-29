@@ -118,23 +118,6 @@ export function AppProvider({ children }) {
     }
   }, [showToast]);
 
-  // Demo persona-picker shortcut — signs in as any user by id, no password
-  // required. For working/testing purposes only, per explicit direction to
-  // defer real auth for now. See backend/routes/auth.js `/login-as`.
-  const loginAsUser = useCallback(async (userId) => {
-    try {
-      const result = await apiRequest('/auth/login-as', { method: 'POST', body: JSON.stringify({ userId }) });
-      setToken(result.token);
-      setCurrentUserId(result.user.id);
-      setMustChangePassword(result.user.mustChangePassword);
-      writeStoredToken(result.token);
-      return true;
-    } catch (err) {
-      showToast(err.message || 'Could not sign in');
-      return false;
-    }
-  }, [showToast]);
-
   // Claims an existing seeded identity by name (see backend/routes/auth.js)
   // — signup never creates a new person. `role`/`departmentId` are the
   // dropdown selections, used server-side to disambiguate/validate against
@@ -685,7 +668,7 @@ export function AppProvider({ children }) {
 
   const value = {
     users, teams, departments, TODAY,
-    currentUser, login, loginAsUser, signup, fetchSignupDepartments, addSignupDepartment, logout, dataReady, authPending, sessionRestoring,
+    currentUser, login, signup, fetchSignupDepartments, addSignupDepartment, logout, dataReady, authPending, sessionRestoring,
     mustChangePassword, changePassword, requestPasswordReset, resetPassword,
     tasks, dailyUpdates, activity, notifications,
     scopedTasks, scopedDailyUpdates, statsFor, bucketOf, myDrafts,

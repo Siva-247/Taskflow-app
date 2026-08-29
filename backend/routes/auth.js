@@ -172,26 +172,6 @@ router.post('/signup', (req, res) => {
   return res.status(403).json({ error: 'Your name is not registered in TaskFlow. Please contact the administrator.' });
 });
 
-// Demo-only shortcut for the persona-picker UI: sign in as any user by id,
-// no password check. Kept alongside (not instead of) real email/password
-// login — this exists purely so the demo can switch identities instantly,
-// per explicit instruction to defer real auth for now. Every other route
-// still goes through the same requireAuth/RBAC checks regardless of which
-// login path issued the token.
-router.post('/login-as', (req, res) => {
-  const { userId } = req.body;
-  if (!userId) return res.status(400).json({ error: 'userId is required' });
-  const row = prepare('SELECT * FROM users WHERE id = ?').get(userId);
-  if (!row) return res.status(401).json({ error: 'Unknown user' });
-  if (!row.is_active) return res.status(403).json({ error: 'This account has been deactivated.' });
-
-  const token = createToken(row.id);
-  // Force-unset for this path specifically — a demo persona switch should
-  // never interrupt with the "set a permanent password" screen, regardless
-  // of what the account's real must_change_password flag says.
-  res.json({ token, user: { ...publicUser(row.id), mustChangePassword: false } });
-});
-
 router.post('/login', (req, res) => {
   const email = normalizeEmail(req.body.email);
   const { password } = req.body;
