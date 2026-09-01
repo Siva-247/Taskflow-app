@@ -54,10 +54,9 @@ export default function ManagerDashboard() {
   const workload = deptEmployees.map((u) => {
     const assigned = deptTasks.filter((t) => t.assigneeId === u.id && t.status !== STATUS.DRAFT);
     const uStats = statsFor(assigned);
-    const active = uStats.pending + uStats.inProgress;
     const team = teams.find((tm) => tm.id === u.teamId);
-    return { user: u, teamName: team?.name || '—', assigned: uStats.total, active, completed: uStats.completed, overdue: uStats.overdue };
-  }).sort((a, b) => b.active - a.active);
+    return { user: u, teamName: team?.name || '—', assigned: uStats.total, completed: uStats.completed };
+  }).sort((a, b) => b.assigned - a.assigned);
 
   const overdueTasks = deptTasks.filter((t) => t.status !== STATUS.COMPLETED && t.status !== STATUS.DRAFT && t.dueDate < TODAY);
 
@@ -163,8 +162,8 @@ export default function ManagerDashboard() {
         </div>
         <div style={{ overflowX: 'auto' }}>
           <div style={{ minWidth: 760 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr 1fr 1fr 1fr 1fr', padding: '12px 26px', marginTop: 12, background: 'var(--field-bg)' }}>
-              {['Employee', 'Team', 'Role', 'Assigned', 'Active', 'Completed'].map((h) => (
+            <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr 1fr 1fr 1fr', padding: '12px 26px', marginTop: 12, background: 'var(--field-bg)' }}>
+              {['Employee', 'Team', 'Role', 'Assigned', 'Completed'].map((h) => (
                 <div key={h} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11.5, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>{h}</div>
               ))}
             </div>
@@ -172,7 +171,7 @@ export default function ManagerDashboard() {
               <div
                 key={row.user.id}
                 onClick={() => navigate(`/tasks?assignee=${row.user.id}`)}
-                style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr 1fr 1fr 1fr 1fr', padding: '12px 26px', alignItems: 'center', borderTop: '1px solid var(--border)', borderBottom: i === workload.length - 1 ? '1px solid var(--border)' : 'none', cursor: 'pointer' }}
+                style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr 1fr 1fr 1fr', padding: '12px 26px', alignItems: 'center', borderTop: '1px solid var(--border)', borderBottom: i === workload.length - 1 ? '1px solid var(--border)' : 'none', cursor: 'pointer' }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <Avatar initial={row.user.initial} size={24} />
@@ -181,10 +180,7 @@ export default function ManagerDashboard() {
                 <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13, color: 'var(--text-secondary)' }}>{row.teamName.replace("'s Team", '')}</div>
                 <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13, color: 'var(--text-secondary)' }}>{row.user.title}</div>
                 <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 13.5, color: 'var(--heading)' }}>{row.assigned}</div>
-                <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 13.5, color: 'var(--heading)' }}>{row.active}</div>
-                <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 13.5, color: row.overdue > 0 ? 'var(--amber-text)' : 'var(--heading)' }}>
-                  {row.completed}{row.overdue > 0 && <span style={{ fontWeight: 500, fontSize: 11.5, marginLeft: 5 }}>({row.overdue} overdue)</span>}
-                </div>
+                <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 13.5, color: 'var(--heading)' }}>{row.completed}</div>
               </div>
             ))}
           </div>
