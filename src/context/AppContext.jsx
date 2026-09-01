@@ -539,16 +539,6 @@ export function AppProvider({ children }) {
     }
   }, [call, showToast]);
 
-  const deleteDailyUpdate = useCallback(async (updateId) => {
-    try {
-      await call(`/daily-updates/${updateId}`, { method: 'DELETE' });
-      setDailyUpdates((prev) => prev.filter((u) => u.id !== updateId));
-      showToast('Daily update deleted');
-    } catch (err) {
-      showToast(err.message || 'Could not delete daily update');
-    }
-  }, [call, showToast]);
-
   // Returns { user, tempPassword } — there's no email delivery wired up yet,
   // so the caller (a modal on My Team / Departments) is responsible for
   // showing that temp password once so it can be handed to the new hire.
@@ -673,7 +663,7 @@ export function AppProvider({ children }) {
     tasks, dailyUpdates, activity, notifications,
     scopedTasks, scopedDailyUpdates, statsFor, bucketOf, myDrafts,
     createTask, updateTask, deleteTask, publishDraft, setTaskProgress, setTaskStatus, requestChanges, submitForReview, approveTask, approveTaskCreation, rejectTaskCreation, reassignTask, requestExtension, approveExtension, rejectExtension, setTaskMarks, toggleSubtask,
-    addComment, editComment, deleteComment, addDailyUpdate, editDailyUpdate, deleteDailyUpdate, addTeamMember, addManager, addTeamLead, addDepartment, setUserActive,
+    addComment, editComment, deleteComment, addDailyUpdate, editDailyUpdate, addTeamMember, addManager, addTeamLead, addDepartment, setUserActive,
     markNotificationRead, markAllNotificationsRead,
     toast, showToast,
   };

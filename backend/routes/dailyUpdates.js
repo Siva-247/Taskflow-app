@@ -22,6 +22,12 @@ router.post('/', asyncRoute(async (req, res) => {
   const b = req.body;
   const id = `du-${randomUUID()}`;
 
+  // One update per person per day — the unique index backs this up at the
+  // database level too, but checking here first gives a clear error instead
+  // of a raw constraint-violation.
+  const existing = await prepare('SELECT id FROM daily_updates WHERE user_id = ? AND date = ?').get(req.user.id, b.date);
+  if (existing) return res.status(409).json({ error: "You already have an update for this date — edit it instead of creating a new one." });
+
   // userId always comes from the verified session, never the request body —
   // otherwise anyone could log a daily update as someone else.
   await prepare(`INSERT INTO daily_updates (id, user_id, task_id, task_title, date, status, task_completed, concepts_covered, practical_task, videos_completed, video_link)
@@ -69,14 +75,12 @@ router.patch('/:id', asyncRoute(async (req, res) => {
   res.json({ dailyUpdate });
 }));
 
+// Daily updates can never be deleted by their own author — only edited
+// (and only today's). Admin retains delete for legitimate data correction.
 router.delete('/:id', asyncRoute(async (req, res) => {
   const existing = await prepare('SELECT * FROM daily_updates WHERE id = ?').get(req.params.id);
   if (!existing) return res.status(404).json({ error: 'Daily update not found' });
-  const isAdmin = req.user.role === 'admin';
-  if (!isAdmin) {
-    if (existing.user_id !== req.user.id) return res.status(403).json({ error: 'You can only delete your own daily updates' });
-    if (existing.date !== TODAY) return res.status(403).json({ error: 'You can only delete a daily update from today' });
-  }
+  if (req.user.role !== 'admin') return res.status(403).json({ error: 'Daily updates cannot be deleted — edit today\'s entry instead.' });
 
   await prepare('DELETE FROM daily_updates WHERE id = ?').run(req.params.id);
   res.json({ ok: true });

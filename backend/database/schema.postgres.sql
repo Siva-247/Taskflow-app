@@ -137,6 +137,8 @@ CREATE INDEX IF NOT EXISTS idx_subtasks_task ON task_subtasks(task_id);
 CREATE INDEX IF NOT EXISTS idx_comments_task ON comments(task_id);
 CREATE INDEX IF NOT EXISTS idx_activity_task ON activity_logs(task_id);
 CREATE INDEX IF NOT EXISTS idx_daily_updates_user ON daily_updates(user_id);
+-- One daily update per person per day — enforced at the database, not just the UI.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_daily_updates_user_date ON daily_updates(user_id, date);
 
 -- Case-insensitive email uniqueness, replacing SQLite's COLLATE NOCASE.
 CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email_lower ON users(LOWER(email));

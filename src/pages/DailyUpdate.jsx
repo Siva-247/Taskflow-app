@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext.jsx';
-import { Card, Field, TextInput, TextArea, Select, Button, StatusBadge, Modal } from '../components/ui.jsx';
+import { Card, Field, TextInput, TextArea, Select, Button, StatusBadge } from '../components/ui.jsx';
 import { formatDate } from '../utils.js';
 
 const STATUS_OPTIONS = ['Completed', 'In Progress'];
 
 export default function DailyUpdate() {
-  const { currentUser, dailyUpdates, scopedTasks, addDailyUpdate, editDailyUpdate, deleteDailyUpdate, TODAY, showToast } = useApp();
+  const { currentUser, dailyUpdates, scopedTasks, addDailyUpdate, editDailyUpdate, TODAY, showToast } = useApp();
   const navigate = useNavigate();
 
   const myTasks = scopedTasks(currentUser);
@@ -22,10 +22,12 @@ export default function DailyUpdate() {
   const [videosCompleted, setVideosCompleted] = useState('');
   const [videoLink, setVideoLink] = useState('');
   const [errors, setErrors] = useState({});
-  const [pendingDeleteId, setPendingDeleteId] = useState(null);
 
   const myUpdates = dailyUpdates.filter((u) => u.userId === currentUser.id);
   const todaysUpdate = myUpdates.find((u) => u.date === TODAY);
+  // Once today's update exists, the create form is never shown again for
+  // today — only editing the existing entry, so a second row can't be made.
+  const showForm = !todaysUpdate || Boolean(editingId);
 
   const resetForm = () => {
     setEditingId(null); setDate(TODAY); setTaskId('');
@@ -75,67 +77,63 @@ export default function DailyUpdate() {
     }
   };
 
-  const handleDeleteConfirm = () => {
-    deleteDailyUpdate(pendingDeleteId);
-    if (editingId === pendingDeleteId) resetForm();
-    setPendingDeleteId(null);
-  };
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
       <div>
         <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 24, color: 'var(--heading)' }}>{editingId ? 'Edit daily work update' : 'Daily work update'}</div>
-        <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 14, color: 'var(--text-secondary)', marginTop: 4 }}>{editingId ? "You can only edit today's update." : 'Log what you worked on today'}</div>
+        <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 14, color: 'var(--text-secondary)', marginTop: 4 }}>{editingId ? "You can only edit today's update." : todaysUpdate ? "You've already submitted today — edit it below if anything needs to change." : 'Log what you worked on today'}</div>
       </div>
 
-      <Card style={{ maxWidth: 760 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 22 }}>
-          <Field label="Date" required>
-            <TextInput type="date" value={date} onChange={setDate} disabled={Boolean(editingId)} />
+      {showForm && (
+        <Card style={{ maxWidth: 760 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 22 }}>
+            <Field label="Date" required>
+              <TextInput type="date" value={date} onChange={setDate} disabled={Boolean(editingId)} />
+            </Field>
+            <Field label="Related task">
+              <Select value={taskId} onChange={setTaskId} options={[{ value: '', label: '— None —' }, ...myTasks.map((t) => ({ value: t.id, label: t.title }))]} />
+            </Field>
+          </div>
+
+          <div style={{ height: 18 }} />
+          <Field label="Task completed" required>
+            <TextArea value={taskCompleted} onChange={setTaskCompleted} placeholder="What did you finish today?" minHeight={56} />
           </Field>
-          <Field label="Related task">
-            <Select value={taskId} onChange={setTaskId} options={[{ value: '', label: '— None —' }, ...myTasks.map((t) => ({ value: t.id, label: t.title }))]} />
+          {errors.taskCompleted && <ErrorText>This field is required.</ErrorText>}
+
+          <div style={{ height: 18 }} />
+          <Field label="Concepts covered">
+            <TextArea value={conceptsCovered} onChange={setConceptsCovered} placeholder="What did you learn?" minHeight={56} />
           </Field>
-        </div>
 
-        <div style={{ height: 18 }} />
-        <Field label="Task completed" required>
-          <TextArea value={taskCompleted} onChange={setTaskCompleted} placeholder="What did you finish today?" minHeight={56} />
-        </Field>
-        {errors.taskCompleted && <ErrorText>This field is required.</ErrorText>}
-
-        <div style={{ height: 18 }} />
-        <Field label="Concepts covered">
-          <TextArea value={conceptsCovered} onChange={setConceptsCovered} placeholder="What did you learn?" minHeight={56} />
-        </Field>
-
-        <div style={{ height: 18 }} />
-        <Field label="Practical task">
-          <TextArea value={practicalTask} onChange={setPracticalTask} placeholder="What did you build or practice?" minHeight={56} />
-        </Field>
-
-        <div style={{ height: 18 }} />
-        <Field label="Status" required>
-          <Select value={status} onChange={setStatus} options={STATUS_OPTIONS.map((s) => ({ value: s, label: s }))} />
-        </Field>
-
-        <div style={{ height: 18 }} />
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 22 }}>
-          <Field label="No. of videos completed">
-            <TextInput type="number" value={videosCompleted} onChange={setVideosCompleted} placeholder="0" />
+          <div style={{ height: 18 }} />
+          <Field label="Practical task">
+            <TextArea value={practicalTask} onChange={setPracticalTask} placeholder="What did you build or practice?" minHeight={56} />
           </Field>
-          <Field label="Video link">
-            <TextInput value={videoLink} onChange={setVideoLink} placeholder="training.internal/..." />
+
+          <div style={{ height: 18 }} />
+          <Field label="Status" required>
+            <Select value={status} onChange={setStatus} options={STATUS_OPTIONS.map((s) => ({ value: s, label: s }))} />
           </Field>
-        </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 10, marginTop: 26 }}>
-          <Button variant="secondary" onClick={() => (editingId ? resetForm() : navigate(-1))}>Cancel</Button>
-          <Button variant="primary" onClick={handleSubmit}>{editingId ? 'Save changes' : 'Submit update'}</Button>
-        </div>
-      </Card>
+          <div style={{ height: 18 }} />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 22 }}>
+            <Field label="No. of videos completed">
+              <TextInput type="number" value={videosCompleted} onChange={setVideosCompleted} placeholder="0" />
+            </Field>
+            <Field label="Video link">
+              <TextInput value={videoLink} onChange={setVideoLink} placeholder="training.internal/..." />
+            </Field>
+          </div>
 
-      {todaysUpdate && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 10, marginTop: 26 }}>
+            <Button variant="secondary" onClick={() => (editingId ? resetForm() : navigate(-1))}>Cancel</Button>
+            <Button variant="primary" onClick={handleSubmit}>{editingId ? 'Save changes' : 'Submit update'}</Button>
+          </div>
+        </Card>
+      )}
+
+      {todaysUpdate && !editingId && (
         <Card style={{ maxWidth: 760 }} padded={false}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '22px 26px 4px' }}>
             <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 15.5, color: 'var(--heading)' }}>Today's update</div>
@@ -147,7 +145,6 @@ export default function DailyUpdate() {
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <StatusBadge status={todaysUpdate.status} />
                 <span onClick={() => startEdit(todaysUpdate)} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 11.5, color: 'var(--accent-dark)', cursor: 'pointer' }}>Edit</span>
-                <span onClick={() => setPendingDeleteId(todaysUpdate.id)} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 11.5, color: 'var(--amber-text)', cursor: 'pointer' }}>Delete</span>
               </div>
             </div>
             <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13, color: 'var(--text-secondary)', marginTop: 4 }}>{todaysUpdate.taskCompleted}</div>
@@ -156,18 +153,6 @@ export default function DailyUpdate() {
             )}
           </div>
         </Card>
-      )}
-
-      {pendingDeleteId && (
-        <Modal title="Delete this update?" onClose={() => setPendingDeleteId(null)}>
-          <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13.5, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-            This can't be undone.
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 22 }}>
-            <Button variant="secondary" onClick={() => setPendingDeleteId(null)}>Cancel</Button>
-            <Button variant="danger" onClick={handleDeleteConfirm}>Delete update</Button>
-          </div>
-        </Modal>
       )}
     </div>
   );
