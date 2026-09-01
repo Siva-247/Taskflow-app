@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useApp } from '../context/AppContext.jsx';
 import { STATUS, PRIORITY, ROLES, teamById } from '../data/mockData.js';
@@ -19,6 +19,20 @@ export default function TaskList() {
   const [teamFilter, setTeamFilter] = useState(params.get('team') || 'all');
   const [assigneeFilter, setAssigneeFilter] = useState(params.get('assignee') || 'all');
   const [dueBefore, setDueBefore] = useState('');
+
+  // This page is one route (/tasks) reused by several nav links that only
+  // differ by query string (Approvals, Reviews, Overdue, "View all" from a
+  // dashboard, etc). React Router doesn't remount the component for a
+  // same-route navigation, so the useState initializers above only ever ran
+  // once — clicking from Approvals to Reviews changed the URL but left the
+  // filters stuck on whatever they were first mounted with. Re-sync them
+  // whenever the URL's own filter params actually change.
+  useEffect(() => {
+    setStatus(params.get('status') || 'all');
+    setTeamFilter(params.get('team') || 'all');
+    setAssigneeFilter(params.get('assignee') || 'all');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params.get('status'), params.get('team'), params.get('assignee')]);
 
   const canCreate = currentUser.role === ROLES.TEAM_LEAD || currentUser.role === ROLES.MANAGER || currentUser.role === ROLES.EMPLOYEE;
 
