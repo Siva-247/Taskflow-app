@@ -15,7 +15,6 @@ export default function Login() {
   const [submitting, setSubmitting] = useState(false);
 
   const [resetSent, setResetSent] = useState(false);
-  const [devResetToken, setDevResetToken] = useState('');
 
   const handleLogin = async () => {
     setError('');
@@ -35,9 +34,8 @@ export default function Login() {
     if (!email.trim()) { setError('Enter the email on your account.'); return; }
     setSubmitting(true);
     try {
-      const result = await requestPasswordReset(email.trim());
+      await requestPasswordReset(email.trim());
       setResetSent(true);
-      setDevResetToken(result.devResetToken || '');
     } catch {
       // context already surfaced a toast for the failure
     } finally {
@@ -46,7 +44,7 @@ export default function Login() {
   };
 
   const backToLogin = () => {
-    setMode('login'); setError(''); setResetSent(false); setDevResetToken(''); setPassword('');
+    setMode('login'); setError(''); setResetSent(false); setPassword('');
   };
 
   return (
@@ -109,20 +107,6 @@ export default function Login() {
                   <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13.5, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
                     If that email exists on an account, a reset link has been created. It expires in 30 minutes.
                   </div>
-                  {devResetToken && (
-                    <div style={{ padding: '12px 14px', background: 'var(--field-bg)', border: '1px dashed var(--border)', borderRadius: 10 }}>
-                      <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 6 }}>
-                        Dev mode — no email server configured
-                      </div>
-                      <div style={{ fontFamily: "monospace", fontSize: 11.5, color: 'var(--text-primary)', wordBreak: 'break-all' }}>{devResetToken}</div>
-                      <div
-                        onClick={() => navigate(`/reset-password?token=${encodeURIComponent(devResetToken)}`)}
-                        style={{ marginTop: 10, fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12.5, color: 'var(--accent-dark)', cursor: 'pointer' }}
-                      >
-                        Use this token to reset now →
-                      </div>
-                    </div>
-                  )}
                 </div>
               )}
               <div style={{ textAlign: 'center' }}>

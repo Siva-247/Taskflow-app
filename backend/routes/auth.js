@@ -210,9 +210,15 @@ router.post('/change-password', requireAuth, asyncRoute(async (req, res) => {
 }));
 
 // This endpoint always answers with the same generic message (never reveals
-// whether the address exists). When SMTP is configured (see backend/.env),
-// it emails the real reset link; otherwise it falls back to handing the raw
-// token back in the response for local dev, exactly as before.
+// whether the address exists) and NEVER puts the raw reset token in the
+// response — that's the one thing a network caller must never receive,
+// since anyone who has it can take over the account outright. When SMTP is
+// configured it's emailed to the real address instead; when it isn't, the
+// token is only ever written to the server's own logs (not reachable over
+// the network), for a trusted operator to relay by hand if truly needed —
+// deliberately not gated on NODE_ENV, since that's exactly the kind of
+// environment flag that's easy to leave unset on a real deployment and
+// this is too dangerous to leave depending on it being right.
 router.post('/forgot-password', asyncRoute(async (req, res) => {
   const generic = { ok: true, message: 'If that email exists, a reset link has been created.' };
   const email = normalizeEmail(req.body.email);
@@ -238,10 +244,8 @@ router.post('/forgot-password', asyncRoute(async (req, res) => {
     }
   }
 
-  if (process.env.NODE_ENV === 'production') return res.json(generic);
-
-  console.log(`[DEV-ONLY password reset] user=${user.id} token=${rawToken} (expires in 30 min) — never log this in production`);
-  res.json({ ...generic, devResetToken: rawToken });
+  console.log(`[password reset — no email configured] user=${user.id} reset link=${resetLink} (expires in 30 min)`);
+  res.json(generic);
 }));
 
 router.post('/reset-password', asyncRoute(async (req, res) => {
