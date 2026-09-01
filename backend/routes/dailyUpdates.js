@@ -72,8 +72,11 @@ router.patch('/:id', asyncRoute(async (req, res) => {
 router.delete('/:id', asyncRoute(async (req, res) => {
   const existing = await prepare('SELECT * FROM daily_updates WHERE id = ?').get(req.params.id);
   if (!existing) return res.status(404).json({ error: 'Daily update not found' });
-  if (existing.user_id !== req.user.id) return res.status(403).json({ error: 'You can only delete your own daily updates' });
-  if (existing.date !== TODAY) return res.status(403).json({ error: 'You can only delete a daily update from today' });
+  const isAdmin = req.user.role === 'admin';
+  if (!isAdmin) {
+    if (existing.user_id !== req.user.id) return res.status(403).json({ error: 'You can only delete your own daily updates' });
+    if (existing.date !== TODAY) return res.status(403).json({ error: 'You can only delete a daily update from today' });
+  }
 
   await prepare('DELETE FROM daily_updates WHERE id = ?').run(req.params.id);
   res.json({ ok: true });
