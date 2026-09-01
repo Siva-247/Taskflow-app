@@ -14,6 +14,7 @@ const NAV_BY_ROLE = {
     { label: 'Employees', icon: IconUser, to: '/employees' },
     { label: 'Teams', icon: IconUsers, to: '/teams' },
     { label: 'All Tasks', icon: IconChecklist, to: '/tasks' },
+    { label: 'Daily Updates', icon: IconCalendar, to: '/daily-updates' },
     { label: 'Reports', icon: IconBarChart, to: '/reports' },
     { label: 'Settings', icon: IconGear, to: '/settings' },
   ],
@@ -24,6 +25,7 @@ const NAV_BY_ROLE = {
     { label: 'Tasks', icon: IconChecklist, to: '/tasks' },
     { label: 'Create Task', icon: IconPlusCircle, to: '/tasks/new' },
     { label: 'Approvals', icon: IconEye, to: '/tasks?status=Pending+Approval' },
+    { label: 'Daily Updates', icon: IconCalendar, to: '/daily-updates' },
     { label: 'Reports', icon: IconBarChart, to: '/reports' },
   ],
   [ROLES.TEAM_LEAD]: [
