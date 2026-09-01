@@ -9,27 +9,67 @@ export const pool = new pg.Pool({
   ssl: { rejectUnauthorized: false },
 });
 
+// Blanks out the interior of every single-quoted string literal (keeping the
+// quotes and the overall length) so placeholder detection below never
+// mistakes literal content for a real placeholder — e.g. the '@' in
+// `LIKE '%@taskflow.local'`, or a stray '?' inside a literal.
+function maskStringLiterals(sql) {
+  let out = '';
+  let inString = false;
+  for (let i = 0; i < sql.length; i++) {
+    const ch = sql[i];
+    if (ch === "'") {
+      if (inString && sql[i + 1] === "'") {
+        out += '  ';
+        i += 1;
+        continue;
+      }
+      inString = !inString;
+      out += ch;
+      continue;
+    }
+    out += inString ? ' ' : ch;
+  }
+  return out;
+}
+
 // Translates a SQLite-style query (either `?` positional or `@name` named
 // placeholders — both used across the existing route files) into Postgres's
 // `$1, $2, ...` style, once per distinct SQL string. Repeated `@name`
 // occurrences reuse the same `$n`; `names` records the order so values can
 // be pulled from the object passed to .get/.all/.run in the right sequence.
+// Placeholder positions are found in a string-literal-masked copy, then
+// applied to the real SQL text, so nothing inside a literal is ever touched.
 function translateSql(sql) {
-  const hasNamed = /@\w+/.test(sql);
-  if (hasNamed) {
+  const masked = maskStringLiterals(sql);
+  const namedMatches = [...masked.matchAll(/@(\w+)/g)];
+
+  if (namedMatches.length > 0) {
     const order = [];
     const seen = new Map();
-    const translated = sql.replace(/@(\w+)/g, (_, name) => {
+    let translated = '';
+    let lastIndex = 0;
+    for (const m of namedMatches) {
+      const name = m[1];
       if (!seen.has(name)) {
         seen.set(name, order.length + 1);
         order.push(name);
       }
-      return `$${seen.get(name)}`;
-    });
+      translated += sql.slice(lastIndex, m.index) + `$${seen.get(name)}`;
+      lastIndex = m.index + m[0].length;
+    }
+    translated += sql.slice(lastIndex);
     return { sql: translated, mode: 'named', names: order };
   }
+
   let i = 0;
-  const translated = sql.replace(/\?/g, () => `$${++i}`);
+  let translated = '';
+  let lastIndex = 0;
+  for (const m of masked.matchAll(/\?/g)) {
+    translated += sql.slice(lastIndex, m.index) + `$${++i}`;
+    lastIndex = m.index + 1;
+  }
+  translated += sql.slice(lastIndex);
   return { sql: translated, mode: 'positional' };
 }
 
