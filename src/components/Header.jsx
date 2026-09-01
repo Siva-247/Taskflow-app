@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext.jsx';
-import { IconLogo, IconBell, IconChevronDown, IconCheckCircle, IconPlusCircle, IconUser } from './icons.jsx';
+import { IconLogo, IconBell, IconChevronDown, IconCheckCircle, IconPlusCircle, IconUser, IconMenu } from './icons.jsx';
 import { Avatar } from './ui.jsx';
 import { roleHome, formatDate } from '../utils.js';
 
@@ -13,7 +13,7 @@ const NOTIFICATION_ICON = {
   marked: (color) => <IconCheckCircle size={14} color={color} />,
 };
 
-export default function Header() {
+export default function Header({ onMenuClick }) {
   const { currentUser, logout, notifications, markNotificationRead, markAllNotificationsRead } = useApp();
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -32,16 +32,21 @@ export default function Header() {
   return (
     <div style={{
       height: 68, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      padding: '0 32px', background: '#FFFFFF', borderBottom: '1px solid var(--border)', position: 'relative',
+      padding: '0 32px', background: '#FFFFFF', borderBottom: '1px solid var(--border)', position: 'relative', gap: 12,
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 11, cursor: 'pointer' }} onClick={() => navigate(roleHome(currentUser.role))}>
-        <div style={{ width: 34, height: 34, borderRadius: 10, background: 'var(--accent-dark)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <IconLogo size={19} />
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0 }}>
+        <button type="button" className="hamburger-btn" onClick={onMenuClick} aria-label="Toggle navigation">
+          <IconMenu size={20} />
+        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 11, cursor: 'pointer', minWidth: 0 }} onClick={() => navigate(roleHome(currentUser.role))}>
+          <div style={{ width: 34, height: 34, flexShrink: 0, borderRadius: 10, background: 'var(--accent-dark)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <IconLogo size={19} />
+          </div>
+          <span className="header-brand-text" style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 18, letterSpacing: '-0.01em', color: 'var(--heading)', whiteSpace: 'nowrap' }}>TaskFlow</span>
         </div>
-        <span style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 18, letterSpacing: '-0.01em', color: 'var(--heading)' }}>TaskFlow</span>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 18, flexShrink: 0 }}>
         <div style={{ position: 'relative' }}>
           <div
             onClick={() => { setNotifOpen((v) => !v); setMenuOpen(false); }}
@@ -60,9 +65,9 @@ export default function Header() {
           </div>
 
           {notifOpen && (
-            <div style={{
+            <div className="notif-panel" style={{
               position: 'absolute', top: 44, right: -10, background: '#FFFFFF', border: '1px solid var(--border)',
-              borderRadius: 10, boxShadow: '0 10px 28px -12px rgba(59,30,112,0.25)', width: 340, maxHeight: 420, overflowY: 'auto', zIndex: 20,
+              borderRadius: 10, boxShadow: '0 10px 28px -12px rgba(59,30,112,0.25)', width: 340, maxWidth: 'calc(100vw - 24px)', maxHeight: 420, overflowY: 'auto', zIndex: 20,
             }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderBottom: '1px solid var(--border)' }}>
                 <span style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 13.5, color: 'var(--heading)' }}>Notifications</span>
@@ -96,10 +101,10 @@ export default function Header() {
             </div>
           )}
         </div>
-        <div style={{ width: 1, height: 22, background: 'var(--border)' }} />
+        <div className="header-user-text" style={{ width: 1, height: 22, background: 'var(--border)' }} />
         <div style={{ display: 'flex', alignItems: 'center', gap: 9, cursor: 'pointer', position: 'relative' }} onClick={() => { setMenuOpen((v) => !v); setNotifOpen(false); }}>
           <Avatar initial={currentUser.initial} size={32} />
-          <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>
+          <div className="header-user-text" style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>
             <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 13.5, color: 'var(--text-primary)' }}>{currentUser.name}</span>
             {currentUser.title && <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 11, color: 'var(--text-muted)' }}>{currentUser.title}</span>}
           </div>

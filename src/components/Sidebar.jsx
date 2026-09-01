@@ -52,7 +52,7 @@ const WIDTH_BY_ROLE = {
   [ROLES.EMPLOYEE]: 212,
 };
 
-export default function Sidebar() {
+export default function Sidebar({ open = false, onNavigate }) {
   const { currentUser, showToast } = useApp();
   const navigate = useNavigate();
   const location = useLocation();
@@ -62,8 +62,13 @@ export default function Sidebar() {
   const width = WIDTH_BY_ROLE[currentUser.role] || 232;
   const currentPath = location.pathname + location.search;
 
+  const go = (to) => {
+    navigate(to);
+    if (onNavigate) onNavigate();
+  };
+
   return (
-    <div style={{
+    <div className={`sidebar${open ? ' open' : ''}`} style={{
       width, flexShrink: 0, background: '#FFFFFF', borderRight: '1px solid var(--border)',
       padding: '20px 14px', display: 'flex', flexDirection: 'column', gap: 2,
     }}>
@@ -73,7 +78,7 @@ export default function Sidebar() {
         return (
           <div
             key={item.label}
-            onClick={() => (item.to ? navigate(item.to) : showToast(`${item.label} is planned for Phase 2`))}
+            onClick={() => (item.to ? go(item.to) : showToast(`${item.label} is planned for Phase 2`))}
             style={{
               display: 'flex', alignItems: 'center', gap: 11, padding: '9px 12px', borderRadius: 9,
               background: isActive ? 'var(--accent-soft)' : 'transparent',

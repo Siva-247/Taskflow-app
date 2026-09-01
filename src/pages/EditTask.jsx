@@ -123,7 +123,7 @@ export default function EditTask() {
         </Field>
 
         <SectionLabel>Assignment &amp; priority</SectionLabel>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 22 }}>
+        <div className="responsive-grid" style={{ display: 'grid', '--cols': '1fr 1fr 1fr', gap: 22 }}>
           <Field label="Assigned to">
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '11px 15px', border: '1px solid var(--border)', borderRadius: 9, background: 'var(--field-bg)' }}>
               <Avatar initial={assignee?.initial} size={20} />
@@ -139,7 +139,7 @@ export default function EditTask() {
         </div>
 
         <SectionLabel>Schedule</SectionLabel>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 22 }}>
+        <div className="responsive-grid" style={{ display: 'grid', '--cols': '1fr 1fr', gap: 22 }}>
           <Field label="Start date" required>
             <TextInput type="date" value={startDate} onChange={setStartDate} min={TODAY} />
           </Field>

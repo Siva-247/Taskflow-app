@@ -100,7 +100,7 @@ export default function Departments() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
-      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+      <div className="stack-mobile" style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
         <div>
           <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 24, color: 'var(--heading)' }}>Departments</div>
           <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 14, color: 'var(--text-secondary)', marginTop: 4 }}>Company-wide department overview</div>
@@ -144,7 +144,7 @@ export default function Departments() {
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6,1fr)', gap: 12, marginTop: 20 }}>
+            <div className="responsive-grid" style={{ display: 'grid', '--cols': 'repeat(6,1fr)', gap: 12, marginTop: 20 }}>
               <DeptStat value={row.teamCount} label="Teams" />
               <DeptStat value={row.employeeCount} label="Employees" />
               <DeptStat value={row.total} label="Tasks" />

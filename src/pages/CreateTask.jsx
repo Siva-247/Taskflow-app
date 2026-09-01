@@ -217,7 +217,7 @@ export default function CreateTask() {
         {errors.category && <ErrorText>Enter a category, or pick one from the list.</ErrorText>}
 
         <SectionLabel>Assignment &amp; priority</SectionLabel>
-        <div style={{ display: 'grid', gridTemplateColumns: currentUser.role === ROLES.EMPLOYEE ? '1fr 1fr' : '1fr 1fr 1fr', gap: 22 }}>
+        <div className="responsive-grid" style={{ display: 'grid', '--cols': currentUser.role === ROLES.EMPLOYEE ? '1fr 1fr' : '1fr 1fr 1fr', gap: 22 }}>
           {currentUser.role === ROLES.EMPLOYEE ? (
             <Field label="Assigned to">
               <div style={{
@@ -244,7 +244,7 @@ export default function CreateTask() {
         </div>
 
         <SectionLabel>Schedule</SectionLabel>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 22 }}>
+        <div className="responsive-grid" style={{ display: 'grid', '--cols': '1fr 1fr', gap: 22 }}>
           <Field label="Start date" required>
             <TextInput type="date" value={startDate} onChange={setStartDate} min={TODAY} />
           </Field>
@@ -282,7 +282,7 @@ export default function CreateTask() {
           <span onClick={() => navigate('/drafts')} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12.5, color: 'var(--accent-dark)', cursor: 'pointer' }}>
             View drafts
           </span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             <Button variant="secondary" onClick={handleCancelClick}>Cancel</Button>
             <Button variant="accentOutline" onClick={handleSaveDraft}>Save draft</Button>
             <Button variant="primary" onClick={handleAssign}>{needsApproval ? 'Submit for approval' : 'Assign task'}</Button>

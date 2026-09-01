@@ -133,21 +133,21 @@ export default function DailyUpdateHistory() {
               style={{ border: 'none', outline: 'none', flex: 1, fontFamily: "'Manrope',system-ui,sans-serif", fontSize: 13.5, color: 'var(--text-primary)' }}
             />
           </div>
-          <div style={{ width: 150 }}>
+          <div className="filter-field" style={{ width: 150 }}>
             <Select value={statusFilter} onChange={setStatusFilter} options={[{ value: 'all', label: 'All statuses' }, ...STATUS_OPTIONS.map((s) => ({ value: s, label: s }))]} />
           </div>
           {showEmployeeFilter && (
-            <div style={{ width: 170 }}>
+            <div className="filter-field" style={{ width: 170 }}>
               <Select value={employeeFilter} onChange={setEmployeeFilter} options={[{ value: 'all', label: 'All employees' }, ...availableEmployees.map((u) => ({ value: u.id, label: u.name }))]} />
             </div>
           )}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
             <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12, color: 'var(--text-muted)' }}>From</span>
-            <div style={{ width: 145 }}><TextInput type="date" value={dateFrom} onChange={setDateFrom} /></div>
+            <div className="filter-field" style={{ width: 145 }}><TextInput type="date" value={dateFrom} onChange={setDateFrom} /></div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
             <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12, color: 'var(--text-muted)' }}>To</span>
-            <div style={{ width: 145 }}><TextInput type="date" value={dateTo} onChange={setDateTo} /></div>
+            <div className="filter-field" style={{ width: 145 }}><TextInput type="date" value={dateTo} onChange={setDateTo} /></div>
           </div>
           {hasActiveFilters && (
             <span onClick={clearFilters} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12.5, color: 'var(--accent-dark)', cursor: 'pointer' }}>

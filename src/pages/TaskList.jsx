@@ -97,23 +97,23 @@ export default function TaskList() {
               style={{ border: 'none', outline: 'none', flex: 1, fontFamily: "'Manrope',system-ui,sans-serif", fontSize: 13.5, color: 'var(--text-primary)' }}
             />
           </div>
-          <div style={{ width: 158 }}>
+          <div className="filter-field" style={{ width: 158 }}>
             <Select value={status} onChange={setStatus} options={[{ value: 'all', label: 'All statuses' }, ...STATUS_OPTIONS.map((s) => ({ value: s, label: s })), { value: 'Overdue', label: 'Overdue' }, { value: 'Approval Requests', label: 'Approval Requests' }]} />
           </div>
-          <div style={{ width: 140 }}>
+          <div className="filter-field" style={{ width: 140 }}>
             <Select value={priority} onChange={setPriority} options={[{ value: 'all', label: 'All priorities' }, ...PRIORITY_OPTIONS.map((p) => ({ value: p, label: p }))]} />
           </div>
           {availableTeams.length > 1 && (
-            <div style={{ width: 150 }}>
+            <div className="filter-field" style={{ width: 150 }}>
               <Select value={teamFilter} onChange={setTeamFilter} options={[{ value: 'all', label: 'All teams' }, ...availableTeams.map((t) => ({ value: t.id, label: t.name }))]} />
             </div>
           )}
           {availableAssignees.length > 1 && (
-            <div style={{ width: 150 }}>
+            <div className="filter-field" style={{ width: 150 }}>
               <Select value={assigneeFilter} onChange={setAssigneeFilter} options={[{ value: 'all', label: 'All assignees' }, ...availableAssignees.map((u) => ({ value: u.id, label: u.name }))]} />
             </div>
           )}
-          <div style={{ width: 150 }}>
+          <div className="filter-field" style={{ width: 150 }}>
             <TextInput type="date" value={dueBefore} onChange={setDueBefore} placeholder="Due before" />
           </div>
         </div>

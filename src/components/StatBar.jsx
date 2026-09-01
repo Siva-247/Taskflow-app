@@ -23,9 +23,9 @@ export default function StatBar({ items }) {
   const navigate = useNavigate();
 
   return (
-    <div style={{
+    <div className="stat-bar" style={{
       background: '#FFFFFF', border: '1px solid var(--border)', borderRadius: 14,
-      display: 'grid', gridTemplateColumns: `repeat(${items.length},1fr)`, boxShadow: 'var(--card-shadow)',
+      display: 'grid', boxShadow: 'var(--card-shadow)', '--stat-cols': items.length,
     }}>
       {items.map((item, i) => (
         <div

@@ -68,7 +68,7 @@ export default function Reports() {
         </Button>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 14 }}>
+      <div className="responsive-grid" style={{ display: 'grid', '--cols': 'repeat(5,1fr)', gap: 14 }}>
         <ReportStat value={stats.total} label="Total tasks" />
         <ReportStat value={stats.completed} label="Completed" color="var(--accent-dark)" />
         <ReportStat value={stats.inProgress} label="In progress" color="var(--accent-mid)" />
@@ -78,18 +78,18 @@ export default function Reports() {
 
       <Card padded={false} style={{ padding: '14px 18px' }}>
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-          <div style={{ width: 170 }}>
+          <div className="filter-field" style={{ width: 170 }}>
             <Select value={statusFilter} onChange={setStatusFilter} options={[{ value: 'all', label: 'All statuses' }, ...STATUS_OPTIONS.map((s) => ({ value: s, label: s })), { value: 'Overdue', label: 'Overdue' }]} />
           </div>
           {availableTeams.length > 1 && (
-            <div style={{ width: 170 }}>
+            <div className="filter-field" style={{ width: 170 }}>
               <Select value={teamFilter} onChange={setTeamFilter} options={[{ value: 'all', label: 'All teams' }, ...availableTeams.map((t) => ({ value: t.id, label: t.name }))]} />
             </div>
           )}
-          <div style={{ width: 160 }}>
+          <div className="filter-field" style={{ width: 160 }}>
             <TextInput type="date" value={dueFrom} onChange={setDueFrom} placeholder="Due from" />
           </div>
-          <div style={{ width: 160 }}>
+          <div className="filter-field" style={{ width: 160 }}>
             <TextInput type="date" value={dueTo} onChange={setDueTo} placeholder="Due to" />
           </div>
         </div>

@@ -54,7 +54,7 @@ export default function AdminDashboard() {
         </div>
       </Card>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: 20 }}>
+      <div className="responsive-grid" style={{ display: 'grid', '--cols': '1fr 1.2fr', gap: 20 }}>
         <Card>
           <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 15.5, color: 'var(--heading)' }}>Task status</div>
           <Donut stats={stats} />

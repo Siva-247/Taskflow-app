@@ -93,7 +93,7 @@ export default function DailyUpdate() {
 
       {showForm && (
         <Card style={{ maxWidth: 760 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 22 }}>
+          <div className="responsive-grid" style={{ display: 'grid', '--cols': '1fr 1fr', gap: 22 }}>
             <Field label="Date" required>
               <TextInput type="date" value={date} onChange={setDate} disabled={Boolean(editingId)} />
             </Field>
@@ -124,7 +124,7 @@ export default function DailyUpdate() {
           </Field>
 
           <div style={{ height: 18 }} />
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 22 }}>
+          <div className="responsive-grid" style={{ display: 'grid', '--cols': '1fr 1fr', gap: 22 }}>
             <Field label="No. of videos completed">
               <TextInput type="number" value={videosCompleted} onChange={setVideosCompleted} placeholder="0" />
             </Field>
@@ -147,7 +147,7 @@ export default function DailyUpdate() {
             <span onClick={() => navigate('/daily-updates')} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12.5, color: 'var(--accent-dark)', cursor: 'pointer' }}>View full history</span>
           </div>
           <div style={{ padding: '14px 26px 22px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
               <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 13, color: 'var(--text-primary)' }}>{formatDate(todaysUpdate.date)}{todaysUpdate.taskTitle && <span style={{ fontWeight: 500, color: 'var(--text-muted)' }}> · {todaysUpdate.taskTitle}</span>}</span>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <StatusBadge status={todaysUpdate.status} />

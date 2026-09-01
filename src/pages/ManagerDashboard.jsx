@@ -121,7 +121,7 @@ export default function ManagerDashboard() {
           <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11.5, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-muted)', marginTop: 20 }}>
             {department?.name || 'Department'}-wide
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginTop: 10 }}>
+          <div className="responsive-grid" style={{ display: 'grid', '--cols': 'repeat(3, 1fr)', gap: 12, marginTop: 10 }}>
             {overallTopPerformers.map((p, i) => <PerformerCard key={p.user.id} rank={i + 1} performer={p} onClick={() => navigate(`/tasks?assignee=${p.user.id}`)} />)}
           </div>
 
@@ -130,7 +130,7 @@ export default function ManagerDashboard() {
               <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11.5, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-muted)', marginTop: 24 }}>
                 By team
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(topPerformersByTeam.length, 2)}, 1fr)`, gap: 20, marginTop: 10 }}>
+              <div className="responsive-grid" style={{ display: 'grid', '--cols': `repeat(${Math.min(topPerformersByTeam.length, 2)}, 1fr)`, gap: 20, marginTop: 10 }}>
                 {topPerformersByTeam.map(({ team, top3 }) => (
                   <div key={team.id} style={{ border: '1px solid var(--border)', borderRadius: 12, padding: '14px 16px' }}>
                     <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 13.5, color: 'var(--text-primary)', marginBottom: 10 }}>{team.name}</div>
@@ -187,7 +187,7 @@ export default function ManagerDashboard() {
         </div>
       </Card>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+      <div className="responsive-grid" style={{ display: 'grid', '--cols': '1fr 1fr', gap: 20 }}>
         <Card>
           <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 15.5, color: 'var(--heading)' }}>Overdue tasks</div>
           <div style={{ display: 'flex', flexDirection: 'column', marginTop: 14 }}>

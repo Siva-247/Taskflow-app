@@ -25,7 +25,7 @@ export default function Profile() {
         <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 14, color: 'var(--text-secondary)', marginTop: 4 }}>Your account and activity summary</div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.4fr', gap: 20, alignItems: 'start' }}>
+      <div className="responsive-grid" style={{ display: 'grid', '--cols': '1fr 1.4fr', gap: 20, alignItems: 'start' }}>
         <Card>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 10 }}>
             <Avatar initial={currentUser.initial} size={64} gradient />
@@ -52,7 +52,7 @@ export default function Profile() {
 
         <Card>
           <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 15.5, color: 'var(--heading)' }}>Your task activity</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 14, marginTop: 16 }}>
+          <div className="responsive-grid" style={{ display: 'grid', '--cols': 'repeat(4,1fr)', gap: 14, marginTop: 16 }}>
             <MiniStat value={stats.total} label="Total" />
             <MiniStat value={stats.completed} label="Completed" color="var(--accent-dark)" />
             <MiniStat value={stats.inProgress + stats.pending} label="Active" color="var(--accent-mid)" />

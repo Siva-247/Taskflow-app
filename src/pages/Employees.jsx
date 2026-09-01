@@ -95,7 +95,7 @@ export default function Employees() {
             />
           </div>
           {scopedTeams.length > 1 && (
-            <div style={{ width: 170 }}>
+            <div className="filter-field" style={{ width: 170 }}>
               <Select value={teamFilter} onChange={setTeamFilter} options={[{ value: 'all', label: 'All teams' }, ...scopedTeams.map((t) => ({ value: t.id, label: t.name }))]} />
             </div>
           )}

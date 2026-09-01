@@ -51,3 +51,93 @@ button {
 input, select, textarea {
   font-family: inherit;
 }
+
+/* ==========================================================================
+   Responsive system
+   Breakpoints: <=1024px tablet/mobile chrome switch, <=768px content
+   collapses to a single column, <=480px tightens spacing further.
+   Every rule below lives inside a media query and uses !important — that's
+   deliberate: inline styles (used everywhere in this app) always win over a
+   plain stylesheet rule regardless of specificity, so overriding them at a
+   breakpoint requires !important. Outside the media query these rules don't
+   exist at all, so desktop layouts are byte-for-byte unaffected.
+   ========================================================================== */
+
+/* ---- App chrome: sidebar becomes an off-canvas drawer, header gets a
+   hamburger toggle ---- */
+.hamburger-btn { display: none; }
+.sidebar-backdrop { display: none; }
+
+@media (max-width: 1024px) {
+  .hamburger-btn {
+    display: flex !important; align-items: center; justify-content: center;
+    width: 34px; height: 34px; border-radius: 9px; border: none; background: transparent; cursor: pointer;
+  }
+  .sidebar {
+    position: fixed !important; top: 0 !important; left: 0 !important; bottom: 0 !important;
+    height: 100vh !important; width: 240px !important; max-width: 82vw !important;
+    transform: translateX(-100%); transition: transform 0.25s ease;
+    z-index: 1001 !important; box-shadow: 16px 0 40px -16px rgba(20,10,40,0.35);
+    overflow-y: auto !important;
+  }
+  .sidebar.open { transform: translateX(0); }
+  .sidebar-backdrop.open {
+    display: block !important; position: fixed !important; inset: 0 !important;
+    background: rgba(20,10,40,0.42) !important; z-index: 1000 !important;
+  }
+  .layout-content { padding: 22px 20px !important; }
+  .header-brand-text { display: none !important; }
+  .header-user-text { display: none !important; }
+}
+
+@media (max-width: 480px) {
+  .layout-content { padding: 16px 14px !important; }
+  .notif-panel { width: calc(100vw - 24px) !important; right: -8px !important; }
+}
+
+/* ---- Generic responsive grid: column template supplied via the --cols
+   custom property so the desktop value (set inline) is reproduced exactly;
+   collapses to a single column below 768px. ---- */
+.responsive-grid {
+  display: grid;
+  grid-template-columns: var(--cols, 1fr);
+  gap: var(--grid-gap, 20px);
+}
+@media (max-width: 768px) {
+  .responsive-grid { grid-template-columns: var(--cols-tablet, 1fr) !important; }
+}
+@media (max-width: 480px) {
+  .responsive-grid { gap: var(--grid-gap-mobile, 14px) !important; }
+}
+
+/* ---- Filter/toolbar fields (Select/TextInput given a fixed px width in a
+   flex row) go full-width and stack once the row wraps ---- */
+@media (max-width: 640px) {
+  .filter-field { width: 100% !important; }
+}
+
+/* ---- Any flex row that should stack vertically on small screens ---- */
+@media (max-width: 640px) {
+  .stack-mobile { flex-direction: column !important; align-items: stretch !important; }
+}
+
+/* ---- Shared StatBar strip ---- */
+.stat-bar { grid-template-columns: repeat(var(--stat-cols, 4), 1fr); }
+@media (max-width: 780px) {
+  .stat-bar { grid-template-columns: repeat(2, 1fr) !important; }
+  .stat-bar > *:nth-child(2n) { border-right: none !important; }
+  .stat-bar > * { border-bottom: 1px solid var(--border); }
+}
+@media (max-width: 420px) {
+  .stat-bar { grid-template-columns: 1fr !important; }
+  .stat-bar > * { border-right: none !important; }
+}
+
+/* ---- Data tables: keep the table intact and scroll it horizontally inside
+   its own box, so the page body itself never scrolls sideways ---- */
+.table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+/* ---- Tighten a card's padding on small screens ---- */
+@media (max-width: 480px) {
+  .card-tight-mobile { padding: 16px !important; }
+}

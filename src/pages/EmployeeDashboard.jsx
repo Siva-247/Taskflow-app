@@ -46,7 +46,7 @@ export default function EmployeeDashboard() {
           <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 14, color: 'var(--text-secondary)', marginTop: 4 }}>Here's your work for today.</div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 22, padding: '11px 20px', background: '#FFFFFF', border: '1px solid var(--border)', borderRadius: 12, boxShadow: 'var(--card-shadow)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 22, padding: '11px 20px', background: '#FFFFFF', border: '1px solid var(--border)', borderRadius: 12, boxShadow: 'var(--card-shadow)' }}>
           <StatChip value={myTasks.length} label="tasks" color="var(--heading)" />
           <Divider />
           <StatChip value={done} label="done" color="var(--accent-dark)" />
@@ -74,7 +74,7 @@ export default function EmployeeDashboard() {
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           {openTasks.map((task, i) => (
             <div key={task.id} style={{ padding: '20px 0', borderTop: '1px solid var(--border)', marginTop: i === 0 ? 16 : 0 }}>
-              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+              <div className="stack-mobile" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
                 <div style={{ cursor: 'pointer' }} onClick={() => navigate(`/tasks/${task.id}`)}>
                   <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 16, color: 'var(--text-primary)' }}>{task.title}</div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginTop: 8 }}>
@@ -132,7 +132,7 @@ export default function EmployeeDashboard() {
         </div>
       </Card>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 0.85fr 0.85fr', gap: 20 }}>
+      <div className="responsive-grid" style={{ display: 'grid', '--cols': '1fr 0.85fr 0.85fr', gap: 20 }}>
         <Card>
           <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 15.5, color: 'var(--heading)' }}>Today's work update</div>
           <div style={{ marginTop: 13, padding: '13px 16px', border: '1px solid var(--border)', borderRadius: 10, background: 'var(--field-bg)', minHeight: 46, display: 'flex', alignItems: 'center' }}>
