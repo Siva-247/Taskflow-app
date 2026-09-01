@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext.jsx';
-import { Card, Field, TextInput, TextArea, Select, Button, StatusBadge } from '../components/ui.jsx';
+import { Card, Field, TextInput, TextArea, Select, Button, StatusBadge, Modal } from '../components/ui.jsx';
 import { formatDate } from '../utils.js';
 
 const STATUS_OPTIONS = ['Completed', 'In Progress'];
 
 export default function DailyUpdate() {
-  const { currentUser, dailyUpdates, scopedTasks, addDailyUpdate, editDailyUpdate, TODAY, showToast } = useApp();
+  const { currentUser, dailyUpdates, scopedTasks, addDailyUpdate, editDailyUpdate, deleteDailyUpdate, TODAY, showToast } = useApp();
   const navigate = useNavigate();
 
   const myTasks = scopedTasks(currentUser);
@@ -22,6 +22,7 @@ export default function DailyUpdate() {
   const [videosCompleted, setVideosCompleted] = useState('');
   const [videoLink, setVideoLink] = useState('');
   const [errors, setErrors] = useState({});
+  const [pendingDeleteId, setPendingDeleteId] = useState(null);
 
   const myUpdates = dailyUpdates.filter((u) => u.userId === currentUser.id);
   const todaysUpdate = myUpdates.find((u) => u.date === TODAY);
@@ -75,6 +76,12 @@ export default function DailyUpdate() {
     } catch {
       // context already surfaced a toast for the failure
     }
+  };
+
+  const handleDeleteConfirm = async () => {
+    await deleteDailyUpdate(pendingDeleteId);
+    if (editingId === pendingDeleteId) resetForm();
+    setPendingDeleteId(null);
   };
 
   return (
@@ -145,6 +152,7 @@ export default function DailyUpdate() {
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <StatusBadge status={todaysUpdate.status} />
                 <span onClick={() => startEdit(todaysUpdate)} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 11.5, color: 'var(--accent-dark)', cursor: 'pointer' }}>Edit</span>
+                <span onClick={() => setPendingDeleteId(todaysUpdate.id)} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 11.5, color: 'var(--amber-text)', cursor: 'pointer' }}>Delete</span>
               </div>
             </div>
             <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13, color: 'var(--text-secondary)', marginTop: 4 }}>{todaysUpdate.taskCompleted}</div>
@@ -153,6 +161,18 @@ export default function DailyUpdate() {
             )}
           </div>
         </Card>
+      )}
+
+      {pendingDeleteId && (
+        <Modal title="Delete this update?" onClose={() => setPendingDeleteId(null)}>
+          <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13.5, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+            This can't be undone.
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 22 }}>
+            <Button variant="secondary" onClick={() => setPendingDeleteId(null)}>Cancel</Button>
+            <Button variant="danger" onClick={handleDeleteConfirm}>Delete update</Button>
+          </div>
+        </Modal>
       )}
     </div>
   );

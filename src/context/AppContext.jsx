@@ -565,6 +565,16 @@ export function AppProvider({ children }) {
     }
   }, [call, showToast]);
 
+  const deleteDailyUpdate = useCallback(async (updateId) => {
+    try {
+      await call(`/daily-updates/${updateId}`, { method: 'DELETE' });
+      setDailyUpdates((prev) => prev.filter((u) => u.id !== updateId));
+      showToast('Daily update deleted');
+    } catch (err) {
+      showToast(err.message || 'Could not delete daily update');
+    }
+  }, [call, showToast]);
+
   // Returns { user, tempPassword } — there's no email delivery wired up yet,
   // so the caller (a modal on My Team / Departments) is responsible for
   // showing that temp password once so it can be handed to the new hire.
@@ -699,6 +709,17 @@ export function AppProvider({ children }) {
     }
   }, [call, showToast]);
 
+  const deleteUser = useCallback(async (id) => {
+    try {
+      await call(`/users/${id}`, { method: 'DELETE' });
+      setUsers((prev) => prev.filter((u) => u.id !== id));
+      showToast('Member removed');
+    } catch (err) {
+      showToast(err.message || 'Could not remove member');
+      throw err;
+    }
+  }, [call, showToast]);
+
   const markNotificationRead = useCallback(async (id) => {
     setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
     try {
@@ -724,7 +745,7 @@ export function AppProvider({ children }) {
     tasks, dailyUpdates, activity, notifications,
     scopedTasks, scopedDailyUpdates, statsFor, bucketOf, myDrafts,
     createTask, updateTask, deleteTask, publishDraft, refreshTask, setTaskProgress, setTaskStatus, requestChanges, submitForReview, approveTask, approveTaskCreation, rejectTaskCreation, reassignTask, requestExtension, approveExtension, rejectExtension, setTaskMarks, toggleSubtask,
-    addComment, editComment, deleteComment, addDailyUpdate, editDailyUpdate, addTeamMember, addManager, addTeamLead, addDepartment, editDepartment, deleteDepartment, editUser, setUserActive,
+    addComment, editComment, deleteComment, addDailyUpdate, editDailyUpdate, deleteDailyUpdate, addTeamMember, addManager, addTeamLead, addDepartment, editDepartment, deleteDepartment, editUser, deleteUser, setUserActive,
     markNotificationRead, markAllNotificationsRead,
     toast, showToast,
   };

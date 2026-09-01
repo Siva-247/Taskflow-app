@@ -77,10 +77,17 @@ router.patch('/:id', asyncRoute(async (req, res) => {
 
 // Daily updates can never be deleted by their own author — only edited
 // (and only today's). Admin retains delete for legitimate data correction.
+// Same rule as PATCH: today's own entry is the only one anyone but admin can
+// touch at all — once the day rolls over it becomes a fixed historical
+// record, edit or delete both blocked. Admin keeps a standing override for
+// legitimate corrections to older rows.
 router.delete('/:id', asyncRoute(async (req, res) => {
   const existing = await prepare('SELECT * FROM daily_updates WHERE id = ?').get(req.params.id);
   if (!existing) return res.status(404).json({ error: 'Daily update not found' });
-  if (req.user.role !== 'admin') return res.status(403).json({ error: 'Daily updates cannot be deleted — edit today\'s entry instead.' });
+  if (req.user.role !== 'admin') {
+    if (existing.user_id !== req.user.id) return res.status(403).json({ error: 'You can only delete your own daily updates' });
+    if (existing.date !== TODAY) return res.status(403).json({ error: 'You can only delete a daily update from today' });
+  }
 
   await prepare('DELETE FROM daily_updates WHERE id = ?').run(req.params.id);
   res.json({ ok: true });

@@ -9,7 +9,7 @@ import { useRoleGuard } from '../hooks/useRoleGuard.js';
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function Employees() {
-  const { currentUser, users, teams, departments, tasks, statsFor, setUserActive, editUser } = useApp();
+  const { currentUser, users, teams, departments, tasks, statsFor, setUserActive, editUser, deleteUser } = useApp();
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [teamFilter, setTeamFilter] = useState('all');
@@ -20,6 +20,9 @@ export default function Employees() {
   const [editEmail, setEditEmail] = useState('');
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState('');
+  const [pendingDelete, setPendingDelete] = useState(null);
+  const [deleteError, setDeleteError] = useState('');
+  const [deleting, setDeleting] = useState(false);
   const allowed = useRoleGuard([ROLES.ADMIN, ROLES.MANAGER]);
   if (!allowed) return null;
 
@@ -39,6 +42,19 @@ export default function Employees() {
       setEditError(err.message || 'Could not save changes');
     } finally {
       setEditSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    setDeleteError('');
+    try {
+      await deleteUser(pendingDelete.id);
+      setPendingDelete(null);
+    } catch (err) {
+      setDeleteError(err.message || 'Could not remove member');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -134,6 +150,9 @@ export default function Employees() {
                         ● Inactive — Reactivate
                       </span>
                     )}
+                    <span onClick={() => { setPendingDelete(row.user); setDeleteError(''); }} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11.5, color: 'var(--text-muted)', cursor: 'pointer' }}>
+                      Delete
+                    </span>
                   </div>
                 </div>
               );
@@ -176,6 +195,19 @@ export default function Employees() {
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 22 }}>
             <Button variant="secondary" onClick={() => setPendingDeactivate(null)}>Cancel</Button>
             <Button variant="danger" onClick={() => { setUserActive(pendingDeactivate.id, false); setPendingDeactivate(null); }}>Deactivate</Button>
+          </div>
+        </Modal>
+      )}
+
+      {pendingDelete && (
+        <Modal title={`Delete ${pendingDelete.name}?`} onClose={() => setPendingDelete(null)}>
+          <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13.5, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+            This permanently removes their account. It only works if they have no tasks, comments, or daily updates yet — if they've done any real work, deactivate them instead so that history stays intact.
+          </div>
+          {deleteError && <div style={{ marginTop: 12, fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12.5, color: 'var(--amber-text)' }}>{deleteError}</div>}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 22 }}>
+            <Button variant="secondary" onClick={() => setPendingDelete(null)}>Cancel</Button>
+            <Button variant="danger" onClick={handleDelete} disabled={deleting}>{deleting ? 'Deleting…' : 'Delete member'}</Button>
           </div>
         </Modal>
       )}

@@ -175,4 +175,37 @@ router.patch('/:id/active', requireRole('admin', 'manager', 'team_lead'), asyncR
   res.json({ user });
 }));
 
+// Delete — same scoping as activate/deactivate. Blocked while the person
+// still has any tasks (assigned or created), comments, or daily updates:
+// those rows reference users(id) with no cascade, so a real delete would
+// either fail outright or orphan real history. Deactivate is the right move
+// for anyone with existing work; delete is for someone added by mistake or
+// who never did anything yet (e.g. a leftover test account).
+router.delete('/:id', requireRole('admin', 'manager', 'team_lead'), asyncRoute(async (req, res) => {
+  const target = await prepare('SELECT * FROM users WHERE id = ?').get(req.params.id);
+  if (!target) return res.status(404).json({ error: 'User not found' });
+  if (target.id === req.user.id) return res.status(400).json({ error: 'You cannot delete your own account' });
+
+  const canManage = req.user.role === 'admin'
+    || (req.user.role === 'manager' && target.department_id === req.user.department_id && !['admin', 'manager'].includes(target.role))
+    || (req.user.role === 'team_lead' && target.team_id === req.user.team_id && target.role === 'employee');
+  if (!canManage) return res.status(403).json({ error: 'You do not have permission to manage this user' });
+
+  const taskCount = (await prepare('SELECT COUNT(*)::int AS count FROM tasks WHERE assignee_id = ? OR created_by = ?').get(req.params.id, req.params.id)).count;
+  const updateCount = (await prepare('SELECT COUNT(*)::int AS count FROM daily_updates WHERE user_id = ?').get(req.params.id)).count;
+  const commentCount = (await prepare('SELECT COUNT(*)::int AS count FROM comments WHERE author_id = ?').get(req.params.id)).count;
+  if (taskCount > 0 || updateCount > 0 || commentCount > 0) {
+    return res.status(400).json({ error: `${target.name} has existing tasks, comments, or daily updates — deactivate their account instead of deleting it, so that history stays intact.` });
+  }
+
+  // Notifications aren't meaningful history (just transient alerts) and
+  // have no cascade, so they're cleaned up here rather than counted above —
+  // otherwise almost every account (even a brand-new one) would be
+  // permanently blocked from deletion by its own welcome notification.
+  await prepare('DELETE FROM notifications WHERE user_id = ?').run(req.params.id);
+  await prepare('DELETE FROM users WHERE id = ?').run(req.params.id);
+  await insertGlobalActivity('removed', `${await userName(req.user.id)} removed ${target.name}'s account`, target.team_id);
+  res.json({ ok: true });
+}));
+
 export default router;
