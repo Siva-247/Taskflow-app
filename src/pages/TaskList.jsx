@@ -139,7 +139,7 @@ export default function TaskList() {
                   </div>
                   <div><StatusBadge status={task.status} /></div>
                   <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 13.5, color: 'var(--heading)' }}>{task.progress}%</div>
-                  <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13, color: bucketOf(task) === 'overdue' ? 'var(--amber-text)' : 'var(--text-muted)' }}>{task.dueDate.slice(5)}</div>
+                  <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13, color: bucketOf(task) === 'overdue' ? 'var(--amber-text)' : 'var(--text-muted)' }}>{task.dueDate ? task.dueDate.slice(5) : '—'}</div>
                   <button
                     type="button"
                     onClick={(e) => { e.stopPropagation(); navigate(`/tasks/${task.id}`); }}
