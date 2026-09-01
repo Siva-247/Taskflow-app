@@ -27,7 +27,7 @@ export default function TeamLeadDashboard() {
   });
 
   const reviewTasks = teamTasks.filter((t) => t.status === STATUS.IN_REVIEW);
-  const overdueTasks = teamTasks.filter((t) => t.status !== STATUS.COMPLETED && t.dueDate < TODAY);
+  const overdueTasks = teamTasks.filter((t) => t.status !== STATUS.COMPLETED && t.status !== STATUS.PENDING_APPROVAL && t.dueDate < TODAY);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>

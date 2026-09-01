@@ -296,6 +296,13 @@ router.patch('/:id/progress', asyncRoute(async (req, res) => {
   res.json({ task: await getTask(req.params.id), activity: null });
 }));
 
+// The only legitimate use of this route is the assignee manually toggling
+// between To Do and In Progress (the frontend's own dropdown never offers
+// anything else) — every other transition, especially reaching Completed,
+// has its own dedicated, reviewer-gated endpoint (/submit, /approve, etc.)
+// and must keep going through that, not this one.
+const SELF_SERVICE_STATUSES = [STATUS.TODO, STATUS.IN_PROGRESS];
+
 router.patch('/:id/status', asyncRoute(async (req, res) => {
   const existing = await prepare('SELECT * FROM tasks WHERE id = ?').get(req.params.id);
   if (!existing) return res.status(404).json({ error: 'Task not found' });
@@ -303,6 +310,10 @@ router.patch('/:id/status', asyncRoute(async (req, res) => {
   if (existing.status === STATUS.PENDING_APPROVAL) return res.status(400).json({ error: 'This task is still waiting on manager approval' });
 
   const { status } = req.body;
+  if (!SELF_SERVICE_STATUSES.includes(status)) {
+    return res.status(400).json({ error: 'Status can only be set to "To Do" or "In Progress" here — submit the task for review to move it further.' });
+  }
+
   await prepare('UPDATE tasks SET status = ? WHERE id = ?').run(status, req.params.id);
   await insertTaskEvent(req.params.id, `Status changed to "${status}"`);
   res.json({ task: await getTask(req.params.id), activity: null });

@@ -29,7 +29,7 @@ export default function EmployeeDashboard() {
   const myTasks = scopedTasks(currentUser).filter((t) => t.status !== STATUS.DRAFT);
   const done = myTasks.filter((t) => t.status === STATUS.COMPLETED).length;
   const activeTasks = myTasks.filter((t) => t.status !== STATUS.COMPLETED).sort((a, b) => (a.dueDate < b.dueDate ? -1 : 1));
-  const overdueCount = activeTasks.filter((t) => t.dueDate < TODAY).length;
+  const overdueCount = activeTasks.filter((t) => t.status !== STATUS.PENDING_APPROVAL && t.dueDate < TODAY).length;
   const inProgressCount = activeTasks.length - overdueCount;
   const nextDeadline = activeTasks.find((t) => t.dueDate >= TODAY);
 
@@ -80,7 +80,7 @@ export default function EmployeeDashboard() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginTop: 8 }}>
                     <PriorityBadge priority={task.priority} />
                     <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 12.5, color: 'var(--text-muted)' }}>
-                      {task.dueDate === TODAY ? 'Due today' : `Due ${task.dueDate.slice(5)}`}
+                      {!task.dueDate ? 'No due date' : task.dueDate === TODAY ? 'Due today' : `Due ${task.dueDate.slice(5)}`}
                     </span>
                   </div>
                 </div>
@@ -149,7 +149,7 @@ export default function EmployeeDashboard() {
             <div onClick={() => navigate(`/tasks/${nextDeadline.id}`)} style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 16, cursor: 'pointer' }}>
               <IconCalendar size={16} color="var(--amber-text)" />
               <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13.5, color: 'var(--text-primary)' }}>
-                {nextDeadline.title} — {nextDeadline.dueDate.slice(5)}
+                {nextDeadline.title}{nextDeadline.dueDate ? ` — ${nextDeadline.dueDate.slice(5)}` : ''}
               </span>
             </div>
           ) : (

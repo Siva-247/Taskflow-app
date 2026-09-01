@@ -58,7 +58,7 @@ export default function ManagerDashboard() {
     return { user: u, teamName: team?.name || '—', assigned: uStats.total, completed: uStats.completed };
   }).sort((a, b) => b.assigned - a.assigned);
 
-  const overdueTasks = deptTasks.filter((t) => t.status !== STATUS.COMPLETED && t.status !== STATUS.DRAFT && t.dueDate < TODAY);
+  const overdueTasks = deptTasks.filter((t) => t.status !== STATUS.COMPLETED && t.status !== STATUS.DRAFT && t.status !== STATUS.PENDING_APPROVAL && t.dueDate < TODAY);
 
   const trend = WEEKS.map((week) => {
     const weekTasks = deptTasks.filter((t) => t.status !== STATUS.DRAFT && t.dueDate >= week.start && t.dueDate <= week.end);
