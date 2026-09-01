@@ -7,7 +7,7 @@ import { IconPlusCircle } from '../components/icons.jsx';
 import { useRoleGuard } from '../hooks/useRoleGuard.js';
 
 export default function Departments() {
-  const { users, teams, departments, tasks, statsFor, addDepartment, addManager } = useApp();
+  const { users, teams, departments, tasks, statsFor, addDepartment, editDepartment, deleteDepartment, addManager } = useApp();
   const navigate = useNavigate();
   const allowed = useRoleGuard(ROLES.ADMIN);
 
@@ -19,6 +19,10 @@ export default function Departments() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [createdManager, setCreatedManager] = useState(null);
+  const [editingDept, setEditingDept] = useState(null);
+  const [editDeptName, setEditDeptName] = useState('');
+  const [pendingDeleteDept, setPendingDeleteDept] = useState(null);
+  const [deleteError, setDeleteError] = useState('');
 
   if (!allowed) return null;
 
@@ -65,6 +69,35 @@ export default function Departments() {
     }
   };
 
+  const startEditDept = (dept) => { setEditingDept(dept); setEditDeptName(dept.name); setError(''); };
+  const resetEditDept = () => { setEditingDept(null); setEditDeptName(''); setError(''); };
+
+  const handleEditDept = async () => {
+    if (!editDeptName.trim()) { setError('Name is required.'); return; }
+    setSaving(true);
+    try {
+      await editDepartment(editingDept.id, { name: editDeptName.trim() });
+      resetEditDept();
+    } catch {
+      // context already surfaced a toast for the failure
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteDept = async () => {
+    setSaving(true);
+    setDeleteError('');
+    try {
+      await deleteDepartment(pendingDeleteDept.id);
+      setPendingDeleteDept(null);
+    } catch (err) {
+      setDeleteError(err.message || 'Could not delete department');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
@@ -95,11 +128,19 @@ export default function Departments() {
                   </div>
                 )}
               </div>
-              <div
-                onClick={() => navigate('/teams')}
-                style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12.5, color: 'var(--accent-dark)', cursor: 'pointer' }}
-              >
-                View teams →
+              <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                <span onClick={() => startEditDept(row.dept)} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12.5, color: 'var(--accent-dark)', cursor: 'pointer' }}>
+                  Edit
+                </span>
+                <span onClick={() => { setPendingDeleteDept(row.dept); setDeleteError(''); }} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12.5, color: 'var(--amber-text)', cursor: 'pointer' }}>
+                  Delete
+                </span>
+                <div
+                  onClick={() => navigate('/teams')}
+                  style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12.5, color: 'var(--accent-dark)', cursor: 'pointer' }}
+                >
+                  View teams →
+                </div>
               </div>
             </div>
 
@@ -134,6 +175,34 @@ export default function Departments() {
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 22 }}>
             <Button variant="secondary" onClick={resetAddDept}>Cancel</Button>
             <Button variant="primary" onClick={handleAddDept} disabled={saving}>{saving ? 'Adding…' : 'Add department'}</Button>
+          </div>
+        </Modal>
+      )}
+
+      {editingDept && (
+        <Modal title="Edit department" onClose={resetEditDept}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <Field label="Name" required>
+              <TextInput value={editDeptName} onChange={setEditDeptName} placeholder="e.g. Design" />
+            </Field>
+            {error && <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12, color: 'var(--amber-text)' }}>{error}</div>}
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 22 }}>
+            <Button variant="secondary" onClick={resetEditDept}>Cancel</Button>
+            <Button variant="primary" onClick={handleEditDept} disabled={saving}>{saving ? 'Saving…' : 'Save changes'}</Button>
+          </div>
+        </Modal>
+      )}
+
+      {pendingDeleteDept && (
+        <Modal title={`Delete ${pendingDeleteDept.name}?`} onClose={() => setPendingDeleteDept(null)}>
+          <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13.5, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+            This can't be undone. A department can only be deleted once every team and member has been moved out of it or removed.
+          </div>
+          {deleteError && <div style={{ marginTop: 12, fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12.5, color: 'var(--amber-text)' }}>{deleteError}</div>}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 22 }}>
+            <Button variant="secondary" onClick={() => setPendingDeleteDept(null)}>Cancel</Button>
+            <Button variant="danger" onClick={handleDeleteDept} disabled={saving}>{saving ? 'Deleting…' : 'Delete department'}</Button>
           </div>
         </Modal>
       )}

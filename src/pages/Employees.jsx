@@ -2,18 +2,45 @@ import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext.jsx';
 import { ROLES, teamById } from '../data/mockData.js';
-import { Card, Avatar, Select, TextInput, Button, Modal } from '../components/ui.jsx';
+import { Card, Avatar, Select, TextInput, Button, Modal, Field } from '../components/ui.jsx';
 import { IconSearch } from '../components/icons.jsx';
 import { useRoleGuard } from '../hooks/useRoleGuard.js';
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export default function Employees() {
-  const { currentUser, users, teams, departments, tasks, statsFor, setUserActive } = useApp();
+  const { currentUser, users, teams, departments, tasks, statsFor, setUserActive, editUser } = useApp();
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [teamFilter, setTeamFilter] = useState('all');
   const [pendingDeactivate, setPendingDeactivate] = useState(null);
+  const [editingUser, setEditingUser] = useState(null);
+  const [editName, setEditName] = useState('');
+  const [editTitle, setEditTitle] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [editSaving, setEditSaving] = useState(false);
+  const [editError, setEditError] = useState('');
   const allowed = useRoleGuard([ROLES.ADMIN, ROLES.MANAGER]);
   if (!allowed) return null;
+
+  const isAdmin_ = currentUser.role === ROLES.ADMIN;
+
+  const startEdit = (user) => { setEditingUser(user); setEditName(user.name); setEditTitle(user.title || ''); setEditEmail(user.email || ''); setEditError(''); };
+  const resetEdit = () => { setEditingUser(null); setEditName(''); setEditTitle(''); setEditEmail(''); setEditError(''); };
+
+  const handleSaveEdit = async () => {
+    if (!editName.trim()) { setEditError('Name is required.'); return; }
+    if (!EMAIL_RE.test(editEmail.trim())) { setEditError('Enter a valid email address.'); return; }
+    setEditSaving(true);
+    try {
+      await editUser(editingUser.id, { name: editName.trim(), title: editTitle.trim(), email: editEmail.trim() });
+      resetEdit();
+    } catch (err) {
+      setEditError(err.message || 'Could not save changes');
+    } finally {
+      setEditSaving(false);
+    }
+  };
 
   const isAdmin = currentUser.role === ROLES.ADMIN;
   const scopedTeams = isAdmin ? teams : teams.filter((t) => t.departmentId === currentUser.departmentId);
@@ -83,7 +110,15 @@ export default function Employees() {
                   <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13, color: 'var(--text-secondary)' }}>{row.user.title}</div>
                   <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 13.5, color: 'var(--heading)' }}>{row.assigned}</div>
                   <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 13.5, color: 'var(--heading)' }}>{row.completed}</div>
-                  <div onClick={(e) => e.stopPropagation()}>
+                  <div onClick={(e) => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                    {isAdmin_ && (
+                      <span
+                        onClick={() => startEdit(row.user)}
+                        style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11.5, color: 'var(--accent-dark)', cursor: 'pointer' }}
+                      >
+                        Edit
+                      </span>
+                    )}
                     {isActive ? (
                       <span
                         onClick={() => setPendingDeactivate(row.user)}
@@ -111,6 +146,27 @@ export default function Employees() {
           </div>
         </div>
       </Card>
+
+      {editingUser && (
+        <Modal title={`Edit ${editingUser.name}`} onClose={resetEdit}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <Field label="Full name" required>
+              <TextInput value={editName} onChange={setEditName} placeholder="Full name" />
+            </Field>
+            <Field label="Title">
+              <TextInput value={editTitle} onChange={setEditTitle} placeholder="e.g. Developer" />
+            </Field>
+            <Field label="Email" required>
+              <TextInput value={editEmail} onChange={setEditEmail} placeholder="name@company.com" />
+            </Field>
+            {editError && <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12, color: 'var(--amber-text)' }}>{editError}</div>}
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 22 }}>
+            <Button variant="secondary" onClick={resetEdit}>Cancel</Button>
+            <Button variant="primary" onClick={handleSaveEdit} disabled={editSaving}>{editSaving ? 'Saving…' : 'Save changes'}</Button>
+          </div>
+        </Modal>
+      )}
 
       {pendingDeactivate && (
         <Modal title={`Deactivate ${pendingDeactivate.name}?`} onClose={() => setPendingDeactivate(null)}>

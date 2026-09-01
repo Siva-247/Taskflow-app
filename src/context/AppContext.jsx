@@ -233,6 +233,20 @@ export function AppProvider({ children }) {
     return () => window.clearInterval(interval);
   }, [token]);
 
+  // Same problem for tasks and daily updates — they're otherwise only ever
+  // loaded once at login, so anything someone else does (a reviewer approves
+  // a task, a teammate submits their update) stays invisible in this tab
+  // until a manual reload. Poll a little less aggressively than notifications
+  // since these are heavier fetches.
+  useEffect(() => {
+    if (!token) return;
+    const interval = window.setInterval(() => {
+      apiRequest('/tasks', {}, token).then(setTasks).catch(() => {});
+      apiRequest('/daily-updates', {}, token).then(setDailyUpdates).catch(() => {});
+    }, 30000);
+    return () => window.clearInterval(interval);
+  }, [token]);
+
   // Scope: which tasks a given user is allowed to see. The backend now
   // enforces this same rule on every request (a role can't fetch or mutate
   // outside it via a direct API call either) — this client-side copy just
@@ -650,6 +664,41 @@ export function AppProvider({ children }) {
     }
   }, [call, showToast]);
 
+  const editDepartment = useCallback(async (id, data) => {
+    try {
+      const result = await call(`/departments/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
+      setDepartments((prev) => prev.map((d) => (d.id === id ? result.department : d)));
+      showToast('Department updated');
+      return result.department;
+    } catch (err) {
+      showToast(err.message || 'Could not update department');
+      throw err;
+    }
+  }, [call, showToast]);
+
+  const deleteDepartment = useCallback(async (id) => {
+    try {
+      await call(`/departments/${id}`, { method: 'DELETE' });
+      setDepartments((prev) => prev.filter((d) => d.id !== id));
+      showToast('Department deleted');
+    } catch (err) {
+      showToast(err.message || 'Could not delete department');
+      throw err;
+    }
+  }, [call, showToast]);
+
+  const editUser = useCallback(async (id, data) => {
+    try {
+      const result = await call(`/users/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
+      setUsers((prev) => prev.map((u) => (u.id === id ? result.user : u)));
+      showToast('Member updated');
+      return result.user;
+    } catch (err) {
+      showToast(err.message || 'Could not update member');
+      throw err;
+    }
+  }, [call, showToast]);
+
   const markNotificationRead = useCallback(async (id) => {
     setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
     try {
@@ -675,7 +724,7 @@ export function AppProvider({ children }) {
     tasks, dailyUpdates, activity, notifications,
     scopedTasks, scopedDailyUpdates, statsFor, bucketOf, myDrafts,
     createTask, updateTask, deleteTask, publishDraft, refreshTask, setTaskProgress, setTaskStatus, requestChanges, submitForReview, approveTask, approveTaskCreation, rejectTaskCreation, reassignTask, requestExtension, approveExtension, rejectExtension, setTaskMarks, toggleSubtask,
-    addComment, editComment, deleteComment, addDailyUpdate, editDailyUpdate, addTeamMember, addManager, addTeamLead, addDepartment, setUserActive,
+    addComment, editComment, deleteComment, addDailyUpdate, editDailyUpdate, addTeamMember, addManager, addTeamLead, addDepartment, editDepartment, deleteDepartment, editUser, setUserActive,
     markNotificationRead, markAllNotificationsRead,
     toast, showToast,
   };

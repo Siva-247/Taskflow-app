@@ -121,6 +121,34 @@ router.post('/', requireRole('team_lead', 'manager', 'admin'), asyncRoute(async 
   res.status(201).json({ user, tempPassword });
 }));
 
+// Admin-only edit of a member's basic details. Deliberately NOT allowing
+// team/department here — moving someone between teams has structural
+// implications (task scoping, review authority) that a simple field edit
+// shouldn't quietly trigger; that stays a create-a-new-placement operation.
+// Deliberately no user DELETE anywhere in this file either — a hard delete
+// would leave every task/comment/daily-update they ever touched pointing at
+// a nonexistent user. Deactivate (below) is the safe equivalent: it blocks
+// sign-in while keeping their history intact and reversible.
+router.patch('/:id', requireRole('admin'), asyncRoute(async (req, res) => {
+  const target = await prepare('SELECT * FROM users WHERE id = ?').get(req.params.id);
+  if (!target) return res.status(404).json({ error: 'User not found' });
+
+  const name = req.body.name !== undefined ? req.body.name.trim() : target.name;
+  const title = req.body.title !== undefined ? req.body.title.trim() : target.title;
+  const email = req.body.email !== undefined ? req.body.email.trim().toLowerCase() : target.email;
+  if (!name) return res.status(400).json({ error: 'Name is required' });
+  if (!EMAIL_RE.test(email)) return res.status(400).json({ error: 'A valid email is required' });
+  if (email !== target.email && await prepare('SELECT 1 FROM users WHERE lower(email) = ? AND id != ?').get(email, req.params.id)) {
+    return res.status(409).json({ error: 'That email is already in use' });
+  }
+
+  await prepare('UPDATE users SET name = ?, title = ?, email = ?, initial = ? WHERE id = ?')
+    .run(name, title, email, initialsOf(name), req.params.id);
+
+  const user = await prepare(`${SELECT_USER} WHERE id = ?`).get(req.params.id);
+  res.json({ user });
+}));
+
 // Activate/deactivate — scoped the same way creation is: admin manages
 // anyone, a manager manages employees/team leads in their own department
 // (never another manager or admin), a team lead manages employees on their
