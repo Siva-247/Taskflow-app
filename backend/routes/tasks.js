@@ -25,6 +25,16 @@ router.get('/', asyncRoute(async (req, res) => {
   res.json(await scopeTasks(req.user, allTasks));
 }));
 
+// Refetches a single task with current data — used when opening a task's
+// detail page, since the bulk task list is only loaded once at login and
+// won't reflect changes another user (e.g. a reviewer) made in the meantime.
+router.get('/:id', asyncRoute(async (req, res) => {
+  const existing = await prepare('SELECT * FROM tasks WHERE id = ?').get(req.params.id);
+  if (!existing) return res.status(404).json({ error: 'Task not found' });
+  if (!(await userCanAccessTask(req.user, existing))) return res.status(403).json({ error: 'You do not have access to this task' });
+  res.json({ task: await getTask(req.params.id) });
+}));
+
 router.post('/', requireRole('manager', 'team_lead', 'employee'), asyncRoute(async (req, res) => {
   const b = req.body;
   const validation = await validateAssignee(req.user, b.assigneeId);
@@ -134,7 +144,11 @@ router.patch('/:id', asyncRoute(async (req, res) => {
 
   // Same rule as creation: a draft can still be saved with an incomplete/odd
   // date range, but anything that isn't staying a draft must make sense.
-  if (merged.status !== STATUS.DRAFT && merged.startDate && merged.startDate < TODAY) {
+  // Only enforced when the start date is actually being changed — otherwise
+  // an unrelated edit (approving a due-date extension, tweaking priority) on
+  // a task whose start date has since passed would be blocked for no reason.
+  const startDateChanging = b.startDate !== undefined && b.startDate !== existing.start_date;
+  if (merged.status !== STATUS.DRAFT && startDateChanging && merged.startDate < TODAY) {
     return res.status(400).json({ error: "Start date can't be in the past" });
   }
   if (merged.status !== STATUS.DRAFT && merged.startDate && merged.dueDate && merged.dueDate < merged.startDate) {

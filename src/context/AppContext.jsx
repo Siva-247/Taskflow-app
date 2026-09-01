@@ -299,6 +299,18 @@ export function AppProvider({ children }) {
     if (result.activity) setActivity(result.activity);
   }, [replaceTask]);
 
+  // Tasks are only bulk-loaded once at login, so a task's detail page can
+  // otherwise show stale data if another user (a reviewer, a team lead)
+  // changed it in the meantime — this pulls the current version on demand.
+  const refreshTask = useCallback(async (taskId) => {
+    try {
+      const result = await call(`/tasks/${taskId}`);
+      replaceTask(result.task);
+    } catch {
+      // silent — the page still has whatever it last loaded
+    }
+  }, [call, replaceTask]);
+
   const createTask = useCallback(async (data) => {
     try {
       const result = await call('/tasks', { method: 'POST', body: JSON.stringify(data) });
@@ -662,7 +674,7 @@ export function AppProvider({ children }) {
     mustChangePassword, changePassword, requestPasswordReset, resetPassword,
     tasks, dailyUpdates, activity, notifications,
     scopedTasks, scopedDailyUpdates, statsFor, bucketOf, myDrafts,
-    createTask, updateTask, deleteTask, publishDraft, setTaskProgress, setTaskStatus, requestChanges, submitForReview, approveTask, approveTaskCreation, rejectTaskCreation, reassignTask, requestExtension, approveExtension, rejectExtension, setTaskMarks, toggleSubtask,
+    createTask, updateTask, deleteTask, publishDraft, refreshTask, setTaskProgress, setTaskStatus, requestChanges, submitForReview, approveTask, approveTaskCreation, rejectTaskCreation, reassignTask, requestExtension, approveExtension, rejectExtension, setTaskMarks, toggleSubtask,
     addComment, editComment, deleteComment, addDailyUpdate, editDailyUpdate, addTeamMember, addManager, addTeamLead, addDepartment, setUserActive,
     markNotificationRead, markAllNotificationsRead,
     toast, showToast,

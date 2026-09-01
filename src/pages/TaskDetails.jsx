@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useApp } from '../context/AppContext.jsx';
 import { STATUS, ROLES, teamById } from '../data/mockData.js';
@@ -10,12 +10,18 @@ export default function TaskDetails() {
   const { taskId } = useParams();
   const navigate = useNavigate();
   const {
-    currentUser, users, departments, tasks, scopedTasks,
+    currentUser, users, departments, tasks, scopedTasks, refreshTask,
     setTaskProgress, setTaskStatus, requestChanges, submitForReview, approveTask,
     approveTaskCreation, rejectTaskCreation, reassignTask,
     requestExtension, approveExtension, rejectExtension, setTaskMarks, toggleSubtask,
     addComment, editComment, deleteComment, deleteTask,
   } = useApp();
+
+  // Someone else (a reviewer, a team lead) may have changed this task since
+  // the bulk load at login — always pull the current version on open.
+  useEffect(() => {
+    if (taskId) refreshTask(taskId);
+  }, [taskId, refreshTask]);
 
   const [commentDraft, setCommentDraft] = useState('');
   const [progressDraft, setProgressDraft] = useState(null);
