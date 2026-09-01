@@ -34,7 +34,7 @@ export default function MyTeam() {
   const rows = members.map((u) => {
     const assigned = teamTasks.filter((t) => t.assigneeId === u.id);
     const uStats = statsFor(assigned);
-    return { user: u, assigned: uStats.total, active: uStats.pending + uStats.inProgress, completed: uStats.completed, overdue: uStats.overdue };
+    return { user: u, assigned: uStats.total, completed: uStats.completed };
   });
 
   const resetAddForm = () => {
@@ -81,8 +81,8 @@ export default function MyTeam() {
         <div style={{ padding: '22px 26px 4px', fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 15.5, color: 'var(--heading)' }}>Team members</div>
         <div style={{ overflowX: 'auto' }}>
           <div style={{ minWidth: 640 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 0.9fr 0.8fr 0.8fr 1fr 1fr', padding: '12px 26px', marginTop: 12, background: 'var(--field-bg)' }}>
-              {['Employee', 'Role', 'Assigned', 'Active', 'Completed', 'Status'].map((h) => (
+            <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 0.9fr 0.8fr 1fr 1fr', padding: '12px 26px', marginTop: 12, background: 'var(--field-bg)' }}>
+              {['Employee', 'Role', 'Assigned', 'Completed', 'Status'].map((h) => (
                 <div key={h} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11.5, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>{h}</div>
               ))}
             </div>
@@ -92,7 +92,7 @@ export default function MyTeam() {
                 <div
                   key={row.user.id}
                   onClick={() => navigate(`/tasks?assignee=${row.user.id}`)}
-                  style={{ display: 'grid', gridTemplateColumns: '1.6fr 0.9fr 0.8fr 0.8fr 1fr 1fr', padding: '13px 26px', alignItems: 'center', borderTop: '1px solid var(--border)', borderBottom: i === rows.length - 1 ? '1px solid var(--border)' : 'none', cursor: 'pointer', opacity: isActive ? 1 : 0.55 }}
+                  style={{ display: 'grid', gridTemplateColumns: '1.6fr 0.9fr 0.8fr 1fr 1fr', padding: '13px 26px', alignItems: 'center', borderTop: '1px solid var(--border)', borderBottom: i === rows.length - 1 ? '1px solid var(--border)' : 'none', cursor: 'pointer', opacity: isActive ? 1 : 0.55 }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <Avatar initial={row.user.initial} size={24} />
@@ -100,10 +100,7 @@ export default function MyTeam() {
                   </div>
                   <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13, color: 'var(--text-secondary)' }}>{row.user.title}</div>
                   <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 13.5, color: 'var(--heading)' }}>{row.assigned}</div>
-                  <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 13.5, color: 'var(--heading)' }}>{row.active}</div>
-                  <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 13.5, color: row.overdue > 0 ? 'var(--amber-text)' : 'var(--heading)' }}>
-                    {row.completed}{row.overdue > 0 && <span style={{ fontWeight: 500, fontSize: 11.5, marginLeft: 5 }}>({row.overdue} overdue)</span>}
-                  </div>
+                  <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 13.5, color: 'var(--heading)' }}>{row.completed}</div>
                   <div onClick={(e) => e.stopPropagation()}>
                     {isActive ? (
                       <span onClick={() => setPendingDeactivate(row.user)} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11.5, color: '#1F7A44', cursor: 'pointer' }}>
