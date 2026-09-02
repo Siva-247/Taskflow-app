@@ -7,7 +7,7 @@ import { IconPlusCircle } from '../components/icons.jsx';
 import { useRoleGuard } from '../hooks/useRoleGuard.js';
 
 export default function Departments() {
-  const { users, teams, departments, tasks, statsFor, addDepartment, editDepartment, deleteDepartment, addManager } = useApp();
+  const { users, teams, departments, tasks, statsFor, addDepartment, editDepartment, deleteDepartment, addManager, editUser, resetUserPassword } = useApp();
   const navigate = useNavigate();
   const allowed = useRoleGuard(ROLES.ADMIN);
 
@@ -16,6 +16,7 @@ export default function Departments() {
   const [addManagerFor, setAddManagerFor] = useState(null);
   const [newManagerName, setNewManagerName] = useState('');
   const [newManagerEmail, setNewManagerEmail] = useState('');
+  const [newManagerPassword, setNewManagerPassword] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [createdManager, setCreatedManager] = useState(null);
@@ -23,6 +24,14 @@ export default function Departments() {
   const [editDeptName, setEditDeptName] = useState('');
   const [pendingDeleteDept, setPendingDeleteDept] = useState(null);
   const [deleteError, setDeleteError] = useState('');
+  const [editingManager, setEditingManager] = useState(null);
+  const [editManagerName, setEditManagerName] = useState('');
+  const [editManagerEmail, setEditManagerEmail] = useState('');
+  const [editManagerSaving, setEditManagerSaving] = useState(false);
+  const [editManagerError, setEditManagerError] = useState('');
+  const [pendingPasswordReset, setPendingPasswordReset] = useState(null);
+  const [resettingPassword, setResettingPassword] = useState(false);
+  const [passwordResetResult, setPasswordResetResult] = useState(null);
 
   if (!allowed) return null;
 
@@ -40,7 +49,7 @@ export default function Departments() {
   const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
   const resetAddDept = () => { setShowAddDept(false); setNewDeptName(''); setError(''); };
-  const resetAddManager = () => { setAddManagerFor(null); setNewManagerName(''); setNewManagerEmail(''); setError(''); setCreatedManager(null); };
+  const resetAddManager = () => { setAddManagerFor(null); setNewManagerName(''); setNewManagerEmail(''); setNewManagerPassword(''); setError(''); setCreatedManager(null); };
 
   const handleAddDept = async () => {
     if (!newDeptName.trim()) { setError('Name is required.'); return; }
@@ -58,9 +67,13 @@ export default function Departments() {
   const handleAddManager = async () => {
     if (!newManagerName.trim()) { setError('Name is required.'); return; }
     if (!EMAIL_RE.test(newManagerEmail.trim())) { setError('Enter a valid email address.'); return; }
+    if (newManagerPassword && newManagerPassword.length < 8) { setError('Password must be at least 8 characters.'); return; }
     setSaving(true);
     try {
-      const result = await addManager({ name: newManagerName.trim(), email: newManagerEmail.trim(), departmentId: addManagerFor.id });
+      const result = await addManager({
+        name: newManagerName.trim(), email: newManagerEmail.trim(), departmentId: addManagerFor.id,
+        ...(newManagerPassword ? { password: newManagerPassword } : {}),
+      });
       setCreatedManager(result);
     } catch {
       // context already surfaced a toast for the failure
@@ -98,6 +111,36 @@ export default function Departments() {
     }
   };
 
+  const startEditManager = (user) => { setEditingManager(user); setEditManagerName(user.name); setEditManagerEmail(user.email || ''); setEditManagerError(''); };
+  const resetEditManager = () => { setEditingManager(null); setEditManagerName(''); setEditManagerEmail(''); setEditManagerError(''); };
+
+  const handleSaveEditManager = async () => {
+    if (!editManagerName.trim()) { setEditManagerError('Name is required.'); return; }
+    if (!EMAIL_RE.test(editManagerEmail.trim())) { setEditManagerError('Enter a valid email address.'); return; }
+    setEditManagerSaving(true);
+    try {
+      await editUser(editingManager.id, { name: editManagerName.trim(), email: editManagerEmail.trim() });
+      resetEditManager();
+    } catch (err) {
+      setEditManagerError(err.message || 'Could not save changes');
+    } finally {
+      setEditManagerSaving(false);
+    }
+  };
+
+  const handleConfirmPasswordReset = async () => {
+    setResettingPassword(true);
+    try {
+      const tempPassword = await resetUserPassword(pendingPasswordReset.id);
+      setPasswordResetResult({ name: pendingPasswordReset.name, tempPassword });
+      setPendingPasswordReset(null);
+    } catch {
+      // context already surfaced a toast for the failure
+    } finally {
+      setResettingPassword(false);
+    }
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
       <div className="stack-mobile" style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
@@ -117,9 +160,15 @@ export default function Departments() {
               <div>
                 <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 18, color: 'var(--heading)' }}>{row.dept.name}</div>
                 {row.manager ? (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 8, flexWrap: 'wrap' }}>
                     <Avatar initial={row.manager.initial} size={22} />
                     <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 13, color: 'var(--text-secondary)' }}>{row.manager.name} · {row.manager.title || 'Manager'}</span>
+                    <span onClick={() => startEditManager(row.manager)} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11, color: 'var(--accent-dark)', cursor: 'pointer' }}>
+                      Edit
+                    </span>
+                    <span onClick={() => setPendingPasswordReset(row.manager)} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11, color: 'var(--accent-dark)', cursor: 'pointer' }}>
+                      Reset password
+                    </span>
                   </div>
                 ) : (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 8 }}>
@@ -216,6 +265,12 @@ export default function Departments() {
             <Field label="Email" required>
               <TextInput value={newManagerEmail} onChange={setNewManagerEmail} placeholder="name@company.com" />
             </Field>
+            <Field label="Password (optional)">
+              <TextInput value={newManagerPassword} onChange={setNewManagerPassword} placeholder="Leave blank to auto-generate one" type="password" />
+            </Field>
+            <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 12, color: 'var(--text-muted)' }}>
+              Set this yourself if you'd rather they sign in with a real password right away — otherwise a temporary one is generated for you to hand off. Either way they'll be asked to set their own on first sign-in.
+            </div>
             {error && <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12, color: 'var(--amber-text)' }}>{error}</div>}
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 22 }}>
@@ -229,11 +284,13 @@ export default function Departments() {
         <Modal title={`${createdManager.user.name} was added`} onClose={resetAddManager}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontSize: 13.5, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-              Share these sign-in details with them directly — there's no email delivery configured, so this is the only place the temporary password is shown.
+              {createdManager.tempPassword
+                ? "Share these sign-in details with them directly — there's no email delivery configured, so this is the only place the temporary password is shown."
+                : "They can sign in with the password you set. Here's their email for reference."}
             </div>
             <div style={{ padding: '14px 16px', background: 'var(--field-bg)', border: '1px dashed var(--border)', borderRadius: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
               <CredentialRow label="Email" value={createdManager.user.email} />
-              <CredentialRow label="Temporary password" value={createdManager.tempPassword} mono />
+              {createdManager.tempPassword && <CredentialRow label="Temporary password" value={createdManager.tempPassword} mono />}
             </div>
             <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 12, color: 'var(--text-muted)' }}>
               They'll be required to set their own password the first time they sign in.
@@ -241,6 +298,62 @@ export default function Departments() {
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 22 }}>
             <Button variant="primary" onClick={resetAddManager}>Done</Button>
+          </div>
+        </Modal>
+      )}
+
+      {editingManager && (
+        <Modal title={`Edit ${editingManager.name}`} onClose={resetEditManager}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <Field label="Full name" required>
+              <TextInput value={editManagerName} onChange={setEditManagerName} placeholder="Full name" />
+            </Field>
+            <Field label="Email" required>
+              <TextInput value={editManagerEmail} onChange={setEditManagerEmail} placeholder="name@company.com" />
+            </Field>
+            {editManagerError && <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12, color: 'var(--amber-text)' }}>{editManagerError}</div>}
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 22 }}>
+            <Button variant="secondary" onClick={resetEditManager}>Cancel</Button>
+            <Button variant="primary" onClick={handleSaveEditManager} disabled={editManagerSaving}>{editManagerSaving ? 'Saving…' : 'Save changes'}</Button>
+          </div>
+        </Modal>
+      )}
+
+      {pendingPasswordReset && (
+        <Modal title={`Reset ${pendingPasswordReset.name}'s password?`} onClose={() => setPendingPasswordReset(null)}>
+          <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13.5, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+            Their current password stops working immediately. You'll get a new temporary password to hand off to them directly — they'll be asked to set their own on next sign-in.
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 22 }}>
+            <Button variant="secondary" onClick={() => setPendingPasswordReset(null)}>Cancel</Button>
+            <Button variant="danger" onClick={handleConfirmPasswordReset} disabled={resettingPassword}>{resettingPassword ? 'Resetting…' : 'Reset password'}</Button>
+          </div>
+        </Modal>
+      )}
+
+      {passwordResetResult && (
+        <Modal title={`${passwordResetResult.name}'s new temporary password`} onClose={() => setPasswordResetResult(null)}>
+          <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13.5, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+            Share this with them now — it won't be shown again. They'll be asked to set their own password the next time they sign in.
+          </div>
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginTop: 16,
+            padding: '12px 16px', background: 'var(--field-bg)', border: '1px solid var(--border)', borderRadius: 9,
+          }}>
+            <span style={{ fontFamily: "monospace", fontWeight: 700, fontSize: 15, letterSpacing: '0.04em', color: 'var(--heading)' }}>
+              {passwordResetResult.tempPassword}
+            </span>
+            <Button
+              variant="secondary"
+              style={{ padding: '6px 14px', fontSize: 12 }}
+              onClick={() => navigator.clipboard?.writeText(passwordResetResult.tempPassword)}
+            >
+              Copy
+            </Button>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 22 }}>
+            <Button variant="primary" onClick={() => setPasswordResetResult(null)}>Done</Button>
           </div>
         </Modal>
       )}

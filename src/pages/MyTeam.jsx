@@ -9,7 +9,7 @@ import { useRoleGuard } from '../hooks/useRoleGuard.js';
 const TITLE_OPTIONS = ['Intern', 'Developer'];
 
 export default function MyTeam() {
-  const { currentUser, users, departments, scopedTasks, statsFor, addTeamMember, setUserActive, deleteUser } = useApp();
+  const { currentUser, users, departments, scopedTasks, statsFor, addTeamMember, setUserActive, deleteUser, editUser, resetUserPassword } = useApp();
   const navigate = useNavigate();
   const allowed = useRoleGuard(ROLES.TEAM_LEAD);
 
@@ -24,6 +24,15 @@ export default function MyTeam() {
   const [pendingDelete, setPendingDelete] = useState(null);
   const [deleteError, setDeleteError] = useState('');
   const [deleting, setDeleting] = useState(false);
+  const [editingUser, setEditingUser] = useState(null);
+  const [editName, setEditName] = useState('');
+  const [editTitle, setEditTitle] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [editSaving, setEditSaving] = useState(false);
+  const [editError, setEditError] = useState('');
+  const [pendingPasswordReset, setPendingPasswordReset] = useState(null);
+  const [resettingPassword, setResettingPassword] = useState(false);
+  const [passwordResetResult, setPasswordResetResult] = useState(null);
 
   if (!allowed) return null;
 
@@ -73,6 +82,36 @@ export default function MyTeam() {
     }
   };
 
+  const startEdit = (user) => { setEditingUser(user); setEditName(user.name); setEditTitle(user.title || ''); setEditEmail(user.email || ''); setEditError(''); };
+  const resetEdit = () => { setEditingUser(null); setEditName(''); setEditTitle(''); setEditEmail(''); setEditError(''); };
+
+  const handleSaveEdit = async () => {
+    if (!editName.trim()) { setEditError('Name is required.'); return; }
+    if (!EMAIL_RE.test(editEmail.trim())) { setEditError('Enter a valid email address.'); return; }
+    setEditSaving(true);
+    try {
+      await editUser(editingUser.id, { name: editName.trim(), title: editTitle.trim(), email: editEmail.trim() });
+      resetEdit();
+    } catch (err) {
+      setEditError(err.message || 'Could not save changes');
+    } finally {
+      setEditSaving(false);
+    }
+  };
+
+  const handleConfirmPasswordReset = async () => {
+    setResettingPassword(true);
+    try {
+      const tempPassword = await resetUserPassword(pendingPasswordReset.id);
+      setPasswordResetResult({ name: pendingPasswordReset.name, tempPassword });
+      setPendingPasswordReset(null);
+    } catch {
+      // context already surfaced a toast for the failure
+    } finally {
+      setResettingPassword(false);
+    }
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
       <div className="stack-mobile" style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
@@ -118,6 +157,12 @@ export default function MyTeam() {
                   <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 13.5, color: 'var(--heading)' }}>{row.assigned}</div>
                   <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 13.5, color: 'var(--heading)' }}>{row.completed}</div>
                   <div onClick={(e) => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                    <span onClick={() => startEdit(row.user)} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11.5, color: 'var(--accent-dark)', cursor: 'pointer' }}>
+                      Edit
+                    </span>
+                    <span onClick={() => setPendingPasswordReset(row.user)} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11.5, color: 'var(--accent-dark)', cursor: 'pointer' }}>
+                      Reset password
+                    </span>
                     {isActive ? (
                       <span onClick={() => setPendingDeactivate(row.user)} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11.5, color: '#1F7A44', cursor: 'pointer' }}>
                         ● Active
@@ -203,6 +248,65 @@ export default function MyTeam() {
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 22 }}>
             <Button variant="secondary" onClick={() => setPendingDelete(null)}>Cancel</Button>
             <Button variant="danger" onClick={handleDelete} disabled={deleting}>{deleting ? 'Deleting…' : 'Delete member'}</Button>
+          </div>
+        </Modal>
+      )}
+
+      {editingUser && (
+        <Modal title={`Edit ${editingUser.name}`} onClose={resetEdit}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <Field label="Full name" required>
+              <TextInput value={editName} onChange={setEditName} placeholder="Full name" />
+            </Field>
+            <Field label="Title">
+              <Select value={editTitle} onChange={setEditTitle} options={TITLE_OPTIONS.map((t) => ({ value: t, label: t }))} />
+            </Field>
+            <Field label="Email" required>
+              <TextInput value={editEmail} onChange={setEditEmail} placeholder="name@company.com" />
+            </Field>
+            {editError && <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12, color: 'var(--amber-text)' }}>{editError}</div>}
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 22 }}>
+            <Button variant="secondary" onClick={resetEdit}>Cancel</Button>
+            <Button variant="primary" onClick={handleSaveEdit} disabled={editSaving}>{editSaving ? 'Saving…' : 'Save changes'}</Button>
+          </div>
+        </Modal>
+      )}
+
+      {pendingPasswordReset && (
+        <Modal title={`Reset ${pendingPasswordReset.name}'s password?`} onClose={() => setPendingPasswordReset(null)}>
+          <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13.5, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+            Their current password stops working immediately. You'll get a new temporary password to hand off to them directly — they'll be asked to set their own on next sign-in.
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 22 }}>
+            <Button variant="secondary" onClick={() => setPendingPasswordReset(null)}>Cancel</Button>
+            <Button variant="danger" onClick={handleConfirmPasswordReset} disabled={resettingPassword}>{resettingPassword ? 'Resetting…' : 'Reset password'}</Button>
+          </div>
+        </Modal>
+      )}
+
+      {passwordResetResult && (
+        <Modal title={`${passwordResetResult.name}'s new temporary password`} onClose={() => setPasswordResetResult(null)}>
+          <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13.5, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+            Share this with them now — it won't be shown again. They'll be asked to set their own password the next time they sign in.
+          </div>
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginTop: 16,
+            padding: '12px 16px', background: 'var(--field-bg)', border: '1px solid var(--border)', borderRadius: 9,
+          }}>
+            <span style={{ fontFamily: "monospace", fontWeight: 700, fontSize: 15, letterSpacing: '0.04em', color: 'var(--heading)' }}>
+              {passwordResetResult.tempPassword}
+            </span>
+            <Button
+              variant="secondary"
+              style={{ padding: '6px 14px', fontSize: 12 }}
+              onClick={() => navigator.clipboard?.writeText(passwordResetResult.tempPassword)}
+            >
+              Copy
+            </Button>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 22 }}>
+            <Button variant="primary" onClick={() => setPasswordResetResult(null)}>Done</Button>
           </div>
         </Modal>
       )}

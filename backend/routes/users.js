@@ -12,6 +12,20 @@ const SELECT_USER = `SELECT id, name, role, team_id as "teamId", department_id a
 const TITLE_OPTIONS = ['Intern', 'Developer'];
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+// Who may change another person's login credentials (name/title/email or
+// password) — a strict one-level-down chain, not a broad "manage anyone in
+// my scope" rule: admin reaches everyone, a manager only their own
+// department's team leads, a team lead only their own team's
+// developers/interns. Nobody edits their own credentials this way — that's
+// what self-service change-password is for.
+function canManageCredentials(actor, target) {
+  if (actor.id === target.id) return false;
+  if (actor.role === 'admin') return true;
+  if (actor.role === 'manager') return target.role === 'team_lead' && target.department_id === actor.department_id;
+  if (actor.role === 'team_lead') return target.role === 'employee' && target.team_id === actor.team_id;
+  return false;
+}
+
 router.get('/', asyncRoute(async (req, res) => {
   const all = await prepare(`${SELECT_USER} ORDER BY seq ASC`).all();
   res.json(scopeUsers(req.user, all));
@@ -43,12 +57,21 @@ router.post('/', requireRole('team_lead', 'manager', 'admin'), asyncRoute(async 
     return res.status(403).json({ error: 'Managers can only add team leads — a team lead adds their own interns and developers' });
   }
 
-  // No email delivery is wired up — the temp password is returned once, in
-  // this response, for whoever created the account to hand off directly.
-  // That's a dev-mode stand-in for a real invitation email, not a pattern to
-  // ship to production.
-  const tempPassword = generateTempPassword();
-  const passwordHash = hashPassword(tempPassword);
+  // No email delivery is wired up — a generated temp password is normally
+  // returned once, in this response, for whoever created the account to
+  // hand off directly. Admin alone may instead type in an exact password up
+  // front (e.g. so a new member can sign in with real credentials right
+  // away instead of a random string relayed by hand) — still forces
+  // must_change_password below either way, so it gets rotated on first use.
+  let tempPassword = null;
+  let passwordHash;
+  if (req.user.role === 'admin' && req.body.password) {
+    if (req.body.password.length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters' });
+    passwordHash = hashPassword(req.body.password);
+  } else {
+    tempPassword = generateTempPassword();
+    passwordHash = hashPassword(tempPassword);
+  }
 
   if (wantsManager) {
     const departmentId = req.body.departmentId;
@@ -121,17 +144,20 @@ router.post('/', requireRole('team_lead', 'manager', 'admin'), asyncRoute(async 
   res.status(201).json({ user, tempPassword });
 }));
 
-// Admin-only edit of a member's basic details. Deliberately NOT allowing
-// team/department here — moving someone between teams has structural
-// implications (task scoping, review authority) that a simple field edit
-// shouldn't quietly trigger; that stays a create-a-new-placement operation.
-// Deliberately no user DELETE anywhere in this file either — a hard delete
-// would leave every task/comment/daily-update they ever touched pointing at
-// a nonexistent user. Deactivate (below) is the safe equivalent: it blocks
+// Edit of a member's basic details, scoped by canManageCredentials (admin
+// reaches anyone, a manager their own department's team leads, a team lead
+// their own team's employees). Deliberately NOT allowing team/department
+// here — moving someone between teams has structural implications (task
+// scoping, review authority) that a simple field edit shouldn't quietly
+// trigger; that stays a create-a-new-placement operation. Deliberately no
+// user DELETE anywhere in this file either — a hard delete would leave
+// every task/comment/daily-update they ever touched pointing at a
+// nonexistent user. Deactivate (below) is the safe equivalent: it blocks
 // sign-in while keeping their history intact and reversible.
-router.patch('/:id', requireRole('admin'), asyncRoute(async (req, res) => {
+router.patch('/:id', asyncRoute(async (req, res) => {
   const target = await prepare('SELECT * FROM users WHERE id = ?').get(req.params.id);
   if (!target) return res.status(404).json({ error: 'User not found' });
+  if (!canManageCredentials(req.user, target)) return res.status(403).json({ error: 'You do not have permission to edit this person' });
 
   const name = req.body.name !== undefined ? req.body.name.trim() : target.name;
   const title = req.body.title !== undefined ? req.body.title.trim() : target.title;
@@ -149,16 +175,18 @@ router.patch('/:id', requireRole('admin'), asyncRoute(async (req, res) => {
   res.json({ user });
 }));
 
-// Admin-only escape hatch for the "forgot password" dead end: most accounts
-// here use non-real demo emails, and even a real one has nowhere to go
-// unless SMTP is configured, so self-service reset can't be relied on. This
-// mirrors the temp-password pattern already used for brand-new accounts —
-// generate one, hash it, force must_change_password so they set their own
-// real password on next login, and hand the plaintext back once in this
-// response for the admin to relay directly. Never persisted anywhere else.
-router.patch('/:id/password', requireRole('admin'), asyncRoute(async (req, res) => {
-  const target = await prepare('SELECT id FROM users WHERE id = ?').get(req.params.id);
+// Escape hatch for the "forgot password" dead end: most accounts here use
+// non-real demo emails, and even a real one has nowhere to go unless SMTP
+// is configured, so self-service reset can't be relied on. Scoped by the
+// same canManageCredentials chain as the edit route above. Mirrors the
+// temp-password pattern already used for brand-new accounts — generate
+// one, hash it, force must_change_password so they set their own real
+// password on next login, and hand the plaintext back once in this
+// response for whoever reset it to relay directly. Never persisted anywhere else.
+router.patch('/:id/password', asyncRoute(async (req, res) => {
+  const target = await prepare('SELECT * FROM users WHERE id = ?').get(req.params.id);
   if (!target) return res.status(404).json({ error: 'User not found' });
+  if (!canManageCredentials(req.user, target)) return res.status(403).json({ error: "You do not have permission to reset this person's password" });
 
   const tempPassword = generateTempPassword();
   const passwordHash = hashPassword(tempPassword);
