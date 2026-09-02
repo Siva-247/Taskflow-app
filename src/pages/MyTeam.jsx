@@ -16,6 +16,7 @@ export default function MyTeam() {
   const [showAdd, setShowAdd] = useState(false);
   const [newName, setNewName] = useState('');
   const [newEmail, setNewEmail] = useState('');
+  const [newPassword, setNewPassword] = useState('');
   const [newTitle, setNewTitle] = useState('Intern');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -50,7 +51,7 @@ export default function MyTeam() {
   });
 
   const resetAddForm = () => {
-    setShowAdd(false); setNewName(''); setNewEmail(''); setNewTitle('Intern'); setError(''); setCreated(null);
+    setShowAdd(false); setNewName(''); setNewEmail(''); setNewPassword(''); setNewTitle('Intern'); setError(''); setCreated(null);
   };
 
   const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -58,9 +59,13 @@ export default function MyTeam() {
   const handleAdd = async () => {
     if (!newName.trim()) { setError('Name is required.'); return; }
     if (!EMAIL_RE.test(newEmail.trim())) { setError('Enter a valid email address.'); return; }
+    if (newPassword && newPassword.length < 8) { setError('Password must be at least 8 characters.'); return; }
     setSaving(true);
     try {
-      const result = await addTeamMember({ name: newName.trim(), email: newEmail.trim(), title: newTitle });
+      const result = await addTeamMember({
+        name: newName.trim(), email: newEmail.trim(), title: newTitle,
+        ...(newPassword ? { password: newPassword } : {}),
+      });
       setCreated(result);
     } catch {
       // context already surfaced a toast for the failure
@@ -195,9 +200,12 @@ export default function MyTeam() {
             <Field label="Title" required>
               <Select value={newTitle} onChange={setNewTitle} options={TITLE_OPTIONS.map((t) => ({ value: t, label: t }))} />
             </Field>
+            <Field label="Password (optional)">
+              <TextInput value={newPassword} onChange={setNewPassword} placeholder="Leave blank to auto-generate one" type="password" />
+            </Field>
             {error && <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12, color: 'var(--amber-text)' }}>{error}</div>}
             <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 12, color: 'var(--text-muted)' }}>
-              They'll join {team?.name} with a temporary password you'll need to share with them directly.
+              They'll join {team?.name}. Set a password yourself if you'd rather they sign in with a real one right away — otherwise a temporary one is generated for you to hand off. Either way they'll set their own on first sign-in.
             </div>
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 22 }}>
@@ -211,11 +219,13 @@ export default function MyTeam() {
         <Modal title={`${created.user.name} was added`} onClose={resetAddForm}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontSize: 13.5, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-              Share these sign-in details with them directly — there's no email delivery configured, so this is the only place the temporary password is shown.
+              {created.tempPassword
+                ? "Share these sign-in details with them directly — there's no email delivery configured, so this is the only place the temporary password is shown."
+                : "They can sign in with the password you set. Here's their email for reference."}
             </div>
             <div style={{ padding: '14px 16px', background: 'var(--field-bg)', border: '1px dashed var(--border)', borderRadius: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
               <CredentialRow label="Email" value={created.user.email} />
-              <CredentialRow label="Temporary password" value={created.tempPassword} mono />
+              {created.tempPassword && <CredentialRow label="Temporary password" value={created.tempPassword} mono />}
             </div>
             <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 12, color: 'var(--text-muted)' }}>
               They'll be required to set their own password the first time they sign in.

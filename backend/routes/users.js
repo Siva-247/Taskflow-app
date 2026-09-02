@@ -59,13 +59,15 @@ router.post('/', requireRole('team_lead', 'manager', 'admin'), asyncRoute(async 
 
   // No email delivery is wired up — a generated temp password is normally
   // returned once, in this response, for whoever created the account to
-  // hand off directly. Admin alone may instead type in an exact password up
-  // front (e.g. so a new member can sign in with real credentials right
-  // away instead of a random string relayed by hand) — still forces
-  // must_change_password below either way, so it gets rotated on first use.
+  // hand off directly. Whoever's creating it may instead type in an exact
+  // password up front (e.g. so a new member can sign in with real
+  // credentials right away instead of a random string relayed by hand) —
+  // still forces must_change_password below either way, so it gets
+  // rotated on first use. The role checks above already gate WHO may
+  // create WHAT; this doesn't loosen that, just who may pick the password.
   let tempPassword = null;
   let passwordHash;
-  if (req.user.role === 'admin' && req.body.password) {
+  if (req.body.password) {
     if (req.body.password.length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters' });
     passwordHash = hashPassword(req.body.password);
   } else {
