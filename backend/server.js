@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import { createServer } from 'node:http';
 import express from 'express';
 import cors from 'cors';
 import { checkConnection } from './database/db.js';
@@ -10,10 +11,16 @@ import notificationsRouter from './routes/notifications.js';
 import usersRouter from './routes/users.js';
 import departmentsRouter from './routes/departments.js';
 import teamsRouter from './routes/teams.js';
+import chatRouter from './routes/chat.js';
+import { attachSocket } from './socket/index.js';
 
 const app = express();
 app.use(cors());
-app.use(express.json());
+// Raised from Express's 100kb default so a chat image (sent as a base64
+// data URI in the JSON body) fits — uploadChatImage itself caps the actual
+// decoded file at 8MB, this just needs to be comfortably above the ~33%
+// base64 inflation of that.
+app.use(express.json({ limit: '12mb' }));
 
 app.get('/api/health', async (req, res) => {
   try {
@@ -31,6 +38,7 @@ app.use('/api/notifications', notificationsRouter);
 app.use('/api/users', usersRouter);
 app.use('/api/departments', departmentsRouter);
 app.use('/api/teams', teamsRouter);
+app.use('/api/chat', chatRouter);
 
 // Catches anything forwarded via next(err) — every async route/middleware is
 // wrapped in asyncRoute specifically so a rejected promise ends up here
@@ -42,5 +50,11 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Something went wrong. Please try again.' });
 });
 
+// A plain http.Server wrapping the Express app, rather than the implicit
+// one app.listen() creates on its own — Socket.io needs the actual
+// http.Server instance to attach to, and app.listen() doesn't hand one back.
+const httpServer = createServer(app);
+attachSocket(httpServer);
+
 const PORT = process.env.PORT || 4000;
-app.listen(PORT, () => console.log(`TaskFlow API listening on http://localhost:${PORT}`));
+httpServer.listen(PORT, () => console.log(`TaskFlow API (+ chat websocket) listening on http://localhost:${PORT}`));

@@ -791,7 +791,7 @@ export function AppProvider({ children }) {
   }, [call]);
 
   const value = {
-    users, teams, departments, TODAY,
+    users, teams, departments, TODAY, token,
     currentUser, login, signup, fetchSignupDepartments, addSignupDepartment, logout, dataReady, authPending, sessionRestoring,
     mustChangePassword, changePassword, requestPasswordReset, resetPassword,
     tasks, dailyUpdates, activity, notifications,

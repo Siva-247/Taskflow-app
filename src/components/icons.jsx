@@ -274,3 +274,29 @@ export function IconX({ size = 20, color = 'var(--text-primary)' }) {
     </svg>
   );
 }
+
+export function IconChat({ size = 17, color = 'var(--text-muted)' }) {
+  return (
+    <svg {...base(size)} viewBox="0 0 20 20">
+      <path d="M3 5a2 2 0 012-2h10a2 2 0 012 2v6a2 2 0 01-2 2H8l-4 3v-3H5a2 2 0 01-2-2V5z" stroke={color} strokeWidth="1.6" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+export function IconSend({ size = 16, color = '#FFFFFF' }) {
+  return (
+    <svg {...base(size)} viewBox="0 0 20 20">
+      <path d="M17 3L3 9.5l6 2.5m8-9l-3.5 14L9 12m8-9L9 12" stroke={color} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+export function IconImage({ size = 17, color = 'var(--text-secondary)' }) {
+  return (
+    <svg {...base(size)} viewBox="0 0 20 20">
+      <rect x="2.5" y="4" width="15" height="12" rx="2" stroke={color} strokeWidth="1.6" />
+      <circle cx="7" cy="8.5" r="1.4" stroke={color} strokeWidth="1.4" />
+      <path d="M3 14l4.5-4 3 3 2.5-2.5L17 14" stroke={color} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}

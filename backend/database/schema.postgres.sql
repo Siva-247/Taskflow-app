@@ -131,6 +131,42 @@ CREATE TABLE IF NOT EXISTS notifications (
   seq BIGSERIAL
 );
 
+-- 'group' (name set, members added explicitly by whoever's allowed to
+-- create one) or 'dm' (name NULL, always exactly two members, reused
+-- rather than duplicated the next time those two people message each other).
+CREATE TABLE IF NOT EXISTS chat_conversations (
+  id TEXT PRIMARY KEY,
+  type TEXT NOT NULL,
+  name TEXT,
+  created_by TEXT REFERENCES users(id),
+  created_at TEXT NOT NULL,
+  seq BIGSERIAL
+);
+
+CREATE TABLE IF NOT EXISTS chat_members (
+  id TEXT PRIMARY KEY,
+  conversation_id TEXT NOT NULL REFERENCES chat_conversations(id) ON DELETE CASCADE,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  joined_at TEXT NOT NULL,
+  last_read_at TEXT,
+  seq BIGSERIAL
+);
+
+CREATE TABLE IF NOT EXISTS chat_messages (
+  id TEXT PRIMARY KEY,
+  conversation_id TEXT NOT NULL REFERENCES chat_conversations(id) ON DELETE CASCADE,
+  sender_id TEXT REFERENCES users(id),
+  text TEXT,
+  image_url TEXT,
+  created_at TEXT NOT NULL,
+  seq BIGSERIAL
+);
+
+CREATE INDEX IF NOT EXISTS idx_chat_members_conversation ON chat_members(conversation_id);
+CREATE INDEX IF NOT EXISTS idx_chat_members_user ON chat_members(user_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_chat_members_unique ON chat_members(conversation_id, user_id);
+CREATE INDEX IF NOT EXISTS idx_chat_messages_conversation ON chat_messages(conversation_id);
+
 CREATE INDEX IF NOT EXISTS idx_tasks_team ON tasks(team_id);
 CREATE INDEX IF NOT EXISTS idx_tasks_assignee ON tasks(assignee_id);
 CREATE INDEX IF NOT EXISTS idx_subtasks_task ON task_subtasks(task_id);

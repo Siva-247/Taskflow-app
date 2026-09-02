@@ -1,6 +1,7 @@
 import React from 'react';
 import { HashRouter, Routes, Route } from 'react-router-dom';
 import { AppProvider, useApp } from './context/AppContext.jsx';
+import { ChatProvider } from './context/ChatContext.jsx';
 import Layout from './components/Layout.jsx';
 import Login from './pages/Login.jsx';
 import SignUp from './pages/SignUp.jsx';
@@ -25,6 +26,7 @@ import Departments from './pages/Departments.jsx';
 import MyTeam from './pages/MyTeam.jsx';
 import Settings from './pages/Settings.jsx';
 import Reports from './pages/Reports.jsx';
+import Chat from './pages/Chat.jsx';
 import NotFound from './pages/NotFound.jsx';
 
 function AppRoutes() {
@@ -67,6 +69,7 @@ function AppRoutes() {
           <Route path="/my-team" element={<MyTeam />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/reports" element={<Reports />} />
+          <Route path="/chat" element={<Chat />} />
           <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>
@@ -77,7 +80,9 @@ function AppRoutes() {
 export default function App() {
   return (
     <AppProvider>
-      <AppRoutes />
+      <ChatProvider>
+        <AppRoutes />
+      </ChatProvider>
     </AppProvider>
   );
 }
