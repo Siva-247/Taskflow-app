@@ -618,6 +618,45 @@ export function AppProvider({ children }) {
     }
   }, [call, showToast, setTeams]);
 
+  // Admin-only: a standalone, lead-less team — addTeamLead above already
+  // covers the normal "new team lead needs a fresh team" path; this fills
+  // the gap it leaves (a pre-staffed placeholder, or replacing one removed
+  // via deleteTeam).
+  const addTeam = useCallback(async (data) => {
+    try {
+      const result = await call('/teams', { method: 'POST', body: JSON.stringify(data) });
+      setTeams((prev) => [...prev, result.team]);
+      showToast(`${result.team.name} added`);
+      return result.team;
+    } catch (err) {
+      showToast(err.message || 'Could not add team');
+      throw err;
+    }
+  }, [call, showToast, setTeams]);
+
+  const editTeam = useCallback(async (id, data) => {
+    try {
+      const result = await call(`/teams/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
+      setTeams((prev) => prev.map((t) => (t.id === id ? result.team : t)));
+      showToast('Team updated');
+      return result.team;
+    } catch (err) {
+      showToast(err.message || 'Could not update team');
+      throw err;
+    }
+  }, [call, showToast, setTeams]);
+
+  const deleteTeam = useCallback(async (id) => {
+    try {
+      await call(`/teams/${id}`, { method: 'DELETE' });
+      setTeams((prev) => prev.filter((t) => t.id !== id));
+      showToast('Team deleted');
+    } catch (err) {
+      showToast(err.message || 'Could not delete team');
+      throw err;
+    }
+  }, [call, showToast, setTeams]);
+
   // Scoped the same way on the backend as creation: admin manages anyone,
   // a manager manages their own department, a team lead their own team.
   const setUserActive = useCallback(async (userId, isActive) => {
@@ -758,7 +797,7 @@ export function AppProvider({ children }) {
     tasks, dailyUpdates, activity, notifications,
     scopedTasks, scopedDailyUpdates, statsFor, bucketOf, myDrafts,
     createTask, updateTask, deleteTask, publishDraft, refreshTask, setTaskProgress, setTaskStatus, requestChanges, submitForReview, approveTask, approveTaskCreation, rejectTaskCreation, reassignTask, requestExtension, approveExtension, rejectExtension, setTaskMarks, toggleSubtask,
-    addComment, editComment, deleteComment, addDailyUpdate, editDailyUpdate, deleteDailyUpdate, addTeamMember, addManager, addTeamLead, addDepartment, editDepartment, deleteDepartment, editUser, deleteUser, resetUserPassword, setUserActive,
+    addComment, editComment, deleteComment, addDailyUpdate, editDailyUpdate, deleteDailyUpdate, addTeamMember, addManager, addTeamLead, addTeam, editTeam, deleteTeam, addDepartment, editDepartment, deleteDepartment, editUser, deleteUser, resetUserPassword, setUserActive,
     markNotificationRead, markAllNotificationsRead,
     toast, showToast,
   };

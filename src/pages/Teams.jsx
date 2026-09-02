@@ -2,14 +2,14 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext.jsx';
 import { ROLES } from '../data/mockData.js';
-import { Card, Avatar, ProgressBar, Button, Modal, Field, TextInput } from '../components/ui.jsx';
+import { Card, Avatar, ProgressBar, Button, Modal, Field, TextInput, Select } from '../components/ui.jsx';
 import { IconPlusCircle } from '../components/icons.jsx';
 import { useRoleGuard } from '../hooks/useRoleGuard.js';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function Teams() {
-  const { currentUser, users, teams, departments, tasks, statsFor, addTeamLead, editUser, resetUserPassword } = useApp();
+  const { currentUser, users, teams, departments, tasks, statsFor, addTeamLead, addTeam, editTeam, deleteTeam, editUser, resetUserPassword } = useApp();
   const navigate = useNavigate();
   const allowed = useRoleGuard([ROLES.ADMIN, ROLES.MANAGER]);
 
@@ -29,6 +29,18 @@ export default function Teams() {
   const [pendingPasswordReset, setPendingPasswordReset] = useState(null);
   const [resettingPassword, setResettingPassword] = useState(false);
   const [passwordResetResult, setPasswordResetResult] = useState(null);
+  const [showAddTeam, setShowAddTeam] = useState(false);
+  const [newTeamOnlyName, setNewTeamOnlyName] = useState('');
+  const [newTeamDeptId, setNewTeamDeptId] = useState('');
+  const [addTeamSaving, setAddTeamSaving] = useState(false);
+  const [addTeamError, setAddTeamError] = useState('');
+  const [editingTeam, setEditingTeam] = useState(null);
+  const [editTeamName, setEditTeamName] = useState('');
+  const [editTeamSaving, setEditTeamSaving] = useState(false);
+  const [editTeamError, setEditTeamError] = useState('');
+  const [pendingDeleteTeam, setPendingDeleteTeam] = useState(null);
+  const [deleteTeamError, setDeleteTeamError] = useState('');
+  const [deletingTeam, setDeletingTeam] = useState(false);
 
   if (!allowed) return null;
 
@@ -98,6 +110,51 @@ export default function Teams() {
     }
   };
 
+  const resetAddTeamForm = () => { setShowAddTeam(false); setNewTeamOnlyName(''); setNewTeamDeptId(''); setAddTeamError(''); };
+
+  const handleAddTeam = async () => {
+    if (!newTeamOnlyName.trim()) { setAddTeamError('Team name is required.'); return; }
+    if (!newTeamDeptId) { setAddTeamError('Select a department.'); return; }
+    setAddTeamSaving(true);
+    try {
+      await addTeam({ name: newTeamOnlyName.trim(), departmentId: newTeamDeptId });
+      resetAddTeamForm();
+    } catch (err) {
+      setAddTeamError(err.message || 'Could not add team');
+    } finally {
+      setAddTeamSaving(false);
+    }
+  };
+
+  const startEditTeam = (team) => { setEditingTeam(team); setEditTeamName(team.name); setEditTeamError(''); };
+  const resetEditTeam = () => { setEditingTeam(null); setEditTeamName(''); setEditTeamError(''); };
+
+  const handleSaveEditTeam = async () => {
+    if (!editTeamName.trim()) { setEditTeamError('Team name is required.'); return; }
+    setEditTeamSaving(true);
+    try {
+      await editTeam(editingTeam.id, { name: editTeamName.trim() });
+      resetEditTeam();
+    } catch (err) {
+      setEditTeamError(err.message || 'Could not save changes');
+    } finally {
+      setEditTeamSaving(false);
+    }
+  };
+
+  const handleDeleteTeam = async () => {
+    setDeletingTeam(true);
+    setDeleteTeamError('');
+    try {
+      await deleteTeam(pendingDeleteTeam.id);
+      setPendingDeleteTeam(null);
+    } catch (err) {
+      setDeleteTeamError(err.message || 'Could not delete team');
+    } finally {
+      setDeletingTeam(false);
+    }
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
       <div className="stack-mobile" style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
@@ -112,15 +169,32 @@ export default function Teams() {
             <IconPlusCircle size={15} color="#FFFFFF" /> Add team lead
           </Button>
         )}
+        {isAdmin && (
+          <Button onClick={() => setShowAddTeam(true)}>
+            <IconPlusCircle size={15} color="#FFFFFF" /> Add team
+          </Button>
+        )}
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 20 }}>
         {rows.map((row) => (
           <Card key={row.team.id} style={{ cursor: 'pointer' }}>
             <div onClick={() => navigate(`/tasks?team=${row.team.id}`)}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
                 <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 16.5, color: 'var(--heading)' }}>{row.team.name}</div>
-                <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11, color: 'var(--text-muted)' }}>{row.memberCount} member{row.memberCount === 1 ? '' : 's'}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11, color: 'var(--text-muted)' }}>{row.memberCount} member{row.memberCount === 1 ? '' : 's'}</span>
+                  {isAdmin && (
+                    <div onClick={(e) => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <span onClick={() => startEditTeam(row.team)} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11, color: 'var(--accent-dark)', cursor: 'pointer' }}>
+                        Edit
+                      </span>
+                      <span onClick={() => { setPendingDeleteTeam(row.team); setDeleteTeamError(''); }} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11, color: 'var(--amber-text)', cursor: 'pointer' }}>
+                        Delete
+                      </span>
+                    </div>
+                  )}
+                </div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -259,6 +333,59 @@ export default function Teams() {
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 22 }}>
             <Button variant="primary" onClick={() => setPasswordResetResult(null)}>Done</Button>
+          </div>
+        </Modal>
+      )}
+
+      {showAddTeam && (
+        <Modal title="Add team" onClose={resetAddTeamForm}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <Field label="Team name" required>
+              <TextInput value={newTeamOnlyName} onChange={setNewTeamOnlyName} placeholder="e.g. Priya's Team" />
+            </Field>
+            <Field label="Department" required>
+              <Select
+                value={newTeamDeptId}
+                onChange={setNewTeamDeptId}
+                options={[{ value: '', label: 'Choose a department' }, ...departments.map((d) => ({ value: d.id, label: d.name }))]}
+              />
+            </Field>
+            {addTeamError && <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12, color: 'var(--amber-text)' }}>{addTeamError}</div>}
+            <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 12, color: 'var(--text-muted)' }}>
+              Creates an empty team with no lead yet — add one later from Employees, or use "Add team lead" as a manager to create both together.
+            </div>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 22 }}>
+            <Button variant="secondary" onClick={resetAddTeamForm}>Cancel</Button>
+            <Button variant="primary" onClick={handleAddTeam} disabled={addTeamSaving}>{addTeamSaving ? 'Adding…' : 'Add team'}</Button>
+          </div>
+        </Modal>
+      )}
+
+      {editingTeam && (
+        <Modal title={`Edit ${editingTeam.name}`} onClose={resetEditTeam}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <Field label="Team name" required>
+              <TextInput value={editTeamName} onChange={setEditTeamName} placeholder="Team name" />
+            </Field>
+            {editTeamError && <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12, color: 'var(--amber-text)' }}>{editTeamError}</div>}
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 22 }}>
+            <Button variant="secondary" onClick={resetEditTeam}>Cancel</Button>
+            <Button variant="primary" onClick={handleSaveEditTeam} disabled={editTeamSaving}>{editTeamSaving ? 'Saving…' : 'Save changes'}</Button>
+          </div>
+        </Modal>
+      )}
+
+      {pendingDeleteTeam && (
+        <Modal title={`Delete ${pendingDeleteTeam.name}?`} onClose={() => setPendingDeleteTeam(null)}>
+          <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13.5, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+            This only works if the team has no lead or members left on it — reassign or remove them first if it does.
+          </div>
+          {deleteTeamError && <div style={{ marginTop: 12, fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12.5, color: 'var(--amber-text)' }}>{deleteTeamError}</div>}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 22 }}>
+            <Button variant="secondary" onClick={() => setPendingDeleteTeam(null)}>Cancel</Button>
+            <Button variant="danger" onClick={handleDeleteTeam} disabled={deletingTeam}>{deletingTeam ? 'Deleting…' : 'Delete team'}</Button>
           </div>
         </Modal>
       )}
