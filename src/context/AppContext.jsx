@@ -720,6 +720,19 @@ export function AppProvider({ children }) {
     }
   }, [call, showToast]);
 
+  // No toast here — the caller shows the returned temp password in a modal
+  // instead, since it's a one-time value the admin needs to actually read
+  // and relay, not a message that can just flash and disappear.
+  const resetUserPassword = useCallback(async (id) => {
+    try {
+      const result = await call(`/users/${id}/password`, { method: 'PATCH' });
+      return result.tempPassword;
+    } catch (err) {
+      showToast(err.message || 'Could not reset password');
+      throw err;
+    }
+  }, [call, showToast]);
+
   const markNotificationRead = useCallback(async (id) => {
     setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
     try {
@@ -745,7 +758,7 @@ export function AppProvider({ children }) {
     tasks, dailyUpdates, activity, notifications,
     scopedTasks, scopedDailyUpdates, statsFor, bucketOf, myDrafts,
     createTask, updateTask, deleteTask, publishDraft, refreshTask, setTaskProgress, setTaskStatus, requestChanges, submitForReview, approveTask, approveTaskCreation, rejectTaskCreation, reassignTask, requestExtension, approveExtension, rejectExtension, setTaskMarks, toggleSubtask,
-    addComment, editComment, deleteComment, addDailyUpdate, editDailyUpdate, deleteDailyUpdate, addTeamMember, addManager, addTeamLead, addDepartment, editDepartment, deleteDepartment, editUser, deleteUser, setUserActive,
+    addComment, editComment, deleteComment, addDailyUpdate, editDailyUpdate, deleteDailyUpdate, addTeamMember, addManager, addTeamLead, addDepartment, editDepartment, deleteDepartment, editUser, deleteUser, resetUserPassword, setUserActive,
     markNotificationRead, markAllNotificationsRead,
     toast, showToast,
   };

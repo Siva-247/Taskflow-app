@@ -149,6 +149,24 @@ router.patch('/:id', requireRole('admin'), asyncRoute(async (req, res) => {
   res.json({ user });
 }));
 
+// Admin-only escape hatch for the "forgot password" dead end: most accounts
+// here use non-real demo emails, and even a real one has nowhere to go
+// unless SMTP is configured, so self-service reset can't be relied on. This
+// mirrors the temp-password pattern already used for brand-new accounts —
+// generate one, hash it, force must_change_password so they set their own
+// real password on next login, and hand the plaintext back once in this
+// response for the admin to relay directly. Never persisted anywhere else.
+router.patch('/:id/password', requireRole('admin'), asyncRoute(async (req, res) => {
+  const target = await prepare('SELECT id FROM users WHERE id = ?').get(req.params.id);
+  if (!target) return res.status(404).json({ error: 'User not found' });
+
+  const tempPassword = generateTempPassword();
+  const passwordHash = hashPassword(tempPassword);
+  await prepare('UPDATE users SET password_hash = ?, must_change_password = 1 WHERE id = ?').run(passwordHash, req.params.id);
+
+  res.json({ tempPassword });
+}));
+
 // Activate/deactivate — scoped the same way creation is: admin manages
 // anyone, a manager manages employees/team leads in their own department
 // (never another manager or admin), a team lead manages employees on their

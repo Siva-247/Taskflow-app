@@ -9,7 +9,7 @@ import { useRoleGuard } from '../hooks/useRoleGuard.js';
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function Employees() {
-  const { currentUser, users, teams, departments, tasks, statsFor, setUserActive, editUser, deleteUser } = useApp();
+  const { currentUser, users, teams, departments, tasks, statsFor, setUserActive, editUser, deleteUser, resetUserPassword } = useApp();
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [teamFilter, setTeamFilter] = useState('all');
@@ -23,6 +23,9 @@ export default function Employees() {
   const [pendingDelete, setPendingDelete] = useState(null);
   const [deleteError, setDeleteError] = useState('');
   const [deleting, setDeleting] = useState(false);
+  const [pendingPasswordReset, setPendingPasswordReset] = useState(null);
+  const [resettingPassword, setResettingPassword] = useState(false);
+  const [passwordResetResult, setPasswordResetResult] = useState(null);
   const allowed = useRoleGuard([ROLES.ADMIN, ROLES.MANAGER]);
   if (!allowed) return null;
 
@@ -55,6 +58,19 @@ export default function Employees() {
       setDeleteError(err.message || 'Could not remove member');
     } finally {
       setDeleting(false);
+    }
+  };
+
+  const handleConfirmPasswordReset = async () => {
+    setResettingPassword(true);
+    try {
+      const tempPassword = await resetUserPassword(pendingPasswordReset.id);
+      setPasswordResetResult({ name: pendingPasswordReset.name, tempPassword });
+      setPendingPasswordReset(null);
+    } catch {
+      // context already surfaced a toast for the failure
+    } finally {
+      setResettingPassword(false);
     }
   };
 
@@ -135,6 +151,14 @@ export default function Employees() {
                         Edit
                       </span>
                     )}
+                    {isAdmin_ && (
+                      <span
+                        onClick={() => setPendingPasswordReset(row.user)}
+                        style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11.5, color: 'var(--accent-dark)', cursor: 'pointer' }}
+                      >
+                        Reset password
+                      </span>
+                    )}
                     {isActive ? (
                       <span
                         onClick={() => setPendingDeactivate(row.user)}
@@ -208,6 +232,44 @@ export default function Employees() {
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 22 }}>
             <Button variant="secondary" onClick={() => setPendingDelete(null)}>Cancel</Button>
             <Button variant="danger" onClick={handleDelete} disabled={deleting}>{deleting ? 'Deleting…' : 'Delete member'}</Button>
+          </div>
+        </Modal>
+      )}
+
+      {pendingPasswordReset && (
+        <Modal title={`Reset ${pendingPasswordReset.name}'s password?`} onClose={() => setPendingPasswordReset(null)}>
+          <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13.5, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+            Their current password stops working immediately. You'll get a new temporary password to hand off to them directly — they'll be asked to set their own on next sign-in.
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 22 }}>
+            <Button variant="secondary" onClick={() => setPendingPasswordReset(null)}>Cancel</Button>
+            <Button variant="danger" onClick={handleConfirmPasswordReset} disabled={resettingPassword}>{resettingPassword ? 'Resetting…' : 'Reset password'}</Button>
+          </div>
+        </Modal>
+      )}
+
+      {passwordResetResult && (
+        <Modal title={`${passwordResetResult.name}'s new temporary password`} onClose={() => setPasswordResetResult(null)}>
+          <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13.5, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+            Share this with them now — it won't be shown again. They'll be asked to set their own password the next time they sign in.
+          </div>
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginTop: 16,
+            padding: '12px 16px', background: 'var(--field-bg)', border: '1px solid var(--border)', borderRadius: 9,
+          }}>
+            <span style={{ fontFamily: "monospace", fontWeight: 700, fontSize: 15, letterSpacing: '0.04em', color: 'var(--heading)' }}>
+              {passwordResetResult.tempPassword}
+            </span>
+            <Button
+              variant="secondary"
+              style={{ padding: '6px 14px', fontSize: 12 }}
+              onClick={() => navigator.clipboard?.writeText(passwordResetResult.tempPassword)}
+            >
+              Copy
+            </Button>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 22 }}>
+            <Button variant="primary" onClick={() => setPasswordResetResult(null)}>Done</Button>
           </div>
         </Modal>
       )}
