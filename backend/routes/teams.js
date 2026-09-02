@@ -57,19 +57,26 @@ router.patch('/:id', requireRole('admin'), asyncRoute(async (req, res) => {
 }));
 
 // Deletion is blocked while anyone (lead or member) still points at this
-// team — checking live user rows rather than the team's own lead_id column,
-// since lead_id carries no foreign key and can be left holding a stale id
-// after that person's account is deleted, which would otherwise look like
-// an occupied team forever.
+// team, or it still has task history — checking live user/task rows rather
+// than the team's own lead_id column, since lead_id carries no foreign key
+// and can be left holding a stale id after that person's account is
+// deleted, which would otherwise look like an occupied team forever.
 router.delete('/:id', requireRole('admin'), asyncRoute(async (req, res) => {
   const existing = await prepare('SELECT id FROM teams WHERE id = ?').get(req.params.id);
   if (!existing) return res.status(404).json({ error: 'Team not found' });
 
   const memberCount = (await prepare('SELECT COUNT(*)::int AS count FROM users WHERE team_id = ?').get(req.params.id)).count;
-  if (memberCount > 0) {
-    return res.status(400).json({ error: `Reassign or remove its ${memberCount} member(s) (including the lead) first — a team can only be deleted once it's empty.` });
+  const taskCount = (await prepare('SELECT COUNT(*)::int AS count FROM tasks WHERE team_id = ?').get(req.params.id)).count;
+  if (memberCount > 0 || taskCount > 0) {
+    return res.status(400).json({ error: `Reassign or remove its ${memberCount} member(s) and ${taskCount} task(s) first — a team can only be deleted once it's empty.` });
   }
 
+  // activity_logs.team_id also references this row with no cascade, so a
+  // team that ever had anyone join/leave would otherwise fail deletion with
+  // a raw foreign-key violation even once it's empty. Detach rather than
+  // delete those entries — the audit trail stays readable in the global
+  // feed, just no longer grouped under a team that no longer exists.
+  await prepare('UPDATE activity_logs SET team_id = NULL WHERE team_id = ?').run(req.params.id);
   await prepare('DELETE FROM teams WHERE id = ?').run(req.params.id);
   res.json({ ok: true });
 }));
