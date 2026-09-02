@@ -61,7 +61,16 @@ export default function TaskList() {
   const filtered = useMemo(() => visible.filter((task) => {
     if (status === 'Approval Requests' && !isApprovalRequest(task)) return false;
     if (status === 'Overdue' && bucketOf(task) !== 'overdue') return false;
-    if (status !== 'all' && status !== 'Overdue' && status !== 'Approval Requests' && task.status !== status) return false;
+    if (status === STATUS.PENDING_APPROVAL) {
+      // The Approvals view covers both flavors of "needs a reviewer's
+      // decision": a brand-new task still awaiting creation sign-off, and an
+      // existing task carrying a pending due-date extension request on top
+      // of whatever status it's already in — a due-date extension is itself
+      // an approval action, not a status change until it's decided.
+      if (task.status !== STATUS.PENDING_APPROVAL && !task.requestedDueDate) return false;
+    } else if (status !== 'all' && status !== 'Overdue' && status !== 'Approval Requests' && task.status !== status) {
+      return false;
+    }
     if (priority !== 'all' && task.priority !== priority) return false;
     if (teamFilter !== 'all' && task.teamId !== teamFilter) return false;
     if (assigneeFilter !== 'all' && task.assigneeId !== assigneeFilter) return false;

@@ -16,7 +16,8 @@ export default function Login() {
 
   const [resetSent, setResetSent] = useState(false);
 
-  const handleLogin = async () => {
+  const handleLogin = async (e) => {
+    if (e) e.preventDefault();
     setError('');
     if (!email.trim() || !password) { setError('Enter your email and password.'); return; }
     setSubmitting(true);
@@ -67,7 +68,7 @@ export default function Login() {
 
         <div style={{ background: '#FFFFFF', border: '1px solid var(--border)', borderRadius: 14, boxShadow: 'var(--card-shadow)', padding: '26px 24px' }}>
           {mode === 'login' ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <Field label="Email" required>
                 <TextInput value={email} onChange={setEmail} placeholder="you@company.com" />
               </Field>
@@ -75,7 +76,7 @@ export default function Login() {
                 <TextInput value={password} onChange={setPassword} placeholder="••••••••" type="password" />
               </Field>
               {error && <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12.5, color: 'var(--amber-text)' }}>{error}</div>}
-              <Button variant="primary" style={{ justifyContent: 'center', marginTop: 4 }} onClick={handleLogin} disabled={submitting}>
+              <Button type="submit" variant="primary" style={{ justifyContent: 'center', marginTop: 4 }} disabled={submitting}>
                 {submitting ? 'Signing in…' : 'Sign In'}
               </Button>
               <div style={{ textAlign: 'center' }}>
@@ -89,7 +90,7 @@ export default function Login() {
                   <span onClick={() => navigate('/signup')} style={{ color: 'var(--accent-dark)', fontWeight: 700, cursor: 'pointer' }}>Create Account</span>
                 </span>
               </div>
-            </div>
+            </form>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               {!resetSent ? (
