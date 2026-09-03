@@ -1,6 +1,7 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext.jsx';
+import { useChat } from '../context/ChatContext.jsx';
 import { ROLES } from '../data/mockData.js';
 import {
   IconGrid, IconLayers, IconUser, IconUsers, IconChecklist, IconBarChart, IconGear,
@@ -58,6 +59,7 @@ const WIDTH_BY_ROLE = {
 
 export default function Sidebar({ open = false, onNavigate }) {
   const { currentUser, showToast } = useApp();
+  const { conversations } = useChat();
   const navigate = useNavigate();
   const location = useLocation();
   if (!currentUser) return null;
@@ -65,6 +67,11 @@ export default function Sidebar({ open = false, onNavigate }) {
   const items = NAV_BY_ROLE[currentUser.role] || [];
   const width = WIDTH_BY_ROLE[currentUser.role] || 232;
   const currentPath = location.pathname + location.search;
+  // Same "unread" rule as the Chat page's conversation list — one badge
+  // count per conversation currently carrying an unread message from
+  // someone else, not a running total of every message, so reading a chat
+  // always drops it by exactly the 1 that chat was contributing.
+  const unreadChatCount = conversations.filter((c) => c.lastMessageAt && (!c.lastReadAt || c.lastMessageAt > c.lastReadAt) && c.lastMessageSenderId !== currentUser.id).length;
 
   const go = (to) => {
     navigate(to);
@@ -91,12 +98,22 @@ export default function Sidebar({ open = false, onNavigate }) {
           >
             <Icon size={17} color={isActive ? 'var(--accent-dark)' : 'var(--text-muted)'} />
             <span style={{
+              flex: 1,
               fontFamily: "'Manrope',system-ui,sans-serif", fontSize: 13.5,
               fontWeight: isActive ? 700 : 500,
               color: isActive ? 'var(--accent-dark)' : 'var(--text-secondary)',
             }}>
               {item.label}
             </span>
+            {item.to === '/chat' && unreadChatCount > 0 && (
+              <span style={{
+                minWidth: 18, height: 18, padding: '0 5px', borderRadius: 999, background: 'var(--amber-fill)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 10.5, color: '#FFFFFF',
+              }}>
+                {unreadChatCount > 9 ? '9+' : unreadChatCount}
+              </span>
+            )}
           </div>
         );
       })}

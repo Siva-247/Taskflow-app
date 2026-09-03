@@ -17,6 +17,38 @@ function formatMessageTime(iso) {
     : d.toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
 }
 
+// Splits message text on "@Name" for any name that's actually a member of
+// this conversation, highlighting each — longest names first, so "@Vishal"
+// isn't half-matched by a shorter name that happens to be its prefix.
+function renderWithMentions(text, members, mine) {
+  const names = [...members].map((m) => m.name).filter(Boolean).sort((a, b) => b.length - a.length);
+  if (names.length === 0) return text;
+  const escaped = names.map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  const pattern = new RegExp(`@(${escaped.join('|')})\\b`, 'g');
+  const parts = [];
+  let lastIndex = 0;
+  let match = pattern.exec(text);
+  while (match !== null) {
+    if (match.index > lastIndex) parts.push(text.slice(lastIndex, match.index));
+    parts.push(
+      <span
+        key={match.index}
+        style={{
+          fontWeight: 800, borderRadius: 4, padding: '1px 4px',
+          background: mine ? 'rgba(255,255,255,0.28)' : 'var(--accent-soft)',
+          color: mine ? '#FFFFFF' : 'var(--accent-dark)',
+        }}
+      >
+        @{match[1]}
+      </span>,
+    );
+    lastIndex = match.index + match[0].length;
+    match = pattern.exec(text);
+  }
+  if (lastIndex < text.length) parts.push(text.slice(lastIndex));
+  return parts;
+}
+
 export default function Chat() {
   const { currentUser, users } = useApp();
   const {
@@ -37,6 +69,20 @@ export default function Chat() {
   const active = conversations.find((c) => c.id === activeConversationId) || null;
   const messages = activeConversationId ? (messagesByConversation[activeConversationId] || []) : [];
   const typingUserIds = activeConversationId ? [...(typingByConversation[activeConversationId] || [])].filter((id) => id !== currentUser.id) : [];
+
+  // A trailing "@word" at the very end of the draft triggers the mention
+  // picker — e.g. typing "hey @po" while the cursor sits right after it.
+  // Simpler than tracking real caret position, and covers the common case
+  // of mentioning someone as you're typing rather than editing mid-sentence.
+  const mentionMatch = /(?:^|\s)@(\w*)$/.exec(draft);
+  const mentionQuery = mentionMatch ? mentionMatch[1] : null;
+  const mentionCandidates = active && mentionQuery !== null
+    ? active.members.filter((m) => m.id !== currentUser.id && m.name.toLowerCase().startsWith(mentionQuery.toLowerCase()))
+    : [];
+
+  const insertMention = (name) => {
+    setDraft((prev) => prev.replace(/(^|\s)@(\w*)$/, (whole, prefix) => `${prefix}@${name} `));
+  };
 
   useEffect(() => {
     if (activeConversationId) {
@@ -60,7 +106,7 @@ export default function Chat() {
     const other = c.members.find((m) => m.id !== currentUser.id);
     return other?.initial || '?';
   };
-  const isUnread = (c) => c.lastMessageAt && (!c.lastReadAt || c.lastMessageAt > c.lastReadAt) && c.createdBy !== currentUser.id;
+  const isUnread = (c) => c.lastMessageAt && (!c.lastReadAt || c.lastMessageAt > c.lastReadAt) && c.lastMessageSenderId !== currentUser.id;
 
   const handleSend = async () => {
     const text = draft.trim();
@@ -191,7 +237,11 @@ export default function Chat() {
                       color: mine ? '#FFFFFF' : 'var(--text-primary)',
                     }}>
                       {m.imageUrl && <img src={m.imageUrl} alt="Shared" style={{ maxWidth: '100%', borderRadius: 9, display: 'block' }} />}
-                      {m.text && <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13.5, lineHeight: 1.4, marginTop: m.imageUrl ? 6 : 0, padding: m.imageUrl ? '0 6px' : 0 }}>{m.text}</div>}
+                      {m.text && (
+                        <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13.5, lineHeight: 1.4, marginTop: m.imageUrl ? 6 : 0, padding: m.imageUrl ? '0 6px' : 0 }}>
+                          {renderWithMentions(m.text, active.members, mine)}
+                        </div>
+                      )}
                     </div>
                     <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 10.5, color: 'var(--text-muted)', marginTop: 3 }}>{formatMessageTime(m.createdAt)}</span>
                   </div>
@@ -205,13 +255,31 @@ export default function Chat() {
               <div ref={messagesEndRef} />
             </div>
 
-            <div style={{ padding: '12px 18px', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ position: 'relative', padding: '12px 18px', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 8 }}>
+              {mentionCandidates.length > 0 && (
+                <div style={{
+                  position: 'absolute', left: 18, right: 18, bottom: '100%', marginBottom: 6,
+                  background: '#FFFFFF', border: '1px solid var(--border)', borderRadius: 10,
+                  boxShadow: '0 10px 28px -12px rgba(59,30,112,0.25)', overflow: 'hidden', zIndex: 10,
+                }}>
+                  {mentionCandidates.map((m) => (
+                    <div
+                      key={m.id}
+                      onMouseDown={(e) => { e.preventDefault(); insertMention(m.name); }}
+                      style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', cursor: 'pointer' }}
+                    >
+                      <Avatar initial={m.initial} size={22} />
+                      <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12.5, color: 'var(--text-primary)' }}>{m.name}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
               <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImagePick} style={{ display: 'none' }} />
               <button type="button" onClick={() => fileInputRef.current?.click()} disabled={sending} style={iconBtnStyle} title="Share an image">
                 <IconImage size={18} />
               </button>
               <div style={{ flex: 1 }}>
-                <TextInput value={draft} onChange={handleDraftChange} placeholder="Type a message…" />
+                <TextInput value={draft} onChange={handleDraftChange} placeholder="Type a message… (@ to mention)" />
               </div>
               <Button variant="primary" style={{ padding: '10px 14px' }} onClick={handleSend} disabled={sending || !draft.trim()}>
                 <IconSend size={15} />
@@ -261,14 +329,14 @@ const iconBtnStyle = {
 };
 
 // Mirrors the backend's canAddToGroup exactly, so the picker never offers a
-// choice the server would reject — admin reaches anyone, a manager their
-// own department, a team lead their own team.
+// choice the server would reject — admin reaches anyone, a manager or a
+// team lead both reach their whole department (every team in it, each
+// other, the manager themself), not just a team lead's own team.
 function pickableMembers(currentUser, users) {
   return users.filter((u) => {
     if (u.id === currentUser.id) return false;
     if (currentUser.role === ROLES.ADMIN) return true;
-    if (currentUser.role === ROLES.MANAGER) return u.departmentId === currentUser.departmentId;
-    if (currentUser.role === ROLES.TEAM_LEAD) return u.teamId === currentUser.teamId;
+    if (currentUser.role === ROLES.MANAGER || currentUser.role === ROLES.TEAM_LEAD) return u.departmentId === currentUser.departmentId;
     return false;
   });
 }

@@ -19,15 +19,16 @@ async function memberRows(conversationId) {
   return prepare(`SELECT u.id, u.name, u.initial FROM chat_members cm JOIN users u ON u.id = cm.user_id WHERE cm.conversation_id = ?`).all(conversationId);
 }
 
-// Who a person may add to a group they're creating — the same reach as
-// credential management elsewhere: admin reaches anyone, a manager their
-// own department, a team lead their own team. Deliberately not reused for
-// DMs — anyone may DM anyone, no scoping there, same as canAddToGroup isn't
+// Who a person may add to a group they're creating — admin reaches anyone;
+// a manager or a team lead both reach their whole department (every team
+// in it, every other team lead, the manager themself), not just their own
+// team — a team lead's group can pull in anyone across the department, the
+// same reach a manager already had. Deliberately not reused for DMs —
+// anyone may DM anyone, no scoping there, same as canAddToGroup isn't
 // consulted at all on that path below.
 function canAddToGroup(actor, targetUser) {
   if (actor.role === 'admin') return true;
-  if (actor.role === 'manager') return targetUser.department_id === actor.department_id;
-  if (actor.role === 'team_lead') return targetUser.team_id === actor.team_id;
+  if (actor.role === 'manager' || actor.role === 'team_lead') return targetUser.department_id === actor.department_id;
   return false;
 }
 
@@ -37,7 +38,8 @@ router.get('/conversations', asyncRoute(async (req, res) => {
       cm.last_read_at as "lastReadAt",
       (SELECT text FROM chat_messages m WHERE m.conversation_id = c.id ORDER BY m.seq DESC LIMIT 1) as "lastMessageText",
       (SELECT image_url FROM chat_messages m WHERE m.conversation_id = c.id ORDER BY m.seq DESC LIMIT 1) as "lastMessageImage",
-      (SELECT created_at FROM chat_messages m WHERE m.conversation_id = c.id ORDER BY m.seq DESC LIMIT 1) as "lastMessageAt"
+      (SELECT created_at FROM chat_messages m WHERE m.conversation_id = c.id ORDER BY m.seq DESC LIMIT 1) as "lastMessageAt",
+      (SELECT sender_id FROM chat_messages m WHERE m.conversation_id = c.id ORDER BY m.seq DESC LIMIT 1) as "lastMessageSenderId"
     FROM chat_conversations c
     JOIN chat_members cm ON cm.conversation_id = c.id
     WHERE cm.user_id = ?

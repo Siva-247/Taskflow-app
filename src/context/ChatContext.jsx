@@ -30,6 +30,11 @@ export function ChatProvider({ children }) {
   const [typingByConversation, setTypingByConversation] = useState({});
   const [connected, setConnected] = useState(false);
   const socketRef = useRef(null);
+  // Read inside the message:new socket handler below, which is set up once
+  // per connection and would otherwise close over a stale
+  // activeConversationId from whichever render first created the socket.
+  const activeConversationIdRef = useRef(null);
+  useEffect(() => { activeConversationIdRef.current = activeConversationId; }, [activeConversationId]);
 
   const loadConversations = useCallback(async () => {
     if (!token) return;
@@ -67,10 +72,22 @@ export function ChatProvider({ children }) {
         ...prev,
         [message.conversationId]: [...(prev[message.conversationId] || []), message],
       }));
+      // A message for the conversation someone's actively looking at right
+      // now shouldn't sit there counted as unread until they switch away
+      // and back — mark it read immediately, both here (so the badge never
+      // even flickers on) and on the server (so it stays read on reload).
+      const isActiveConversation = message.conversationId === activeConversationIdRef.current;
+      if (isActiveConversation) {
+        chatRequest(`/conversations/${message.conversationId}/read`, { method: 'POST' }, token).catch(() => {});
+      }
       setConversations((prev) => {
         const idx = prev.findIndex((c) => c.id === message.conversationId);
         if (idx === -1) return prev; // a conversation:new event brings in ones we haven't loaded yet
-        const updated = { ...prev[idx], lastMessageText: message.text, lastMessageImage: message.imageUrl, lastMessageAt: message.createdAt };
+        const updated = {
+          ...prev[idx], lastMessageText: message.text, lastMessageImage: message.imageUrl,
+          lastMessageAt: message.createdAt, lastMessageSenderId: message.senderId,
+          lastReadAt: isActiveConversation ? message.createdAt : prev[idx].lastReadAt,
+        };
         return [updated, ...prev.slice(0, idx), ...prev.slice(idx + 1)];
       });
     });
