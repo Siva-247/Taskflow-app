@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext.jsx';
-import { ROLES } from '../data/mockData.js';
-import { IconLogo, IconBell, IconCheckCircle, IconPlusCircle, IconUser, IconMenu, IconCalendar } from './icons.jsx';
+import { IconLogo, IconBell, IconCheckCircle, IconPlusCircle, IconUser, IconMenu } from './icons.jsx';
 import { Avatar } from './ui.jsx';
 import ProfilePanel from './ProfilePanel.jsx';
 import { roleHome, formatDate } from '../utils.js';
@@ -103,17 +102,8 @@ export default function Header({ onMenuClick }) {
             </div>
           )}
         </div>
-        {currentUser.role === ROLES.EMPLOYEE && (
-          <div
-            onClick={() => navigate('/daily-update')}
-            title="Today's daily update"
-            style={{ width: 34, height: 34, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
-          >
-            <IconCalendar size={18} color="var(--text-secondary)" />
-          </div>
-        )}
         <div className="header-user-text" style={{ width: 1, height: 22, background: 'var(--border)' }} />
-        <div style={{ display: 'flex', alignItems: 'center', gap: 9, cursor: 'pointer' }} onClick={() => { setProfileOpen(true); setNotifOpen(false); }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 9, cursor: 'pointer' }} onClick={() => { setProfileOpen((v) => !v); setNotifOpen(false); }}>
           <Avatar initial={currentUser.initial} size={32} />
           <div className="header-user-text" style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>
             <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 13.5, color: 'var(--text-primary)' }}>{currentUser.name}</span>
