@@ -73,8 +73,14 @@ CREATE TABLE IF NOT EXISTS tasks (
   requested_due_date TEXT,
   extension_reason TEXT,
   submission_note TEXT,
+  approved_by TEXT REFERENCES users(id),
   seq BIGSERIAL
 );
+
+-- Added after `tasks` already existed live, so CREATE TABLE IF NOT EXISTS
+-- alone (a no-op there) wouldn't apply it — runs every time this file is
+-- applied, itself a no-op once the column is already present.
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS approved_by TEXT REFERENCES users(id);
 
 CREATE TABLE IF NOT EXISTS task_subtasks (
   id TEXT PRIMARY KEY,

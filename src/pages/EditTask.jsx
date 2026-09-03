@@ -118,7 +118,7 @@ export default function EditTask() {
         {errors.description && <ErrorText>Description is required.</ErrorText>}
 
         <div style={{ height: 18 }} />
-        <Field label="Category">
+        <Field label="Milestone">
           <Select value={category} onChange={setCategory} options={CATEGORIES.map((c) => ({ value: c, label: c }))} />
         </Field>
 

@@ -229,7 +229,7 @@ router.post('/:id/approve-creation', asyncRoute(async (req, res) => {
   if (!(await userCanApproveCreation(req.user, existing))) return res.status(403).json({ error: 'You are not authorized to approve this task' });
   if (existing.status !== STATUS.PENDING_APPROVAL) return res.status(400).json({ error: 'This task is not waiting on approval' });
 
-  await prepare('UPDATE tasks SET status = ? WHERE id = ?').run(STATUS.TODO, req.params.id);
+  await prepare('UPDATE tasks SET status = ?, approved_by = ? WHERE id = ?').run(STATUS.TODO, req.user.id, req.params.id);
   const assigneeName = await userName(existing.assignee_id);
   await insertTaskEvent(req.params.id, `${await userName(req.user.id)} approved this task — now assigned to ${assigneeName}`);
   await insertGlobalActivity('created', `${await userName(req.user.id)} approved "${existing.title}" for ${assigneeName}`, existing.team_id);

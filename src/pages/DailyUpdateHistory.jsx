@@ -117,9 +117,14 @@ export default function DailyUpdateHistory() {
           <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 24, color: 'var(--heading)' }}>Daily work update history</div>
           <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 14, color: 'var(--text-secondary)', marginTop: 4 }}>{scopeLabel}</div>
         </div>
-        <Button onClick={handleExport} disabled={updates.length === 0}>
-          <IconDownload size={14} color="#FFFFFF" /> Export CSV
-        </Button>
+        <div style={{ display: 'flex', gap: 10 }}>
+          {currentUser.role === ROLES.EMPLOYEE && (
+            <Button variant="secondary" onClick={() => navigate('/daily-update')}>Update today's entry</Button>
+          )}
+          <Button onClick={handleExport} disabled={updates.length === 0}>
+            <IconDownload size={14} color="#FFFFFF" /> Export CSV
+          </Button>
+        </div>
       </div>
 
       <Card padded={false} style={{ padding: '14px 18px' }}>

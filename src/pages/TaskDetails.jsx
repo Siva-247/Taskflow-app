@@ -68,11 +68,13 @@ export default function TaskDetails() {
   const canGiveMarks = isReviewer && (task.status === STATUS.IN_REVIEW || task.status === STATUS.COMPLETED);
   const hasPendingExtension = Boolean(task.requestedDueDate);
   const isPendingCreationApproval = task.status === STATUS.PENDING_APPROVAL;
-  // Deliberately NOT the team lead — a team lead's own task creations are
-  // exactly what this gate checks, so only the department manager (or admin)
-  // clears it, mirroring the backend's userCanApproveCreation rule exactly.
+  // A team lead can't approve their own task creation — only the department
+  // manager (or admin) clears one of those — but can approve one of their
+  // team's employees', mirroring the backend's userCanApproveCreation exactly.
   const canApproveCreation = isPendingCreationApproval
-    && (currentUser.role === ROLES.ADMIN || (currentUser.role === ROLES.MANAGER && team?.departmentId === currentUser.departmentId));
+    && (currentUser.role === ROLES.ADMIN
+      || (currentUser.role === ROLES.MANAGER && team?.departmentId === currentUser.departmentId)
+      || (currentUser.role === ROLES.TEAM_LEAD && task.teamId === currentUser.teamId && task.createdBy !== currentUser.id));
   const canRequestExtension = isAssignee && !hasPendingExtension && !isPendingCreationApproval && task.status !== STATUS.IN_REVIEW && task.status !== STATUS.COMPLETED;
   // Same authority as reviewing the task (helpers.js userCanReview mirrored
   // exactly) — reassignment is a management action, never an assignee one.
@@ -276,7 +278,7 @@ export default function TaskDetails() {
               <DetailRow label="Assigned by"><Value>{assignedBy?.name || '—'}</Value></DetailRow>
               <DetailRow label="Department"><Value>{department?.name}</Value></DetailRow>
               <DetailRow label="Team"><Value>{team?.name}</Value></DetailRow>
-              <DetailRow label="Category"><Value>{task.category}</Value></DetailRow>
+              <DetailRow label="Milestone"><Value>{task.category}</Value></DetailRow>
               <DetailRow label="Start date"><Value>{formatDate(task.startDate)}</Value></DetailRow>
               <DetailRow label="Due date"><Value>{formatDate(task.dueDate)}</Value></DetailRow>
               {task.estimatedEffort && <DetailRow label="Estimated effort"><Value>{task.estimatedEffort}</Value></DetailRow>}
@@ -311,7 +313,7 @@ export default function TaskDetails() {
             {isPendingCreationApproval && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontSize: 13.5, color: 'var(--text-secondary)' }}>
-                  {canApproveCreation ? `${assignedBy?.name} created this for ${assignee?.name} — review and approve it to make it active.` : "Waiting on your manager's approval before work can start."}
+                  {canApproveCreation ? `${assignedBy?.name} created this for ${assignee?.name} — review and approve it to make it active.` : "Waiting on your team lead's or manager's approval before work can start."}
                 </div>
                 {canApproveCreation && (
                   <div style={{ display: 'flex', gap: 8 }}>

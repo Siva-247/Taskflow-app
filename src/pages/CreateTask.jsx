@@ -183,7 +183,7 @@ export default function CreateTask() {
         <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 14, color: 'var(--text-secondary)', marginTop: 4 }}>
           {isEditingDraft
             ? 'Continue where you left off, then assign it or save it again.'
-            : (currentUser.role === ROLES.EMPLOYEE ? 'Create a task for yourself — your manager will need to approve it first' : 'Assign a task to a member of your team')}
+            : (currentUser.role === ROLES.EMPLOYEE ? 'Create a task for yourself — your team lead or manager will need to approve it first' : 'Assign a task to a member of your team')}
         </div>
       </div>
 
@@ -202,7 +202,7 @@ export default function CreateTask() {
         {errors.description && <ErrorText>Description is required.</ErrorText>}
 
         <div style={{ height: 18 }} />
-        <Field label="Category">
+        <Field label="Milestone">
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <Select
               value={categorySelection}
@@ -210,25 +210,15 @@ export default function CreateTask() {
               options={[...allCategories.map((c) => ({ value: c, label: c })), { value: OTHER_CATEGORY, label: 'Other — type your own' }]}
             />
             {categorySelection === OTHER_CATEGORY && (
-              <TextInput value={customCategory} onChange={setCustomCategory} placeholder="Enter a category" />
+              <TextInput value={customCategory} onChange={setCustomCategory} placeholder="Enter a milestone" />
             )}
           </div>
         </Field>
-        {errors.category && <ErrorText>Enter a category, or pick one from the list.</ErrorText>}
+        {errors.category && <ErrorText>Enter a milestone, or pick one from the list.</ErrorText>}
 
         <SectionLabel>Assignment &amp; priority</SectionLabel>
         <div className="responsive-grid" style={{ display: 'grid', '--cols': currentUser.role === ROLES.EMPLOYEE ? '1fr 1fr' : '1fr 1fr 1fr', gap: 22 }}>
-          {currentUser.role === ROLES.EMPLOYEE ? (
-            <Field label="Assigned to">
-              <div style={{
-                display: 'flex', alignItems: 'center', height: 40, padding: '0 14px', borderRadius: 9,
-                border: '1px solid var(--border)', background: 'var(--field-bg)',
-                fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 13.5, color: 'var(--text-primary)',
-              }}>
-                You — {currentUser.name}
-              </div>
-            </Field>
-          ) : (
+          {currentUser.role !== ROLES.EMPLOYEE && (
             <Field label="Assign to" required>
               <div style={{ ...(errors.assigneeId ? { borderRadius: 9, border: '1px solid var(--amber-fill)' } : {}) }}>
                 <Select value={assigneeId} onChange={setAssigneeId} options={assignableUsers.map((u) => ({ value: u.id, label: `${u.name} · ${u.title}` }))} />

@@ -177,6 +177,33 @@ export function Modal({ title, children, onClose }) {
   );
 }
 
+// A right-anchored slide-over, for content that belongs alongside the page
+// rather than interrupting it full-screen — sized to roughly a quarter of
+// the viewport, clamped so it never feels cramped on a small screen or
+// oversized on an ultra-wide one.
+export function Drawer({ title, children, onClose, width = 'clamp(300px, 25vw, 420px)' }) {
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0, background: 'rgba(23,18,38,0.45)',
+        zIndex: 2000, display: 'flex', justifyContent: 'flex-end',
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: '#FFFFFF', width, height: '100%', boxShadow: '-28px 0 64px -20px rgba(20,10,40,0.35)',
+          padding: '26px 24px', overflowY: 'auto', display: 'flex', flexDirection: 'column',
+        }}
+      >
+        {title && <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 17, color: 'var(--heading)', marginBottom: 18 }}>{title}</div>}
+        {children}
+      </div>
+    </div>
+  );
+}
+
 export function Toast({ message }) {
   if (!message) return null;
   return (

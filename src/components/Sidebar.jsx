@@ -5,7 +5,7 @@ import { useChat } from '../context/ChatContext.jsx';
 import { ROLES } from '../data/mockData.js';
 import {
   IconGrid, IconLayers, IconUser, IconUsers, IconChecklist, IconBarChart, IconGear,
-  IconPlusCircle, IconEye, IconCalendar, IconChat,
+  IconEye, IconCalendar, IconChat,
 } from './icons.jsx';
 
 const NAV_BY_ROLE = {
@@ -25,7 +25,6 @@ const NAV_BY_ROLE = {
     { label: 'Teams', icon: IconUsers, to: '/teams' },
     { label: 'Employees', icon: IconUser, to: '/employees' },
     { label: 'Tasks', icon: IconChecklist, to: '/tasks' },
-    { label: 'Create Task', icon: IconPlusCircle, to: '/tasks/new' },
     { label: 'Approvals', icon: IconEye, to: '/tasks?status=Pending+Approval' },
     { label: 'Chat', icon: IconChat, to: '/chat' },
     { label: 'Daily Updates', icon: IconCalendar, to: '/daily-updates' },
@@ -35,7 +34,6 @@ const NAV_BY_ROLE = {
     { label: 'Dashboard', icon: IconGrid, to: '/team-lead' },
     { label: 'My Team', icon: IconUsers, to: '/my-team' },
     { label: 'Tasks', icon: IconChecklist, to: '/tasks' },
-    { label: 'Create Task', icon: IconPlusCircle, to: '/tasks/new' },
     { label: 'Approvals', icon: IconEye, to: '/tasks?status=Pending+Approval' },
     { label: 'Reviews', icon: IconEye, to: '/tasks?status=Submitted+for+Review' },
     { label: 'Chat', icon: IconChat, to: '/chat' },
@@ -45,11 +43,8 @@ const NAV_BY_ROLE = {
   [ROLES.EMPLOYEE]: [
     { label: 'Dashboard', icon: IconGrid, to: '/employee' },
     { label: 'My Tasks', icon: IconChecklist, to: '/tasks' },
-    { label: 'Create Task', icon: IconPlusCircle, to: '/tasks/new' },
     { label: 'Chat', icon: IconChat, to: '/chat' },
-    { label: 'Daily Work Update', icon: IconCalendar, to: '/daily-update' },
     { label: 'Update History', icon: IconBarChart, to: '/daily-updates' },
-    { label: 'Profile', icon: IconUser, to: '/profile' },
   ],
 };
 

@@ -14,6 +14,16 @@ export const pool = new pg.Pool({
   ...(process.env.DB_POOL_MAX ? { max: Number(process.env.DB_POOL_MAX) } : {}),
 });
 
+// An idle pooled client can be dropped by the Supabase pooler at any time
+// (recycled, network blip) — pg emits that as an 'error' event on the pool,
+// and node's EventEmitter re-throws (crashing the whole process) if nothing
+// is listening. The pool itself already discards the dead client and opens
+// a fresh one on the next query, so there's nothing to do here beyond not
+// letting an idle-connection hiccup take the entire server down.
+pool.on('error', (err) => {
+  console.error('Unexpected idle Postgres client error (pool recovers automatically):', err.message);
+});
+
 // Blanks out the interior of every single-quoted string literal (keeping the
 // quotes and the overall length) so placeholder detection below never
 // mistakes literal content for a real placeholder — e.g. the '@' in

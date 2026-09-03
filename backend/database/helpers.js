@@ -28,6 +28,7 @@ export async function getTask(taskId) {
     requestedDueDate: task.requested_due_date,
     extensionReason: task.extension_reason,
     submissionNote: task.submission_note,
+    approvedBy: task.approved_by,
     subtasks,
     comments,
     activityLog,
@@ -179,14 +180,18 @@ export async function userCanReview(reviewer, task) {
 }
 
 // Whether `approver` may approve/reject a newly-created task that's waiting
-// on manager sign-off (Pending Approval) — the department manager, or admin.
-// Deliberately NOT the team lead: a team lead's own task creations are
-// exactly what this gate checks, so they can't be the one clearing it.
+// on sign-off (Pending Approval) — admin, the department manager, or the
+// task's own team lead. A team lead can't approve their own task creation
+// (that's exactly what this gate would otherwise let them rubber-stamp) —
+// only an employee's task creation opens the team-lead path.
 export async function userCanApproveCreation(approver, task) {
   if (approver.role === 'admin') return true;
   if (approver.role === 'manager') {
     const team = await prepare('SELECT department_id FROM teams WHERE id = ?').get(task.team_id);
     return Boolean(team && team.department_id === approver.department_id);
+  }
+  if (approver.role === 'team_lead') {
+    return task.team_id === approver.team_id && task.created_by !== approver.id;
   }
   return false;
 }

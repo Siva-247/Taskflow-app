@@ -330,7 +330,7 @@ export function AppProvider({ children }) {
       const result = await call('/tasks', { method: 'POST', body: JSON.stringify(data) });
       applyMutation(result);
       if (data.isDraft) showToast('Draft saved');
-      else if (result.task.status === STATUS.PENDING_APPROVAL) showToast('Sent to your manager for approval');
+      else if (result.task.status === STATUS.PENDING_APPROVAL) showToast('Sent for approval');
       else showToast(`Task assigned to ${users.find((u) => u.id === data.assigneeId)?.name}`);
       return result.task;
     } catch (err) {
@@ -372,7 +372,7 @@ export function AppProvider({ children }) {
       const result = await call(`/tasks/${taskId}/publish`, { method: 'POST' });
       applyMutation(result);
       showToast(result.task.status === STATUS.PENDING_APPROVAL
-        ? 'Sent to your manager for approval'
+        ? 'Sent for approval'
         : `Task assigned to ${users.find((u) => u.id === result.task.assigneeId)?.name}`);
     } catch (err) {
       showToast(err.message || 'Could not publish draft');

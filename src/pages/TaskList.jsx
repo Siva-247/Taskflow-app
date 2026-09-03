@@ -58,16 +58,32 @@ export default function TaskList() {
   const availableTeams = teams.filter((team) => visible.some((task) => task.teamId === team.id));
   const availableAssignees = users.filter((u) => visible.some((task) => task.assigneeId === u.id));
 
+  // What the small tag in the Approvals view should say for one task —
+  // "Pending approval" while it's still waiting, "Approved by <name>" (or
+  // "Approved by you") once someone's cleared it, or "Extension pending" for
+  // a due-date extension request sitting on an already-live task.
+  const approvalTag = (task) => {
+    if (task.approvedBy) {
+      if (task.approvedBy === currentUser.id) return 'Approved by you';
+      const approver = users.find((u) => u.id === task.approvedBy);
+      return `Approved by ${approver?.name || 'someone'}`;
+    }
+    if (task.status === STATUS.PENDING_APPROVAL) return 'Pending approval';
+    if (task.requestedDueDate) return 'Extension pending';
+    return null;
+  };
+
   const filtered = useMemo(() => visible.filter((task) => {
     if (status === 'Approval Requests' && !isApprovalRequest(task)) return false;
     if (status === 'Overdue' && bucketOf(task) !== 'overdue') return false;
     if (status === STATUS.PENDING_APPROVAL) {
       // The Approvals view covers both flavors of "needs a reviewer's
-      // decision": a brand-new task still awaiting creation sign-off, and an
-      // existing task carrying a pending due-date extension request on top
-      // of whatever status it's already in — a due-date extension is itself
-      // an approval action, not a status change until it's decided.
-      if (task.status !== STATUS.PENDING_APPROVAL && !task.requestedDueDate) return false;
+      // decision" — a brand-new task still awaiting creation sign-off, and an
+      // existing task carrying a pending due-date extension request — plus
+      // creation requests that have already been resolved (approvedBy set),
+      // so a request doesn't just vanish the moment someone clears it; it
+      // stays here showing who approved it.
+      if (task.status !== STATUS.PENDING_APPROVAL && !task.requestedDueDate && !task.approvedBy) return false;
     } else if (status !== 'all' && status !== 'Overdue' && status !== 'Approval Requests' && task.status !== status) {
       return false;
     }
@@ -160,7 +176,19 @@ export default function TaskList() {
                     <PriorityDot priority={task.priority} />
                     <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13, color: 'var(--text-secondary)' }}>{task.priority}</span>
                   </div>
-                  <div><StatusBadge status={task.status} /></div>
+                  <div>
+                    <StatusBadge status={task.status} />
+                    {status === STATUS.PENDING_APPROVAL && approvalTag(task) && (
+                      <div style={{
+                        marginTop: 5, display: 'inline-block', padding: '2px 8px', borderRadius: 999,
+                        fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 10.5,
+                        background: task.approvedBy ? 'var(--accent-soft)' : 'var(--amber-bg)',
+                        color: task.approvedBy ? 'var(--accent-dark)' : 'var(--amber-text)',
+                      }}>
+                        {approvalTag(task)}
+                      </div>
+                    )}
+                  </div>
                   <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 13.5, color: 'var(--heading)' }}>{task.progress}%</div>
                   <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13, color: bucketOf(task) === 'overdue' ? 'var(--amber-text)' : 'var(--text-muted)' }}>{task.dueDate ? task.dueDate.slice(5) : '—'}</div>
                   <button
