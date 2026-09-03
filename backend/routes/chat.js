@@ -3,13 +3,13 @@ import { randomUUID } from 'node:crypto';
 import { prepare } from '../database/db.js';
 import { requireAuth } from '../middleware/auth.js';
 import { asyncRoute } from '../middleware/asyncRoute.js';
-import { uploadChatImage, isStorageConfigured } from '../storage/supabase.js';
+import { uploadChatFile, isStorageConfigured } from '../storage/supabase.js';
 import { notifyUser, joinRoom } from '../socket/index.js';
 
 const router = Router();
 router.use(requireAuth);
 
-const MESSAGE_SELECT = `SELECT id, conversation_id as "conversationId", sender_id as "senderId", text, image_url as "imageUrl", created_at as "createdAt" FROM chat_messages`;
+const MESSAGE_SELECT = `SELECT id, conversation_id as "conversationId", sender_id as "senderId", text, image_url as "imageUrl", audio_url as "audioUrl", edited_at as "editedAt", deleted_at as "deletedAt", created_at as "createdAt" FROM chat_messages`;
 
 async function isMember(conversationId, userId) {
   return !!(await prepare('SELECT 1 FROM chat_members WHERE conversation_id = ? AND user_id = ?').get(conversationId, userId));
@@ -36,8 +36,11 @@ router.get('/conversations', asyncRoute(async (req, res) => {
   const rows = await prepare(`
     SELECT c.id, c.type, c.name, c.created_by as "createdBy", c.created_at as "createdAt",
       cm.last_read_at as "lastReadAt",
+      (SELECT id FROM chat_messages m WHERE m.conversation_id = c.id ORDER BY m.seq DESC LIMIT 1) as "lastMessageId",
       (SELECT text FROM chat_messages m WHERE m.conversation_id = c.id ORDER BY m.seq DESC LIMIT 1) as "lastMessageText",
       (SELECT image_url FROM chat_messages m WHERE m.conversation_id = c.id ORDER BY m.seq DESC LIMIT 1) as "lastMessageImage",
+      (SELECT audio_url FROM chat_messages m WHERE m.conversation_id = c.id ORDER BY m.seq DESC LIMIT 1) as "lastMessageAudio",
+      (SELECT deleted_at FROM chat_messages m WHERE m.conversation_id = c.id ORDER BY m.seq DESC LIMIT 1) as "lastMessageDeletedAt",
       (SELECT created_at FROM chat_messages m WHERE m.conversation_id = c.id ORDER BY m.seq DESC LIMIT 1) as "lastMessageAt",
       (SELECT sender_id FROM chat_messages m WHERE m.conversation_id = c.id ORDER BY m.seq DESC LIMIT 1) as "lastMessageSenderId"
     FROM chat_conversations c
@@ -187,14 +190,16 @@ router.delete('/conversations/:id/members/:userId', asyncRoute(async (req, res) 
   res.json({ ok: true });
 }));
 
+// kind: 'image' (default, for backward compatibility with the existing
+// frontend calls that never sent one) or 'audio' for a voice message.
 router.post('/upload', asyncRoute(async (req, res) => {
-  if (!isStorageConfigured()) return res.status(503).json({ error: 'Image sharing is not configured on this server' });
-  const { conversationId, dataUri } = req.body;
+  if (!isStorageConfigured()) return res.status(503).json({ error: 'File sharing is not configured on this server' });
+  const { conversationId, dataUri, kind } = req.body;
   if (!conversationId || !dataUri) return res.status(400).json({ error: 'conversationId and dataUri are required' });
   if (!(await isMember(conversationId, req.user.id))) return res.status(403).json({ error: 'You are not a member of this conversation' });
 
-  const imageUrl = await uploadChatImage(dataUri, conversationId);
-  res.json({ imageUrl });
+  const url = await uploadChatFile(dataUri, conversationId, kind === 'audio' ? 'audio' : 'image');
+  res.json(kind === 'audio' ? { audioUrl: url } : { imageUrl: url });
 }));
 
 export default router;

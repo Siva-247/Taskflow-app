@@ -158,9 +158,20 @@ CREATE TABLE IF NOT EXISTS chat_messages (
   sender_id TEXT REFERENCES users(id),
   text TEXT,
   image_url TEXT,
+  audio_url TEXT,
+  edited_at TEXT,
+  deleted_at TEXT,
   created_at TEXT NOT NULL,
   seq BIGSERIAL
 );
+
+-- The three columns above were added after chat_messages already existed
+-- live, so CREATE TABLE IF NOT EXISTS alone (a no-op there) wouldn't apply
+-- them — these run every time this file is applied, and are themselves
+-- no-ops once the column is already present.
+ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS audio_url TEXT;
+ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS edited_at TEXT;
+ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS deleted_at TEXT;
 
 CREATE INDEX IF NOT EXISTS idx_chat_members_conversation ON chat_members(conversation_id);
 CREATE INDEX IF NOT EXISTS idx_chat_members_user ON chat_members(user_id);

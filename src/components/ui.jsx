@@ -127,10 +127,10 @@ const inputStyle = {
   fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13.5, color: 'var(--text-primary)', width: '100%',
 };
 
-export function TextInput({ value, onChange, placeholder, type = 'text', disabled = false, min }) {
+export function TextInput({ value, onChange, placeholder, type = 'text', disabled = false, min, onKeyDown }) {
   return (
     <input
-      type={type} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} disabled={disabled} min={min}
+      type={type} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} disabled={disabled} min={min} onKeyDown={onKeyDown}
       style={{ ...inputStyle, ...(disabled ? { background: 'var(--field-bg)', color: 'var(--text-muted)', cursor: 'not-allowed' } : {}) }}
     />
   );

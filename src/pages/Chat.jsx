@@ -3,9 +3,20 @@ import { useApp } from '../context/AppContext.jsx';
 import { useChat } from '../context/ChatContext.jsx';
 import { ROLES } from '../data/mockData.js';
 import { Avatar, Button, Modal, Field, TextInput, Select } from '../components/ui.jsx';
-import { IconPlusCircle, IconSend, IconImage, IconSearch } from '../components/icons.jsx';
+import { IconPlusCircle, IconSend, IconImage, IconSearch, IconMic, IconStopCircle, IconTrash, IconEdit, IconCheck, IconX } from '../components/icons.jsx';
 
 const CAN_CREATE_GROUP = [ROLES.ADMIN, ROLES.MANAGER, ROLES.TEAM_LEAD];
+// Mirrors the server's own enforcement in backend/socket/index.js — these
+// only drive which options the UI offers; the socket handlers are what
+// actually reject an edit/delete outside the window.
+const EDIT_WINDOW_MS = 15 * 60 * 1000;
+const DELETE_WINDOW_MS = 2 * 60 * 60 * 1000;
+
+function formatDuration(totalSeconds) {
+  const m = Math.floor(totalSeconds / 60);
+  const s = totalSeconds % 60;
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
 
 function formatMessageTime(iso) {
   if (!iso) return '';
@@ -50,10 +61,11 @@ function renderWithMentions(text, members, mine) {
 }
 
 export default function Chat() {
-  const { currentUser, users } = useApp();
+  const { currentUser, users, showToast } = useApp();
   const {
     conversations, activeConversationId, setActiveConversationId, messagesByConversation, typingByConversation,
-    connected, loadMessages, sendMessage, uploadImage, createGroup, startDM, addMember, removeMember, markRead, setTyping,
+    connected, loadMessages, sendMessage, editMessage, deleteMessage, uploadImage, uploadAudio,
+    createGroup, startDM, addMember, removeMember, markRead, setTyping,
   } = useChat();
 
   const [draft, setDraft] = useState('');
@@ -61,9 +73,18 @@ export default function Chat() {
   const [showNewGroup, setShowNewGroup] = useState(false);
   const [showNewDM, setShowNewDM] = useState(false);
   const [showGroupInfo, setShowGroupInfo] = useState(false);
+  const [recording, setRecording] = useState(false);
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const [openMenuMessageId, setOpenMenuMessageId] = useState(null);
+  const [editingMessageId, setEditingMessageId] = useState(null);
+  const [editDraft, setEditDraft] = useState('');
   const typingTimeoutRef = useRef(null);
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
+  const recordingStreamRef = useRef(null);
+  const recordingTimerRef = useRef(null);
 
   const canCreateGroup = CAN_CREATE_GROUP.includes(currentUser.role);
   const active = conversations.find((c) => c.id === activeConversationId) || null;
@@ -95,6 +116,14 @@ export default function Chat() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages.length]);
+
+  // Stops the mic and clears the tick timer if someone navigates away
+  // mid-recording — otherwise the stream (and the browser's "mic in use"
+  // indicator) would keep running after the page unmounts.
+  useEffect(() => () => {
+    window.clearInterval(recordingTimerRef.current);
+    recordingStreamRef.current?.getTracks().forEach((t) => t.stop());
+  }, []);
 
   const conversationLabel = (c) => {
     if (c.type === 'group') return c.name;
@@ -129,6 +158,12 @@ export default function Chat() {
     typingTimeoutRef.current = window.setTimeout(() => setTyping(activeConversationId, false), 2000);
   };
 
+  const handleComposerKeyDown = (e) => {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    if (!sending && draft.trim()) handleSend();
+  };
+
   const handleImagePick = async (e) => {
     const file = e.target.files?.[0];
     e.target.value = '';
@@ -146,6 +181,109 @@ export default function Chat() {
       await sendMessage(activeConversationId, '', imageUrl);
     } finally {
       setSending(false);
+    }
+  };
+
+  const stopRecordingStream = () => {
+    window.clearInterval(recordingTimerRef.current);
+    recordingStreamRef.current?.getTracks().forEach((t) => t.stop());
+    recordingStreamRef.current = null;
+    setRecording(false);
+  };
+
+  const startRecording = async () => {
+    if (!activeConversationId || recording) return;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      recordingStreamRef.current = stream;
+      const mimeType = window.MediaRecorder?.isTypeSupported?.('audio/webm') ? 'audio/webm' : '';
+      const recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+      audioChunksRef.current = [];
+      recorder.ondataavailable = (e) => { if (e.data.size > 0) audioChunksRef.current.push(e.data); };
+      recorder.start();
+      mediaRecorderRef.current = recorder;
+      setRecordingSeconds(0);
+      setRecording(true);
+      recordingTimerRef.current = window.setInterval(() => setRecordingSeconds((s) => s + 1), 1000);
+    } catch {
+      showToast('Microphone access is needed to record a voice message');
+    }
+  };
+
+  // Stops recording without sending — used for the cancel (×) button.
+  const cancelRecording = () => {
+    const recorder = mediaRecorderRef.current;
+    if (recorder && recorder.state !== 'inactive') {
+      recorder.ondataavailable = null;
+      recorder.stop();
+    }
+    audioChunksRef.current = [];
+    stopRecordingStream();
+  };
+
+  const finishRecording = () => {
+    const recorder = mediaRecorderRef.current;
+    if (!recorder || recorder.state === 'inactive') return;
+    recorder.onstop = async () => {
+      const blob = new Blob(audioChunksRef.current, { type: recorder.mimeType || 'audio/webm' });
+      audioChunksRef.current = [];
+      if (blob.size > 0 && activeConversationId) {
+        setSending(true);
+        try {
+          const dataUri = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+          });
+          const audioUrl = await uploadAudio(activeConversationId, dataUri);
+          await sendMessage(activeConversationId, '', null, audioUrl);
+        } finally {
+          setSending(false);
+        }
+      }
+    };
+    recorder.stop();
+    stopRecordingStream();
+  };
+
+  const canEditMessage = (m) => m.senderId === currentUser.id && !m.deletedAt && Date.now() - new Date(m.createdAt).getTime() <= EDIT_WINDOW_MS;
+  const canDeleteMessage = (m) => m.senderId === currentUser.id && !m.deletedAt && Date.now() - new Date(m.createdAt).getTime() <= DELETE_WINDOW_MS;
+
+  const handleBubbleClick = (e, m) => {
+    if (m.senderId !== currentUser.id || m.deletedAt) return;
+    e.stopPropagation();
+    setOpenMenuMessageId((prev) => (prev === m.id ? null : m.id));
+  };
+
+  const startEditMessage = (m) => {
+    setEditingMessageId(m.id);
+    setEditDraft(m.text || '');
+    setOpenMenuMessageId(null);
+  };
+
+  const cancelEditMessage = () => {
+    setEditingMessageId(null);
+    setEditDraft('');
+  };
+
+  const submitEditMessage = async () => {
+    const text = editDraft.trim();
+    const messageId = editingMessageId;
+    if (!text || !messageId) { cancelEditMessage(); return; }
+    try {
+      await editMessage(messageId, text);
+    } finally {
+      cancelEditMessage();
+    }
+  };
+
+  const handleDeleteMessage = async (m) => {
+    setOpenMenuMessageId(null);
+    try {
+      await deleteMessage(m.id);
+    } catch {
+      // ChatContext already surfaced a toast for this.
     }
   };
 
@@ -191,7 +329,8 @@ export default function Chat() {
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 2 }}>
                   <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: isUnread(c) ? 700 : 500, fontSize: 12.5, color: isUnread(c) ? 'var(--text-primary)' : 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {c.lastMessageText || (c.lastMessageImage ? '📷 Photo' : 'No messages yet')}
+                    {c.lastMessageDeletedAt ? 'This message was deleted'
+                      : c.lastMessageText || (c.lastMessageImage ? '📷 Photo' : c.lastMessageAudio ? '🎤 Voice message' : 'No messages yet')}
                   </span>
                   {isUnread(c) && <span style={{ width: 8, height: 8, borderRadius: 999, background: 'var(--accent)', flexShrink: 0 }} />}
                 </div>
@@ -221,25 +360,94 @@ export default function Chat() {
               </div>
             </div>
 
-            <div style={{ flex: 1, overflowY: 'auto', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div onClick={() => setOpenMenuMessageId(null)} style={{ flex: 1, overflowY: 'auto', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 10 }}>
               {messages.map((m) => {
                 const mine = m.senderId === currentUser.id;
                 const sender = users.find((u) => u.id === m.senderId);
+                const isEditing = editingMessageId === m.id;
+                const isDeleted = !!m.deletedAt;
+                const menuOpen = openMenuMessageId === m.id;
                 return (
                   <div key={m.id} style={{ display: 'flex', flexDirection: 'column', alignItems: mine ? 'flex-end' : 'flex-start' }}>
                     {active.type === 'group' && !mine && (
                       <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11, color: 'var(--accent-dark)', marginBottom: 2, marginLeft: 4 }}>{sender?.name}</span>
                     )}
-                    <div style={{
-                      maxWidth: '70%', padding: m.imageUrl ? 6 : '9px 13px', borderRadius: 14,
-                      borderBottomRightRadius: mine ? 4 : 14, borderBottomLeftRadius: mine ? 14 : 4,
-                      background: mine ? 'var(--accent)' : 'var(--field-bg)',
-                      color: mine ? '#FFFFFF' : 'var(--text-primary)',
-                    }}>
-                      {m.imageUrl && <img src={m.imageUrl} alt="Shared" style={{ maxWidth: '100%', borderRadius: 9, display: 'block' }} />}
-                      {m.text && (
-                        <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13.5, lineHeight: 1.4, marginTop: m.imageUrl ? 6 : 0, padding: m.imageUrl ? '0 6px' : 0 }}>
-                          {renderWithMentions(m.text, active.members, mine)}
+                    <div style={{ position: 'relative' }}>
+                      <div
+                        onClick={(e) => handleBubbleClick(e, m)}
+                        style={{
+                          maxWidth: '70%', padding: m.imageUrl && !isDeleted ? 6 : '9px 13px', borderRadius: 14,
+                          borderBottomRightRadius: mine ? 4 : 14, borderBottomLeftRadius: mine ? 14 : 4,
+                          background: mine ? 'var(--accent)' : 'var(--field-bg)',
+                          color: mine ? '#FFFFFF' : 'var(--text-primary)',
+                          cursor: mine && !isDeleted && !isEditing ? 'pointer' : 'default',
+                        }}
+                      >
+                        {isDeleted && (
+                          <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontStyle: 'italic', fontSize: 13, opacity: 0.75 }}>
+                            This message was deleted
+                          </div>
+                        )}
+                        {!isDeleted && isEditing && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 180 }} onClick={(e) => e.stopPropagation()}>
+                            <input
+                              autoFocus
+                              value={editDraft}
+                              onChange={(e) => setEditDraft(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') { e.preventDefault(); submitEditMessage(); }
+                                if (e.key === 'Escape') cancelEditMessage();
+                              }}
+                              style={{
+                                flex: 1, border: 'none', outline: 'none', background: 'rgba(255,255,255,0.18)',
+                                borderRadius: 7, padding: '5px 8px', fontFamily: "'Manrope',system-ui,sans-serif",
+                                fontWeight: 500, fontSize: 13.5, color: mine ? '#FFFFFF' : 'var(--text-primary)',
+                              }}
+                            />
+                            <button type="button" onClick={submitEditMessage} title="Save" style={{ ...bubbleIconBtnStyle, background: 'rgba(255,255,255,0.22)' }}>
+                              <IconCheck size={12} color={mine ? '#FFFFFF' : 'var(--accent-dark)'} />
+                            </button>
+                            <button type="button" onClick={cancelEditMessage} title="Cancel" style={{ ...bubbleIconBtnStyle, background: 'rgba(255,255,255,0.22)' }}>
+                              <IconX size={12} color={mine ? '#FFFFFF' : 'var(--text-primary)'} />
+                            </button>
+                          </div>
+                        )}
+                        {!isDeleted && !isEditing && (
+                          <>
+                            {m.imageUrl && <img src={m.imageUrl} alt="Shared" style={{ maxWidth: '100%', borderRadius: 9, display: 'block' }} />}
+                            {m.audioUrl && (
+                              <audio controls src={m.audioUrl} style={{ display: 'block', width: 220, maxWidth: '100%' }} />
+                            )}
+                            {m.text && (
+                              <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13.5, lineHeight: 1.4, marginTop: m.imageUrl ? 6 : 0, padding: m.imageUrl ? '0 6px' : 0 }}>
+                                {renderWithMentions(m.text, active.members, mine)}
+                                {m.editedAt && (
+                                  <span style={{ fontSize: 10.5, fontWeight: 500, opacity: 0.7, marginLeft: 6 }}>(edited)</span>
+                                )}
+                              </div>
+                            )}
+                          </>
+                        )}
+                      </div>
+                      {menuOpen && (
+                        <div style={{
+                          position: 'absolute', top: '100%', marginTop: 4, right: mine ? 0 : 'auto', left: mine ? 'auto' : 0,
+                          background: '#FFFFFF', border: '1px solid var(--border)', borderRadius: 10,
+                          boxShadow: '0 10px 28px -12px rgba(59,30,112,0.25)', overflow: 'hidden', zIndex: 10, minWidth: 120,
+                        }}>
+                          {canEditMessage(m) && m.text && (
+                            <div onClick={() => startEditMessage(m)} style={menuItemStyle}>
+                              <IconEdit size={13} /> <span>Edit</span>
+                            </div>
+                          )}
+                          {canDeleteMessage(m) && (
+                            <div onClick={() => handleDeleteMessage(m)} style={menuItemStyle}>
+                              <IconTrash size={13} /> <span style={{ color: 'var(--amber-text)' }}>Delete</span>
+                            </div>
+                          )}
+                          {!canEditMessage(m) && !canDeleteMessage(m) && (
+                            <div style={{ ...menuItemStyle, cursor: 'default', color: 'var(--text-muted)' }}>Too old to change</div>
+                          )}
                         </div>
                       )}
                     </div>
@@ -275,15 +483,40 @@ export default function Chat() {
                 </div>
               )}
               <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImagePick} style={{ display: 'none' }} />
-              <button type="button" onClick={() => fileInputRef.current?.click()} disabled={sending} style={iconBtnStyle} title="Share an image">
-                <IconImage size={18} />
-              </button>
-              <div style={{ flex: 1 }}>
-                <TextInput value={draft} onChange={handleDraftChange} placeholder="Type a message… (@ to mention)" />
-              </div>
-              <Button variant="primary" style={{ padding: '10px 14px' }} onClick={handleSend} disabled={sending || !draft.trim()}>
-                <IconSend size={15} />
-              </Button>
+              {recording ? (
+                <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <button type="button" onClick={cancelRecording} title="Cancel" style={iconBtnStyle}>
+                    <IconX size={16} />
+                  </button>
+                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ width: 9, height: 9, borderRadius: 999, background: 'var(--amber-text)', animation: 'pulse 1.2s infinite' }} />
+                    <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 13, color: 'var(--text-primary)' }}>
+                      Recording… {formatDuration(recordingSeconds)}
+                    </span>
+                  </div>
+                  <Button variant="primary" style={{ padding: '10px 14px' }} onClick={finishRecording}>
+                    <IconStopCircle size={15} />
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  <button type="button" onClick={() => fileInputRef.current?.click()} disabled={sending} style={iconBtnStyle} title="Share an image">
+                    <IconImage size={18} />
+                  </button>
+                  <div style={{ flex: 1 }}>
+                    <TextInput value={draft} onChange={handleDraftChange} onKeyDown={handleComposerKeyDown} placeholder="Type a message… (@ to mention, Enter to send)" />
+                  </div>
+                  {draft.trim() ? (
+                    <Button variant="primary" style={{ padding: '10px 14px' }} onClick={handleSend} disabled={sending}>
+                      <IconSend size={15} />
+                    </Button>
+                  ) : (
+                    <button type="button" onClick={startRecording} disabled={sending} style={iconBtnStyle} title="Record a voice message">
+                      <IconMic size={18} color="var(--accent-dark)" />
+                    </button>
+                  )}
+                </>
+              )}
             </div>
           </>
         )}
@@ -326,6 +559,16 @@ export default function Chat() {
 const iconBtnStyle = {
   display: 'flex', alignItems: 'center', justifyContent: 'center', width: 34, height: 34, borderRadius: 9,
   border: '1px solid var(--border)', background: '#FFFFFF', cursor: 'pointer', flexShrink: 0,
+};
+
+const bubbleIconBtnStyle = {
+  display: 'flex', alignItems: 'center', justifyContent: 'center', width: 22, height: 22, borderRadius: 6,
+  border: 'none', cursor: 'pointer', flexShrink: 0,
+};
+
+const menuItemStyle = {
+  display: 'flex', alignItems: 'center', gap: 7, padding: '9px 12px', cursor: 'pointer',
+  fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12.5, color: 'var(--text-primary)', whiteSpace: 'nowrap',
 };
 
 // Mirrors the backend's canAddToGroup exactly, so the picker never offers a

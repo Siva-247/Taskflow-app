@@ -300,3 +300,38 @@ export function IconImage({ size = 17, color = 'var(--text-secondary)' }) {
     </svg>
   );
 }
+
+export function IconMic({ size = 17, color = 'var(--text-secondary)' }) {
+  return (
+    <svg {...base(size)} viewBox="0 0 20 20">
+      <rect x="7" y="2.5" width="6" height="10" rx="3" stroke={color} strokeWidth="1.6" />
+      <path d="M4.5 9.5a5.5 5.5 0 0011 0" stroke={color} strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M10 15v2.5M7 17.5h6" stroke={color} strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+export function IconStopCircle({ size = 17, color = '#FFFFFF' }) {
+  return (
+    <svg {...base(size)} viewBox="0 0 20 20">
+      <circle cx="10" cy="10" r="8.5" stroke={color} strokeWidth="1.6" />
+      <rect x="7" y="7" width="6" height="6" rx="1" fill={color} stroke="none" />
+    </svg>
+  );
+}
+
+export function IconTrash({ size = 15, color = 'var(--amber-text)' }) {
+  return (
+    <svg {...base(size)} viewBox="0 0 20 20">
+      <path d="M4 6h12M8 6V4.5a1 1 0 011-1h2a1 1 0 011 1V6M6 6l.7 10a1.5 1.5 0 001.5 1.4h3.6a1.5 1.5 0 001.5-1.4L14 6" stroke={color} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+export function IconEdit({ size = 15, color = 'var(--accent-dark)' }) {
+  return (
+    <svg {...base(size)} viewBox="0 0 20 20">
+      <path d="M13.3 3.3a1.8 1.8 0 012.5 2.5L6.5 15.1l-3.3.9.9-3.3L13.3 3.3Z" stroke={color} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}

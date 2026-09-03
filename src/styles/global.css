@@ -95,6 +95,12 @@ input, select, textarea {
   .notif-panel { width: calc(100vw - 24px) !important; right: -8px !important; }
 }
 
+/* Recording indicator dot on the Chat page's voice-message composer. */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.25; }
+}
+
 /* ---- Generic responsive grid: column template supplied via the --cols
    custom property so the desktop value (set inline) is reproduced exactly;
    collapses to a single column below 768px. ---- */

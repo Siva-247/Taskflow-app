@@ -7,6 +7,11 @@ if (!process.env.DATABASE_URL) {
 export const pool = new pg.Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false },
+  // Optional override, unset in production — the Supabase pooler's
+  // session-mode connection cap is shared across every client on the
+  // project (this app's deployed instance included), so a low value here
+  // is useful for a local dev process sharing that same cap.
+  ...(process.env.DB_POOL_MAX ? { max: Number(process.env.DB_POOL_MAX) } : {}),
 });
 
 // Blanks out the interior of every single-quoted string literal (keeping the

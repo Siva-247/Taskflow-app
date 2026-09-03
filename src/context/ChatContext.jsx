@@ -22,8 +22,28 @@ async function chatRequest(path, options = {}, token) {
   return res.status === 204 ? null : res.json();
 }
 
+// Best-effort desktop/OS notification for a message that just arrived in a
+// conversation the person isn't currently looking at — fires regardless of
+// whether the browser tab itself is focused, so it also covers "on the
+// Dashboard, not the Chat page" not just "tab minimized". Silently does
+// nothing anywhere the Notification API or permission isn't available;
+// this is a nice-to-have, never something the rest of the app should fail on.
+function notifyOutsideApp(message, users) {
+  if (typeof window === 'undefined' || typeof Notification === 'undefined') return;
+  if (Notification.permission !== 'granted') return;
+  const sender = users.find((u) => u.id === message.senderId);
+  const body = message.text || (message.imageUrl ? '📷 Photo' : message.audioUrl ? '🎤 Voice message' : 'New message');
+  try {
+    const n = new Notification(`${sender?.name || 'Someone'} messaged you`, { body });
+    n.onclick = () => window.focus();
+  } catch {
+    // Some contexts (older browsers, certain mobile webviews) throw on
+    // `new Notification(...)` even when the API exists — not worth surfacing.
+  }
+}
+
 export function ChatProvider({ children }) {
-  const { currentUser, token, showToast } = useApp();
+  const { currentUser, token, users, showToast } = useApp();
   const [conversations, setConversations] = useState([]);
   const [activeConversationId, setActiveConversationId] = useState(null);
   const [messagesByConversation, setMessagesByConversation] = useState({});
@@ -32,9 +52,12 @@ export function ChatProvider({ children }) {
   const socketRef = useRef(null);
   // Read inside the message:new socket handler below, which is set up once
   // per connection and would otherwise close over a stale
-  // activeConversationId from whichever render first created the socket.
+  // activeConversationId (or users list) from whichever render first
+  // created the socket.
   const activeConversationIdRef = useRef(null);
   useEffect(() => { activeConversationIdRef.current = activeConversationId; }, [activeConversationId]);
+  const usersRef = useRef(users);
+  useEffect(() => { usersRef.current = users; }, [users]);
 
   const loadConversations = useCallback(async () => {
     if (!token) return;
@@ -61,6 +84,15 @@ export function ChatProvider({ children }) {
 
     loadConversations();
 
+    // Asked once per signed-in session rather than the moment the Chat page
+    // itself loads — that way a message can trigger a real notification
+    // even the first time someone gets one while on a different page.
+    // Silently does nothing if the browser doesn't support the API, or the
+    // person already granted/denied it previously.
+    if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
+      Notification.requestPermission().catch(() => {});
+    }
+
     const socket = io(SOCKET_URL, { auth: { token } });
     socketRef.current = socket;
 
@@ -79,17 +111,38 @@ export function ChatProvider({ children }) {
       const isActiveConversation = message.conversationId === activeConversationIdRef.current;
       if (isActiveConversation) {
         chatRequest(`/conversations/${message.conversationId}/read`, { method: 'POST' }, token).catch(() => {});
+      } else if (message.senderId !== currentUser.id) {
+        notifyOutsideApp(message, usersRef.current);
       }
       setConversations((prev) => {
         const idx = prev.findIndex((c) => c.id === message.conversationId);
         if (idx === -1) return prev; // a conversation:new event brings in ones we haven't loaded yet
         const updated = {
-          ...prev[idx], lastMessageText: message.text, lastMessageImage: message.imageUrl,
+          ...prev[idx], lastMessageId: message.id, lastMessageText: message.text, lastMessageImage: message.imageUrl,
+          lastMessageAudio: message.audioUrl, lastMessageDeletedAt: null,
           lastMessageAt: message.createdAt, lastMessageSenderId: message.senderId,
           lastReadAt: isActiveConversation ? message.createdAt : prev[idx].lastReadAt,
         };
         return [updated, ...prev.slice(0, idx), ...prev.slice(idx + 1)];
       });
+    });
+
+    socket.on('message:edited', ({ id, conversationId, text, editedAt }) => {
+      setMessagesByConversation((prev) => ({
+        ...prev,
+        [conversationId]: (prev[conversationId] || []).map((m) => (m.id === id ? { ...m, text, editedAt } : m)),
+      }));
+      setConversations((prev) => prev.map((c) => (c.id === conversationId && c.lastMessageId === id ? { ...c, lastMessageText: text } : c)));
+    });
+
+    socket.on('message:deleted', ({ id, conversationId, deletedAt }) => {
+      setMessagesByConversation((prev) => ({
+        ...prev,
+        [conversationId]: (prev[conversationId] || []).map((m) => (m.id === id ? { ...m, text: null, imageUrl: null, audioUrl: null, deletedAt } : m)),
+      }));
+      setConversations((prev) => prev.map((c) => (c.id === conversationId && c.lastMessageId === id
+        ? { ...c, lastMessageText: null, lastMessageImage: null, lastMessageAudio: null, lastMessageDeletedAt: deletedAt }
+        : c)));
     });
 
     socket.on('conversation:new', (conversation) => {
@@ -118,17 +171,38 @@ export function ChatProvider({ children }) {
     }
   }, [token, showToast]);
 
-  const sendMessage = useCallback((conversationId, text, imageUrl) => new Promise((resolve, reject) => {
+  const sendMessage = useCallback((conversationId, text, imageUrl, audioUrl) => new Promise((resolve, reject) => {
     if (!socketRef.current) { reject(new Error('Not connected')); return; }
-    socketRef.current.emit('message:send', { conversationId, text, imageUrl }, (ack) => {
+    socketRef.current.emit('message:send', { conversationId, text, imageUrl, audioUrl }, (ack) => {
       if (ack?.error) { showToast(ack.error); reject(new Error(ack.error)); }
       else resolve(ack?.message);
     });
   }), [showToast]);
 
+  const editMessage = useCallback((messageId, text) => new Promise((resolve, reject) => {
+    if (!socketRef.current) { reject(new Error('Not connected')); return; }
+    socketRef.current.emit('message:edit', { messageId, text }, (ack) => {
+      if (ack?.error) { showToast(ack.error); reject(new Error(ack.error)); }
+      else resolve(ack?.message);
+    });
+  }), [showToast]);
+
+  const deleteMessage = useCallback((messageId) => new Promise((resolve, reject) => {
+    if (!socketRef.current) { reject(new Error('Not connected')); return; }
+    socketRef.current.emit('message:delete', { messageId }, (ack) => {
+      if (ack?.error) { showToast(ack.error); reject(new Error(ack.error)); }
+      else resolve();
+    });
+  }), [showToast]);
+
   const uploadImage = useCallback(async (conversationId, dataUri) => {
-    const result = await chatRequest('/upload', { method: 'POST', body: JSON.stringify({ conversationId, dataUri }) }, token);
+    const result = await chatRequest('/upload', { method: 'POST', body: JSON.stringify({ conversationId, dataUri, kind: 'image' }) }, token);
     return result.imageUrl;
+  }, [token]);
+
+  const uploadAudio = useCallback(async (conversationId, dataUri) => {
+    const result = await chatRequest('/upload', { method: 'POST', body: JSON.stringify({ conversationId, dataUri, kind: 'audio' }) }, token);
+    return result.audioUrl;
   }, [token]);
 
   const createGroup = useCallback(async (name, memberIds) => {
@@ -187,7 +261,8 @@ export function ChatProvider({ children }) {
   const value = {
     conversations, activeConversationId, setActiveConversationId,
     messagesByConversation, typingByConversation, connected,
-    loadMessages, sendMessage, uploadImage, createGroup, startDM, addMember, removeMember, markRead, setTyping,
+    loadMessages, sendMessage, editMessage, deleteMessage, uploadImage, uploadAudio,
+    createGroup, startDM, addMember, removeMember, markRead, setTyping,
   };
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;
