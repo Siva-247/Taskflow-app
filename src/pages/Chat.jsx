@@ -383,11 +383,11 @@ export default function Chat() {
                     {active.type === 'group' && !mine && (
                       <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11, color: 'var(--accent-dark)', marginBottom: 2, marginLeft: 4 }}>{sender?.name}</span>
                     )}
-                    <div style={{ position: 'relative' }}>
+                    <div style={{ position: 'relative', maxWidth: 'min(70%, 480px)' }}>
                       <div
                         onClick={(e) => handleBubbleClick(e, m)}
                         style={{
-                          maxWidth: '70%', padding: m.imageUrl && !isDeleted ? 6 : '9px 13px', borderRadius: 14,
+                          padding: m.imageUrl && !isDeleted ? 6 : '9px 13px', borderRadius: 14,
                           borderBottomRightRadius: mine ? 4 : 14, borderBottomLeftRadius: mine ? 14 : 4,
                           background: mine ? 'var(--accent)' : 'var(--field-bg)',
                           color: mine ? '#FFFFFF' : 'var(--text-primary)',
@@ -432,7 +432,7 @@ export default function Chat() {
                               <audio controls src={m.audioUrl} style={{ display: 'block', width: 220, maxWidth: '100%' }} />
                             )}
                             {m.text && (
-                              <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13.5, lineHeight: 1.4, whiteSpace: 'pre-wrap', wordBreak: 'break-word', marginTop: m.imageUrl ? 6 : 0, padding: m.imageUrl ? '0 6px' : 0 }}>
+                              <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13.5, lineHeight: 1.4, whiteSpace: 'pre-wrap', marginTop: m.imageUrl ? 6 : 0, padding: m.imageUrl ? '0 6px' : 0 }}>
                                 {renderWithMentions(m.text, active.members, mine)}
                                 {m.editedAt && (
                                   <span style={{ fontSize: 10.5, fontWeight: 500, opacity: 0.7, marginLeft: 6 }}>(edited)</span>
