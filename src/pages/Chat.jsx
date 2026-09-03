@@ -85,6 +85,7 @@ export default function Chat() {
   const audioChunksRef = useRef([]);
   const recordingStreamRef = useRef(null);
   const recordingTimerRef = useRef(null);
+  const composerRef = useRef(null);
 
   const canCreateGroup = CAN_CREATE_GROUP.includes(currentUser.role);
   const active = conversations.find((c) => c.id === activeConversationId) || null;
@@ -125,6 +126,16 @@ export default function Chat() {
     recordingStreamRef.current?.getTracks().forEach((t) => t.stop());
   }, []);
 
+  // Grows the composer with a multi-line draft (Shift+Enter adds a line)
+  // and shrinks it back down once text is removed, capped so a long paste
+  // doesn't push the whole thread panel around.
+  useEffect(() => {
+    const el = composerRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
+  }, [draft]);
+
   const conversationLabel = (c) => {
     if (c.type === 'group') return c.name;
     const other = c.members.find((m) => m.id !== currentUser.id);
@@ -159,7 +170,7 @@ export default function Chat() {
   };
 
   const handleComposerKeyDown = (e) => {
-    if (e.key !== 'Enter') return;
+    if (e.key !== 'Enter' || e.shiftKey) return; // Shift+Enter inserts a newline instead of sending
     e.preventDefault();
     if (!sending && draft.trim()) handleSend();
   };
@@ -389,19 +400,21 @@ export default function Chat() {
                           </div>
                         )}
                         {!isDeleted && isEditing && (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 180 }} onClick={(e) => e.stopPropagation()}>
-                            <input
+                          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, minWidth: 180 }} onClick={(e) => e.stopPropagation()}>
+                            <textarea
                               autoFocus
+                              rows={1}
                               value={editDraft}
                               onChange={(e) => setEditDraft(e.target.value)}
                               onKeyDown={(e) => {
-                                if (e.key === 'Enter') { e.preventDefault(); submitEditMessage(); }
+                                if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitEditMessage(); }
                                 if (e.key === 'Escape') cancelEditMessage();
                               }}
                               style={{
                                 flex: 1, border: 'none', outline: 'none', background: 'rgba(255,255,255,0.18)',
                                 borderRadius: 7, padding: '5px 8px', fontFamily: "'Manrope',system-ui,sans-serif",
                                 fontWeight: 500, fontSize: 13.5, color: mine ? '#FFFFFF' : 'var(--text-primary)',
+                                resize: 'none', maxHeight: 120, overflowY: 'auto',
                               }}
                             />
                             <button type="button" onClick={submitEditMessage} title="Save" style={{ ...bubbleIconBtnStyle, background: 'rgba(255,255,255,0.22)' }}>
@@ -419,7 +432,7 @@ export default function Chat() {
                               <audio controls src={m.audioUrl} style={{ display: 'block', width: 220, maxWidth: '100%' }} />
                             )}
                             {m.text && (
-                              <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13.5, lineHeight: 1.4, marginTop: m.imageUrl ? 6 : 0, padding: m.imageUrl ? '0 6px' : 0 }}>
+                              <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13.5, lineHeight: 1.4, whiteSpace: 'pre-wrap', wordBreak: 'break-word', marginTop: m.imageUrl ? 6 : 0, padding: m.imageUrl ? '0 6px' : 0 }}>
                                 {renderWithMentions(m.text, active.members, mine)}
                                 {m.editedAt && (
                                   <span style={{ fontSize: 10.5, fontWeight: 500, opacity: 0.7, marginLeft: 6 }}>(edited)</span>
@@ -504,7 +517,15 @@ export default function Chat() {
                     <IconImage size={18} />
                   </button>
                   <div style={{ flex: 1 }}>
-                    <TextInput value={draft} onChange={handleDraftChange} onKeyDown={handleComposerKeyDown} placeholder="Type a message… (@ to mention, Enter to send)" />
+                    <textarea
+                      ref={composerRef}
+                      rows={1}
+                      value={draft}
+                      onChange={(e) => handleDraftChange(e.target.value)}
+                      onKeyDown={handleComposerKeyDown}
+                      placeholder="Type a message… (@ to mention, Enter to send, Shift+Enter for a new line)"
+                      style={composerTextareaStyle}
+                    />
                   </div>
                   {draft.trim() ? (
                     <Button variant="primary" style={{ padding: '10px 14px' }} onClick={handleSend} disabled={sending}>
@@ -569,6 +590,12 @@ const bubbleIconBtnStyle = {
 const menuItemStyle = {
   display: 'flex', alignItems: 'center', gap: 7, padding: '9px 12px', cursor: 'pointer',
   fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12.5, color: 'var(--text-primary)', whiteSpace: 'nowrap',
+};
+
+const composerTextareaStyle = {
+  width: '100%', padding: '12px 15px', border: '1px solid var(--border)', borderRadius: 9, background: '#FFFFFF',
+  fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13.5, color: 'var(--text-primary)',
+  resize: 'none', maxHeight: 120, overflowY: 'auto', lineHeight: 1.4, display: 'block',
 };
 
 // Mirrors the backend's canAddToGroup exactly, so the picker never offers a

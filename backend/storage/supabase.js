@@ -47,7 +47,12 @@ export async function uploadChatFile(dataUri, conversationId, kind) {
   if (!supabase) throw new Error(`${kind === 'audio' ? 'Voice messages' : 'Image sharing'} is not configured on this server`);
   await ensureBucket();
 
-  const match = /^data:([\w-]+\/[\w-]+);base64,(.+)$/.exec(dataUri);
+  // The media-type segment can carry extra `;param=value` parts before
+  // `;base64,` — e.g. MediaRecorder.mimeType is commonly reported as
+  // "audio/webm;codecs=opus", which flows straight into the Blob's type and
+  // then into this data URI. A stricter pattern (type/subtype immediately
+  // followed by ;base64,) rejects every real voice recording.
+  const match = /^data:([\w-]+\/[\w-]+)(?:;[^;,]+)*;base64,([\s\S]+)$/.exec(dataUri);
   if (!match) throw new Error(`Expected a base64 ${kind} data URI`);
   const [, mimeType, base64] = match;
   const allowed = kind === 'audio' ? AUDIO_TYPES : IMAGE_TYPES;
