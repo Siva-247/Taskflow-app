@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { Server } from 'socket.io';
 import { verifyToken } from '../auth/tokens.js';
 import { prepare } from '../database/db.js';
+import { reactionsForMessages } from '../database/helpers.js';
 
 const EDIT_WINDOW_MS = 15 * 60 * 1000;
 const DELETE_WINDOW_MS = 2 * 60 * 60 * 1000;
@@ -54,6 +55,13 @@ export function joinRoom(userId, conversationId) {
   }
 }
 
+// Who's currently online, by user id — a person counts as online as long as
+// they have at least one live socket (any tab/device), so closing one tab
+// while another stays open doesn't flip them offline.
+export function onlineUserIds() {
+  return [...socketsByUser.keys()];
+}
+
 export function attachSocket(httpServer) {
   io = new Server(httpServer, { cors: { origin: '*' } });
 
@@ -69,8 +77,15 @@ export function attachSocket(httpServer) {
 
   io.on('connection', (socket) => {
     const userId = socket.user.id;
+    const wasOffline = !socketsByUser.has(userId);
     if (!socketsByUser.has(userId)) socketsByUser.set(userId, new Set());
     socketsByUser.get(userId).add(socket.id);
+
+    // A newly-connected socket needs to know who's already online (it can't
+    // have missed any past presence:update, since it wasn't connected yet);
+    // everyone else just needs the one-line delta for this person going online.
+    socket.emit('presence:snapshot', onlineUserIds());
+    if (wasOffline) socket.broadcast.emit('presence:update', { userId, online: true });
 
     // Every listener below is registered synchronously, before the async
     // room-join that follows — a client that emits immediately after
@@ -81,7 +96,7 @@ export function attachSocket(httpServer) {
       for (const conversationId of conversationIds) socket.join(conversationId);
     });
 
-    socket.on('message:send', async ({ conversationId, text, imageUrl, audioUrl }, ack) => {
+    socket.on('message:send', async ({ conversationId, text, imageUrl, audioUrl, replyToId }, ack) => {
       try {
         if (!conversationId || (!text?.trim() && !imageUrl && !audioUrl)) {
           return ack?.({ error: 'A message needs text, an image, or a voice clip' });
@@ -89,18 +104,55 @@ export function attachSocket(httpServer) {
         if (!(await isMember(conversationId, userId))) {
           return ack?.({ error: 'You are not a member of this conversation' });
         }
+        // A reply must point at a real message in this same conversation —
+        // otherwise silently drop the reference rather than reject the send,
+        // since a stale/edited-away reply target shouldn't block sending.
+        let validReplyToId = null;
+        if (replyToId) {
+          const target = await prepare('SELECT id FROM chat_messages WHERE id = ? AND conversation_id = ?').get(replyToId, conversationId);
+          if (target) validReplyToId = target.id;
+        }
         const id = `msg-${randomUUID()}`;
         const createdAt = new Date().toISOString();
-        await prepare(`INSERT INTO chat_messages (id, conversation_id, sender_id, text, image_url, audio_url, created_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?)`).run(id, conversationId, userId, text?.trim() || null, imageUrl || null, audioUrl || null, createdAt);
+        await prepare(`INSERT INTO chat_messages (id, conversation_id, sender_id, text, image_url, audio_url, reply_to_id, created_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?)`).run(id, conversationId, userId, text?.trim() || null, imageUrl || null, audioUrl || null, validReplyToId, createdAt);
         const message = {
           id, conversationId, senderId: userId, text: text?.trim() || null, imageUrl: imageUrl || null,
-          audioUrl: audioUrl || null, editedAt: null, deletedAt: null, createdAt,
+          audioUrl: audioUrl || null, editedAt: null, deletedAt: null, replyToId: validReplyToId, reactions: [], createdAt,
         };
         io.to(conversationId).emit('message:new', message);
         ack?.({ message });
       } catch (err) {
         ack?.({ error: err.message || 'Could not send message' });
+      }
+    });
+
+    // Toggling the SAME emoji removes it; picking a different one replaces
+    // it — one reaction per person per message, enforced by the unique
+    // index on (message_id, user_id) as the real backstop.
+    socket.on('reaction:toggle', async ({ messageId, emoji }, ack) => {
+      try {
+        if (!messageId || !emoji) return ack?.({ error: 'messageId and emoji are required' });
+        const existing = await prepare('SELECT * FROM chat_messages WHERE id = ?').get(messageId);
+        if (!existing) return ack?.({ error: 'Message not found' });
+        if (!(await isMember(existing.conversation_id, userId))) return ack?.({ error: 'You are not a member of this conversation' });
+
+        const mine = await prepare('SELECT id, emoji FROM chat_reactions WHERE message_id = ? AND user_id = ?').get(messageId, userId);
+        if (mine && mine.emoji === emoji) {
+          await prepare('DELETE FROM chat_reactions WHERE id = ?').run(mine.id);
+        } else if (mine) {
+          await prepare('UPDATE chat_reactions SET emoji = ?, created_at = ? WHERE id = ?').run(emoji, new Date().toISOString(), mine.id);
+        } else {
+          await prepare('INSERT INTO chat_reactions (id, message_id, user_id, emoji, created_at) VALUES (?, ?, ?, ?, ?)')
+            .run(`rx-${randomUUID()}`, messageId, userId, emoji, new Date().toISOString());
+        }
+
+        const reactions = (await reactionsForMessages([messageId])).get(messageId) || [];
+        const payload = { messageId, conversationId: existing.conversation_id, reactions };
+        io.to(existing.conversation_id).emit('reaction:updated', payload);
+        ack?.({ reactions });
+      } catch (err) {
+        ack?.({ error: err.message || 'Could not update reaction' });
       }
     });
 
@@ -165,7 +217,10 @@ export function attachSocket(httpServer) {
       const set = socketsByUser.get(userId);
       if (set) {
         set.delete(socket.id);
-        if (set.size === 0) socketsByUser.delete(userId);
+        if (set.size === 0) {
+          socketsByUser.delete(userId);
+          socket.broadcast.emit('presence:update', { userId, online: false });
+        }
       }
     });
   });

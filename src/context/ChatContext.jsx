@@ -49,6 +49,7 @@ export function ChatProvider({ children }) {
   const [messagesByConversation, setMessagesByConversation] = useState({});
   const [typingByConversation, setTypingByConversation] = useState({});
   const [connected, setConnected] = useState(false);
+  const [onlineUserIds, setOnlineUserIds] = useState(() => new Set());
   const socketRef = useRef(null);
   // Read inside the message:new socket handler below, which is set up once
   // per connection and would otherwise close over a stale
@@ -97,7 +98,16 @@ export function ChatProvider({ children }) {
     socketRef.current = socket;
 
     socket.on('connect', () => setConnected(true));
-    socket.on('disconnect', () => setConnected(false));
+    socket.on('disconnect', () => { setConnected(false); setOnlineUserIds(new Set()); });
+
+    socket.on('presence:snapshot', (userIds) => setOnlineUserIds(new Set(userIds)));
+    socket.on('presence:update', ({ userId, online }) => {
+      setOnlineUserIds((prev) => {
+        const next = new Set(prev);
+        if (online) next.add(userId); else next.delete(userId);
+        return next;
+      });
+    });
 
     socket.on('message:new', (message) => {
       setMessagesByConversation((prev) => ({
@@ -117,14 +127,32 @@ export function ChatProvider({ children }) {
       setConversations((prev) => {
         const idx = prev.findIndex((c) => c.id === message.conversationId);
         if (idx === -1) return prev; // a conversation:new event brings in ones we haven't loaded yet
+        const grewUnread = !isActiveConversation && message.senderId !== currentUser.id;
         const updated = {
           ...prev[idx], lastMessageId: message.id, lastMessageText: message.text, lastMessageImage: message.imageUrl,
           lastMessageAudio: message.audioUrl, lastMessageDeletedAt: null,
           lastMessageAt: message.createdAt, lastMessageSenderId: message.senderId,
           lastReadAt: isActiveConversation ? message.createdAt : prev[idx].lastReadAt,
+          unreadCount: grewUnread ? (prev[idx].unreadCount || 0) + 1 : (isActiveConversation ? 0 : prev[idx].unreadCount),
         };
         return [updated, ...prev.slice(0, idx), ...prev.slice(idx + 1)];
       });
+    });
+
+    // Someone else in a conversation just read up to lastReadAt — refresh
+    // their entry in that conversation's members array so read-receipt
+    // ticks on my own messages can flip live instead of only after a reload.
+    socket.on('conversation:read', ({ conversationId, userId, lastReadAt }) => {
+      setConversations((prev) => prev.map((c) => (c.id !== conversationId ? c : {
+        ...c, members: c.members.map((m) => (m.id === userId ? { ...m, lastReadAt } : m)),
+      })));
+    });
+
+    socket.on('reaction:updated', ({ messageId, conversationId, reactions }) => {
+      setMessagesByConversation((prev) => ({
+        ...prev,
+        [conversationId]: (prev[conversationId] || []).map((m) => (m.id === messageId ? { ...m, reactions } : m)),
+      }));
     });
 
     socket.on('message:edited', ({ id, conversationId, text, editedAt }) => {
@@ -171,11 +199,19 @@ export function ChatProvider({ children }) {
     }
   }, [token, showToast]);
 
-  const sendMessage = useCallback((conversationId, text, imageUrl, audioUrl) => new Promise((resolve, reject) => {
+  const sendMessage = useCallback((conversationId, text, imageUrl, audioUrl, replyToId) => new Promise((resolve, reject) => {
     if (!socketRef.current) { reject(new Error('Not connected')); return; }
-    socketRef.current.emit('message:send', { conversationId, text, imageUrl, audioUrl }, (ack) => {
+    socketRef.current.emit('message:send', { conversationId, text, imageUrl, audioUrl, replyToId }, (ack) => {
       if (ack?.error) { showToast(ack.error); reject(new Error(ack.error)); }
       else resolve(ack?.message);
+    });
+  }), [showToast]);
+
+  const toggleReaction = useCallback((messageId, emoji) => new Promise((resolve, reject) => {
+    if (!socketRef.current) { reject(new Error('Not connected')); return; }
+    socketRef.current.emit('reaction:toggle', { messageId, emoji }, (ack) => {
+      if (ack?.error) { showToast(ack.error); reject(new Error(ack.error)); }
+      else resolve(ack?.reactions);
     });
   }), [showToast]);
 
@@ -250,7 +286,7 @@ export function ChatProvider({ children }) {
 
   const markRead = useCallback((conversationId) => {
     chatRequest(`/conversations/${conversationId}/read`, { method: 'POST' }, token)
-      .then(() => setConversations((prev) => prev.map((c) => (c.id === conversationId ? { ...c, lastReadAt: new Date().toISOString() } : c))))
+      .then(() => setConversations((prev) => prev.map((c) => (c.id === conversationId ? { ...c, lastReadAt: new Date().toISOString(), unreadCount: 0 } : c))))
       .catch(() => {});
   }, [token]);
 
@@ -260,8 +296,8 @@ export function ChatProvider({ children }) {
 
   const value = {
     conversations, activeConversationId, setActiveConversationId,
-    messagesByConversation, typingByConversation, connected,
-    loadMessages, sendMessage, editMessage, deleteMessage, uploadImage, uploadAudio,
+    messagesByConversation, typingByConversation, connected, onlineUserIds,
+    loadMessages, sendMessage, editMessage, deleteMessage, uploadImage, uploadAudio, toggleReaction,
     createGroup, startDM, addMember, removeMember, markRead, setTyping,
   };
 

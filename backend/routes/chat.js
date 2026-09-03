@@ -4,19 +4,24 @@ import { prepare } from '../database/db.js';
 import { requireAuth } from '../middleware/auth.js';
 import { asyncRoute } from '../middleware/asyncRoute.js';
 import { uploadChatFile, isStorageConfigured } from '../storage/supabase.js';
-import { notifyUser, joinRoom } from '../socket/index.js';
+import { notifyUser, joinRoom, getIo } from '../socket/index.js';
+import { reactionsForMessages } from '../database/helpers.js';
 
 const router = Router();
 router.use(requireAuth);
 
-const MESSAGE_SELECT = `SELECT id, conversation_id as "conversationId", sender_id as "senderId", text, image_url as "imageUrl", audio_url as "audioUrl", edited_at as "editedAt", deleted_at as "deletedAt", created_at as "createdAt" FROM chat_messages`;
+const MESSAGE_SELECT = `SELECT id, conversation_id as "conversationId", sender_id as "senderId", text, image_url as "imageUrl", audio_url as "audioUrl", edited_at as "editedAt", deleted_at as "deletedAt", reply_to_id as "replyToId", created_at as "createdAt" FROM chat_messages`;
 
 async function isMember(conversationId, userId) {
   return !!(await prepare('SELECT 1 FROM chat_members WHERE conversation_id = ? AND user_id = ?').get(conversationId, userId));
 }
 
+// last_read_at is included on every member row (not just the requester's
+// own) so the client can compute WhatsApp-style read receipts: a message I
+// sent counts as "read" once every other member's last_read_at is at or
+// past its created_at.
 async function memberRows(conversationId) {
-  return prepare(`SELECT u.id, u.name, u.initial FROM chat_members cm JOIN users u ON u.id = cm.user_id WHERE cm.conversation_id = ?`).all(conversationId);
+  return prepare(`SELECT u.id, u.name, u.initial, cm.last_read_at as "lastReadAt" FROM chat_members cm JOIN users u ON u.id = cm.user_id WHERE cm.conversation_id = ?`).all(conversationId);
 }
 
 // Who a person may add to a group they're creating — admin reaches anyone;
@@ -42,16 +47,18 @@ router.get('/conversations', asyncRoute(async (req, res) => {
       (SELECT audio_url FROM chat_messages m WHERE m.conversation_id = c.id ORDER BY m.seq DESC LIMIT 1) as "lastMessageAudio",
       (SELECT deleted_at FROM chat_messages m WHERE m.conversation_id = c.id ORDER BY m.seq DESC LIMIT 1) as "lastMessageDeletedAt",
       (SELECT created_at FROM chat_messages m WHERE m.conversation_id = c.id ORDER BY m.seq DESC LIMIT 1) as "lastMessageAt",
-      (SELECT sender_id FROM chat_messages m WHERE m.conversation_id = c.id ORDER BY m.seq DESC LIMIT 1) as "lastMessageSenderId"
+      (SELECT sender_id FROM chat_messages m WHERE m.conversation_id = c.id ORDER BY m.seq DESC LIMIT 1) as "lastMessageSenderId",
+      (SELECT COUNT(*) FROM chat_messages m WHERE m.conversation_id = c.id AND m.deleted_at IS NULL
+        AND m.sender_id != ? AND m.created_at > COALESCE(cm.last_read_at, '')) as "unreadCount"
     FROM chat_conversations c
     JOIN chat_members cm ON cm.conversation_id = c.id
     WHERE cm.user_id = ?
     ORDER BY "lastMessageAt" DESC NULLS LAST, c.created_at DESC
-  `).all(req.user.id);
+  `).all(req.user.id, req.user.id);
 
   const conversations = [];
   for (const row of rows) {
-    conversations.push({ ...row, members: await memberRows(row.id) });
+    conversations.push({ ...row, unreadCount: Number(row.unreadCount) || 0, members: await memberRows(row.id) });
   }
   res.json(conversations);
 }));
@@ -61,15 +68,21 @@ router.get('/conversations/:id/messages', asyncRoute(async (req, res) => {
     return res.status(403).json({ error: 'You are not a member of this conversation' });
   }
   const messages = await prepare(`${MESSAGE_SELECT} WHERE conversation_id = ? ORDER BY seq ASC`).all(req.params.id);
-  res.json(messages);
+  const reactionsByMessage = await reactionsForMessages(messages.map((m) => m.id));
+  res.json(messages.map((m) => ({ ...m, reactions: reactionsByMessage.get(m.id) || [] })));
 }));
 
 router.post('/conversations/:id/read', asyncRoute(async (req, res) => {
   if (!(await isMember(req.params.id, req.user.id))) {
     return res.status(403).json({ error: 'You are not a member of this conversation' });
   }
+  const lastReadAt = new Date().toISOString();
   await prepare('UPDATE chat_members SET last_read_at = ? WHERE conversation_id = ? AND user_id = ?')
-    .run(new Date().toISOString(), req.params.id, req.user.id);
+    .run(lastReadAt, req.params.id, req.user.id);
+  // Lets everyone else's open thread flip a message's ticks from sent to
+  // read the moment this person actually reads it, not just on their next
+  // conversation-list refresh.
+  getIo()?.to(req.params.id).emit('conversation:read', { conversationId: req.params.id, userId: req.user.id, lastReadAt });
   res.json({ ok: true });
 }));
 

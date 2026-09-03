@@ -335,3 +335,42 @@ export function IconEdit({ size = 15, color = 'var(--accent-dark)' }) {
     </svg>
   );
 }
+
+export function IconSmile({ size = 18, color = 'var(--text-secondary)' }) {
+  return (
+    <svg {...base(size)} viewBox="0 0 20 20">
+      <circle cx="10" cy="10" r="7.5" stroke={color} strokeWidth="1.6" />
+      <circle cx="7.2" cy="8.3" r="1" fill={color} stroke="none" />
+      <circle cx="12.8" cy="8.3" r="1" fill={color} stroke="none" />
+      <path d="M6.5 11.8c.8 1.3 2 2 3.5 2s2.7-.7 3.5-2" stroke={color} strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+export function IconReply({ size = 14, color = 'var(--text-secondary)' }) {
+  return (
+    <svg {...base(size)} viewBox="0 0 20 20">
+      <path d="M8 5L3 10l5 5" stroke={color} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M3 10h8a5 5 0 015 5v1" stroke={color} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+export function IconDotsVertical({ size = 16, color = 'var(--text-secondary)' }) {
+  return (
+    <svg {...base(size)} viewBox="0 0 20 20">
+      <circle cx="10" cy="4.2" r="1.5" fill={color} stroke="none" />
+      <circle cx="10" cy="10" r="1.5" fill={color} stroke="none" />
+      <circle cx="10" cy="15.8" r="1.5" fill={color} stroke="none" />
+    </svg>
+  );
+}
+
+export function IconCheckDouble({ size = 14, color = 'var(--text-muted)' }) {
+  return (
+    <svg {...base(size)} viewBox="0 0 22 14">
+      <path d="M1 7l3.5 3.5L11 3.5" stroke={color} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M8.3 7l3.5 3.5L18.3 3.5" stroke={color} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}

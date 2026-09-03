@@ -35,6 +35,29 @@ export async function getTask(taskId) {
   };
 }
 
+// Aggregates chat_reactions into one {emoji, userIds}[] per message, so
+// callers never have to reduce raw reaction rows themselves — used for the
+// initial message-history fetch and after a single reaction toggle. Lives
+// here (not in routes/chat.js or socket/index.js) so both can import it
+// without those two modules importing each other.
+export async function reactionsForMessages(messageIds) {
+  if (messageIds.length === 0) return new Map();
+  const placeholders = messageIds.map(() => '?').join(', ');
+  const rows = await prepare(`SELECT message_id as "messageId", user_id as "userId", emoji FROM chat_reactions WHERE message_id IN (${placeholders})`).all(...messageIds);
+  const byMessage = new Map();
+  for (const row of rows) {
+    if (!byMessage.has(row.messageId)) byMessage.set(row.messageId, new Map());
+    const byEmoji = byMessage.get(row.messageId);
+    if (!byEmoji.has(row.emoji)) byEmoji.set(row.emoji, []);
+    byEmoji.get(row.emoji).push(row.userId);
+  }
+  const result = new Map();
+  for (const [messageId, byEmoji] of byMessage) {
+    result.set(messageId, [...byEmoji.entries()].map(([emoji, userIds]) => ({ emoji, userIds })));
+  }
+  return result;
+}
+
 export async function getGlobalActivity() {
   return prepare('SELECT id, type, text, team_id as "teamId", at FROM activity_logs WHERE type IS NOT NULL ORDER BY seq DESC LIMIT 30').all();
 }

@@ -167,17 +167,33 @@ CREATE TABLE IF NOT EXISTS chat_messages (
   audio_url TEXT,
   edited_at TEXT,
   deleted_at TEXT,
+  reply_to_id TEXT REFERENCES chat_messages(id) ON DELETE SET NULL,
   created_at TEXT NOT NULL,
   seq BIGSERIAL
 );
 
--- The three columns above were added after chat_messages already existed
--- live, so CREATE TABLE IF NOT EXISTS alone (a no-op there) wouldn't apply
--- them — these run every time this file is applied, and are themselves
--- no-ops once the column is already present.
+-- Each of these was added after chat_messages already existed live, so
+-- CREATE TABLE IF NOT EXISTS alone (a no-op there) wouldn't apply it —
+-- these run every time this file is applied, and are themselves no-ops
+-- once the column is already present.
 ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS audio_url TEXT;
 ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS edited_at TEXT;
 ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS deleted_at TEXT;
+ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS reply_to_id TEXT REFERENCES chat_messages(id) ON DELETE SET NULL;
+
+-- One reaction per person per message — picking a new emoji replaces the
+-- old one (upsert on conflict), matching how a single-reaction-per-person
+-- chat reaction picker behaves.
+CREATE TABLE IF NOT EXISTS chat_reactions (
+  id TEXT PRIMARY KEY,
+  message_id TEXT NOT NULL REFERENCES chat_messages(id) ON DELETE CASCADE,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  emoji TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  seq BIGSERIAL
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_chat_reactions_unique ON chat_reactions(message_id, user_id);
+CREATE INDEX IF NOT EXISTS idx_chat_reactions_message ON chat_reactions(message_id);
 
 CREATE INDEX IF NOT EXISTS idx_chat_members_conversation ON chat_members(conversation_id);
 CREATE INDEX IF NOT EXISTS idx_chat_members_user ON chat_members(user_id);
