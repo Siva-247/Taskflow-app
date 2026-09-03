@@ -157,7 +157,7 @@ export function Select({ value, onChange, options }) {
   );
 }
 
-export function Modal({ title, children, onClose }) {
+export function Modal({ title, children, onClose, maxWidth = 400 }) {
   return (
     <div
       onClick={onClose}
@@ -168,7 +168,7 @@ export function Modal({ title, children, onClose }) {
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        style={{ background: '#FFFFFF', borderRadius: 14, boxShadow: '0 28px 64px -20px rgba(20,10,40,0.4)', padding: '26px 28px', maxWidth: 400, width: '100%', maxHeight: '90vh', overflowY: 'auto' }}
+        style={{ background: '#FFFFFF', borderRadius: 14, boxShadow: '0 28px 64px -20px rgba(20,10,40,0.4)', padding: '26px 28px', maxWidth, width: '100%', maxHeight: '90vh', overflowY: 'auto' }}
       >
         {title && <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 17, color: 'var(--heading)', marginBottom: 10 }}>{title}</div>}
         {children}

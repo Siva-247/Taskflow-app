@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useApp } from '../context/AppContext.jsx';
 import { STATUS, PRIORITY, ROLES, teamById } from '../data/mockData.js';
 import { Card, Avatar, StatusBadge, PriorityDot, Button, Select, TextInput } from '../components/ui.jsx';
+import CreateTaskModal from '../components/CreateTaskModal.jsx';
 import { IconSearch, IconPlusCircle, IconArrowRight } from '../components/icons.jsx';
 
 const STATUS_OPTIONS = [STATUS.PENDING_APPROVAL, STATUS.TODO, STATUS.IN_PROGRESS, STATUS.IN_REVIEW, STATUS.COMPLETED];
@@ -19,6 +20,7 @@ export default function TaskList() {
   const [teamFilter, setTeamFilter] = useState(params.get('team') || 'all');
   const [assigneeFilter, setAssigneeFilter] = useState(params.get('assignee') || 'all');
   const [dueBefore, setDueBefore] = useState('');
+  const [showCreate, setShowCreate] = useState(false);
 
   // This page is one route (/tasks) reused by several nav links that only
   // differ by query string (Approvals, Reviews, Overdue, "View all" from a
@@ -105,7 +107,7 @@ export default function TaskList() {
           <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 14, color: 'var(--text-secondary)', marginTop: 4 }}>{scopeLabel}</div>
         </div>
         {canCreate && (
-          <Button onClick={() => navigate('/tasks/new')}>
+          <Button onClick={() => setShowCreate(true)}>
             <IconPlusCircle size={15} color="#FFFFFF" /> Create task
           </Button>
         )}
@@ -213,6 +215,8 @@ export default function TaskList() {
           </div>
         </div>
       </Card>
+
+      {showCreate && <CreateTaskModal onClose={() => setShowCreate(false)} />}
     </div>
   );
 }

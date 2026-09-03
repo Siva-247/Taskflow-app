@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext.jsx';
 import { ROLES } from '../data/mockData.js';
 import { Card, Avatar, StatusBadge, Select, TextInput, Button } from '../components/ui.jsx';
+import DailyUpdateForm from '../components/DailyUpdateForm.jsx';
 import { IconSearch, IconArrowRight, IconDownload } from '../components/icons.jsx';
 import { formatDate, downloadCsv } from '../utils.js';
 
@@ -32,6 +33,7 @@ export default function DailyUpdateHistory() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [sortKey, setSortKey] = useState('date');
   const [sortDir, setSortDir] = useState('desc');
+  const [showUpdateForm, setShowUpdateForm] = useState(false);
 
   const allUpdates = scopedDailyUpdates(currentUser);
   const myDepartment = departments.find((d) => d.id === currentUser.departmentId);
@@ -119,7 +121,7 @@ export default function DailyUpdateHistory() {
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
           {currentUser.role === ROLES.EMPLOYEE && (
-            <Button variant="secondary" onClick={() => navigate('/daily-update')}>Update today's entry</Button>
+            <Button variant="secondary" onClick={() => setShowUpdateForm(true)}>Update today's entry</Button>
           )}
           <Button onClick={handleExport} disabled={updates.length === 0}>
             <IconDownload size={14} color="#FFFFFF" /> Export CSV
@@ -249,6 +251,8 @@ export default function DailyUpdateHistory() {
           {updates.length} of {allUpdates.length} update{allUpdates.length === 1 ? '' : 's'}
         </div>
       )}
+
+      {showUpdateForm && <DailyUpdateForm onClose={() => setShowUpdateForm(false)} />}
     </div>
   );
 }
