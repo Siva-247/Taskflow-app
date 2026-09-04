@@ -163,6 +163,14 @@ export default function Chat() {
   const dividerBaselineRef = useRef({});
   const highlightTimeoutRef = useRef(null);
 
+  // activeConversationId lives in ChatContext (outside this page) so a
+  // notification click-through can set it before Chat has even mounted —
+  // but that also means it would otherwise never clear when navigating
+  // away to Dashboard/Tasks/etc, permanently suppressing desktop
+  // notifications for whatever conversation was open last. Only this page
+  // knows when "viewing chat" truly ends, so it owns clearing it on unmount.
+  useEffect(() => () => setActiveConversationId(null), []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const canCreateGroup = CAN_CREATE_GROUP.includes(currentUser.role);
   const active = conversations.find((c) => c.id === activeConversationId) || null;
   const messages = activeConversationId ? (messagesByConversation[activeConversationId] || []) : [];
