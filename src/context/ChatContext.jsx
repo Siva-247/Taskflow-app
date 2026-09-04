@@ -28,14 +28,29 @@ async function chatRequest(path, options = {}, token) {
 // Dashboard, not the Chat page" not just "tab minimized". Silently does
 // nothing anywhere the Notification API or permission isn't available;
 // this is a nice-to-have, never something the rest of the app should fail on.
-function notifyOutsideApp(message, users) {
+// Modeled on WhatsApp's own desktop notification: app name up top, "<sender>
+// sent a message '<text>'" as the body, and clicking it jumps straight to
+// that conversation. `tag` keeps a second message in the same conversation
+// replacing the first instead of piling up as separate notifications.
+function notifyOutsideApp(message, users, onClick) {
   if (typeof window === 'undefined' || typeof Notification === 'undefined') return;
   if (Notification.permission !== 'granted') return;
   const sender = users.find((u) => u.id === message.senderId);
-  const body = message.text || (message.imageUrl ? '📷 Photo' : message.audioUrl ? '🎤 Voice message' : 'New message');
+  const senderName = sender?.name || 'Someone';
+  const body = message.text
+    ? `${senderName} sent a message "${message.text}"`
+    : message.imageUrl
+      ? `${senderName} sent a photo`
+      : message.audioUrl
+        ? `${senderName} sent a voice message`
+        : `${senderName} sent a message`;
   try {
-    const n = new Notification(`${sender?.name || 'Someone'} messaged you`, { body });
-    n.onclick = () => window.focus();
+    const n = new Notification('MHS TaskFlow Management System', { body, tag: message.conversationId, renotify: true });
+    n.onclick = () => {
+      window.focus();
+      onClick?.();
+      n.close();
+    };
   } catch {
     // Some contexts (older browsers, certain mobile webviews) throw on
     // `new Notification(...)` even when the API exists — not worth surfacing.
@@ -122,7 +137,10 @@ export function ChatProvider({ children }) {
       if (isActiveConversation) {
         chatRequest(`/conversations/${message.conversationId}/read`, { method: 'POST' }, token).catch(() => {});
       } else if (message.senderId !== currentUser.id) {
-        notifyOutsideApp(message, usersRef.current);
+        notifyOutsideApp(message, usersRef.current, () => {
+          setActiveConversationId(message.conversationId);
+          if (!window.location.hash.startsWith('#/chat')) window.location.hash = '#/chat';
+        });
       }
       setConversations((prev) => {
         const idx = prev.findIndex((c) => c.id === message.conversationId);
