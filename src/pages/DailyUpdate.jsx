@@ -87,8 +87,8 @@ export default function DailyUpdate() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
       <div>
-        <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 24, color: 'var(--heading)' }}>{editingId ? 'Edit daily work update' : 'Daily work update'}</div>
-        <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 14, color: 'var(--text-secondary)', marginTop: 4 }}>{editingId ? "You can only edit today's update." : todaysUpdate ? "You've already submitted today — edit it below if anything needs to change." : 'Log what you worked on today'}</div>
+        <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 26, color: 'var(--heading)' }}>{editingId ? 'Edit daily work update' : 'Daily work update'}</div>
+        <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 16, color: 'var(--text-secondary)', marginTop: 4 }}>{editingId ? "You can only edit today's update." : todaysUpdate ? "You've already submitted today — edit it below if anything needs to change." : 'Log what you worked on today'}</div>
       </div>
 
       {showForm && (
@@ -143,21 +143,21 @@ export default function DailyUpdate() {
       {todaysUpdate && !editingId && (
         <Card style={{ maxWidth: 760 }} padded={false}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '22px 26px 4px' }}>
-            <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 15.5, color: 'var(--heading)' }}>Today's update</div>
-            <span onClick={() => navigate('/daily-updates')} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12.5, color: 'var(--accent-dark)', cursor: 'pointer' }}>View full history</span>
+            <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 17.5, color: 'var(--heading)' }}>Today's update</div>
+            <span onClick={() => navigate('/daily-updates')} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 14.5, color: 'var(--accent-dark)', cursor: 'pointer' }}>View full history</span>
           </div>
           <div style={{ padding: '14px 26px 22px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
-              <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 13, color: 'var(--text-primary)' }}>{formatDate(todaysUpdate.date)}{todaysUpdate.taskTitle && <span style={{ fontWeight: 500, color: 'var(--text-muted)' }}> · {todaysUpdate.taskTitle}</span>}</span>
+              <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 15, color: 'var(--text-primary)' }}>{formatDate(todaysUpdate.date)}{todaysUpdate.taskTitle && <span style={{ fontWeight: 500, color: 'var(--text-muted)' }}> · {todaysUpdate.taskTitle}</span>}</span>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <StatusBadge status={todaysUpdate.status} />
-                <span onClick={() => startEdit(todaysUpdate)} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 11.5, color: 'var(--accent-dark)', cursor: 'pointer' }}>Edit</span>
-                <span onClick={() => setPendingDeleteId(todaysUpdate.id)} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 11.5, color: 'var(--amber-text)', cursor: 'pointer' }}>Delete</span>
+                <span onClick={() => startEdit(todaysUpdate)} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 13.5, color: 'var(--accent-dark)', cursor: 'pointer' }}>Edit</span>
+                <span onClick={() => setPendingDeleteId(todaysUpdate.id)} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 13.5, color: 'var(--amber-text)', cursor: 'pointer' }}>Delete</span>
               </div>
             </div>
-            <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13, color: 'var(--text-secondary)', marginTop: 4 }}>{todaysUpdate.taskCompleted}</div>
+            <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 15, color: 'var(--text-secondary)', marginTop: 4 }}>{todaysUpdate.taskCompleted}</div>
             {todaysUpdate.videosCompleted > 0 && (
-              <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 12, color: 'var(--text-muted)', marginTop: 3 }}>{todaysUpdate.videosCompleted} video{todaysUpdate.videosCompleted === 1 ? '' : 's'}{todaysUpdate.videoLink ? ` · ${todaysUpdate.videoLink}` : ''}</div>
+              <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 14, color: 'var(--text-muted)', marginTop: 3 }}>{todaysUpdate.videosCompleted} video{todaysUpdate.videosCompleted === 1 ? '' : 's'}{todaysUpdate.videoLink ? ` · ${todaysUpdate.videoLink}` : ''}</div>
             )}
           </div>
         </Card>
@@ -165,7 +165,7 @@ export default function DailyUpdate() {
 
       {pendingDeleteId && (
         <Modal title="Delete this update?" onClose={() => setPendingDeleteId(null)}>
-          <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13.5, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+          <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 15.5, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
             This can't be undone.
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 22 }}>
@@ -179,5 +179,5 @@ export default function DailyUpdate() {
 }
 
 function ErrorText({ children }) {
-  return <div style={{ marginTop: 6, fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12, color: 'var(--amber-text)' }}>{children}</div>;
+  return <div style={{ marginTop: 6, fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 14, color: 'var(--amber-text)' }}>{children}</div>;
 }

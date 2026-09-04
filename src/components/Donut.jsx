@@ -37,8 +37,8 @@ export default function Donut({ stats }) {
           )}
         </svg>
         <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 16, color: 'var(--heading)' }}>{total}</div>
-          <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 10, color: 'var(--text-muted)', marginTop: 1 }}>total</div>
+          <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 18, color: 'var(--heading)' }}>{total}</div>
+          <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 12, color: 'var(--text-muted)', marginTop: 1 }}>total</div>
         </div>
       </div>
 
@@ -51,8 +51,8 @@ export default function Donut({ stats }) {
         ].map((row) => (
           <div key={row.label} style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
             <span style={{ width: 9, height: 9, borderRadius: 999, background: row.color, flexShrink: 0 }} />
-            <span style={{ flex: 1, fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13, color: 'var(--text-primary)' }}>{row.label}</span>
-            <span style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 13, color: 'var(--heading)' }}>
+            <span style={{ flex: 1, fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 15, color: 'var(--text-primary)' }}>{row.label}</span>
+            <span style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 15, color: 'var(--heading)' }}>
               {total ? Math.round((row.value / total) * 100) : 0}%
             </span>
           </div>

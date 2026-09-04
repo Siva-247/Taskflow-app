@@ -159,8 +159,8 @@ export default function CreateTaskModal({ onClose }) {
         <div style={{ border: '1px solid var(--border)', borderRadius: 9, background: '#FFFFFF', padding: subtasks.length ? '4px 15px' : 0 }}>
           {subtasks.map((s) => (
             <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0', borderBottom: '1px solid var(--border)' }}>
-              <span style={{ flex: 1, fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13.5, color: 'var(--text-primary)' }}>{s.title}</span>
-              <span onClick={() => removeSubtask(s.id)} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12, color: 'var(--text-muted)', cursor: 'pointer' }}>Remove</span>
+              <span style={{ flex: 1, fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 15.5, color: 'var(--text-primary)' }}>{s.title}</span>
+              <span onClick={() => removeSubtask(s.id)} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 14, color: 'var(--text-muted)', cursor: 'pointer' }}>Remove</span>
             </div>
           ))}
         </div>
@@ -181,5 +181,5 @@ export default function CreateTaskModal({ onClose }) {
 }
 
 function ErrorText({ children }) {
-  return <div style={{ marginTop: 6, fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12, color: 'var(--amber-text)' }}>{children}</div>;
+  return <div style={{ marginTop: 6, fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 14, color: 'var(--amber-text)' }}>{children}</div>;
 }

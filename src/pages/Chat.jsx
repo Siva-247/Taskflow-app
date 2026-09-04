@@ -453,7 +453,7 @@ export default function Chat() {
       <div className={`chat-list-panel${activeConversationId ? ' has-active' : ''}`} style={panelStyle}>
         <div style={{ padding: '18px 18px 14px', borderBottom: '1px solid var(--border)' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-            <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 18, color: 'var(--heading)' }}>Chats</div>
+            <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 20, color: 'var(--heading)' }}>Chats</div>
             <div style={{ display: 'flex', gap: 8 }}>
               {canCreateGroup && (
                 <button type="button" onClick={() => setShowNewGroup(true)} title="New group" style={iconBtnStyle}>
@@ -471,7 +471,7 @@ export default function Chat() {
               value={listSearch}
               onChange={(e) => setListSearch(e.target.value)}
               placeholder="Search chats"
-              style={{ border: 'none', outline: 'none', flex: 1, background: 'transparent', fontFamily: "'Manrope',system-ui,sans-serif", fontSize: 13, color: 'var(--text-primary)' }}
+              style={{ border: 'none', outline: 'none', flex: 1, background: 'transparent', fontFamily: "'Manrope',system-ui,sans-serif", fontSize: 15, color: 'var(--text-primary)' }}
             />
           </div>
         </div>
@@ -511,13 +511,13 @@ export default function Chat() {
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                    <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: unread ? 800 : 600, fontSize: 13.5, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: unread ? 800 : 600, fontSize: 15.5, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {conversationLabel(c)}
                     </span>
-                    {c.lastMessageAt && <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: unread ? 700 : 500, fontSize: 11, color: unread ? 'var(--accent-dark)' : 'var(--text-muted)', flexShrink: 0 }}>{formatMessageTime(c.lastMessageAt)}</span>}
+                    {c.lastMessageAt && <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: unread ? 700 : 500, fontSize: 13, color: unread ? 'var(--accent-dark)' : 'var(--text-muted)', flexShrink: 0 }}>{formatMessageTime(c.lastMessageAt)}</span>}
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 3 }}>
-                    <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: unread ? 700 : 500, fontSize: 12.5, color: unread ? 'var(--text-primary)' : 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: unread ? 700 : 500, fontSize: 14.5, color: unread ? 'var(--text-primary)' : 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {c.type === 'group' && c.lastMessageSenderId && !c.lastMessageDeletedAt && `${c.lastMessageSenderId === currentUser.id ? 'You' : users.find((u) => u.id === c.lastMessageSenderId)?.name?.split(' ')[0] || ''}: `}
                       {c.lastMessageDeletedAt ? 'This message was deleted'
                         : c.lastMessageText || (c.lastMessageImage ? '📷 Photo' : c.lastMessageAudio ? '🎤 Voice message' : 'No messages yet')}
@@ -526,7 +526,7 @@ export default function Chat() {
                       <span style={{
                         minWidth: 19, height: 19, padding: '0 5px', borderRadius: 999, background: 'var(--accent)',
                         display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                        fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 10.5, color: '#FFFFFF',
+                        fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 12.5, color: '#FFFFFF',
                       }}>
                         {c.unreadCount > 99 ? '99+' : c.unreadCount}
                       </span>
@@ -545,8 +545,8 @@ export default function Chat() {
             <div style={{ width: 72, height: 72, borderRadius: 999, background: 'var(--accent-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <IconSend size={26} color="var(--accent)" />
             </div>
-            <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 15, color: 'var(--heading)' }}>Select a chat to start messaging</div>
-            <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontSize: 12.5, color: 'var(--text-muted)' }}>Your conversations stay private to their members.</div>
+            <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 17, color: 'var(--heading)' }}>Select a chat to start messaging</div>
+            <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontSize: 14.5, color: 'var(--text-muted)' }}>Your conversations stay private to their members.</div>
           </div>
         ) : (
           <>
@@ -567,8 +567,8 @@ export default function Chat() {
                   )}
                 </div>
                 <div style={{ minWidth: 0 }}>
-                  <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 14, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{conversationLabel(active)}</div>
-                  <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 11.5, color: 'var(--text-muted)' }}>
+                  <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 16, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{conversationLabel(active)}</div>
+                  <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13.5, color: 'var(--text-muted)' }}>
                     {active.type === 'group'
                       ? `${active.members.length} members`
                       : (onlineUserIds.has(otherMemberOf(active)?.id) ? 'Online' : (connected ? 'Offline' : 'Connecting…'))}
@@ -614,11 +614,11 @@ export default function Chat() {
                     value={threadSearchQuery}
                     onChange={(e) => setThreadSearchQuery(e.target.value)}
                     placeholder="Search in this conversation"
-                    style={{ border: 'none', outline: 'none', flex: 1, background: 'transparent', fontFamily: "'Manrope',system-ui,sans-serif", fontSize: 13, color: 'var(--text-primary)' }}
+                    style={{ border: 'none', outline: 'none', flex: 1, background: 'transparent', fontFamily: "'Manrope',system-ui,sans-serif", fontSize: 15, color: 'var(--text-primary)' }}
                   />
                 </div>
                 {threadSearchQuery.trim() && (
-                  <div style={{ marginTop: 6, fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 11.5, color: 'var(--text-muted)' }}>
+                  <div style={{ marginTop: 6, fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 13.5, color: 'var(--text-muted)' }}>
                     {visibleMessages.length} result{visibleMessages.length === 1 ? '' : 's'}
                   </div>
                 )}
@@ -629,7 +629,7 @@ export default function Chat() {
               {loadingMessages ? (
                 <MessagesSkeleton />
               ) : visibleMessages.length === 0 && threadSearchQuery.trim() ? (
-                <div style={{ margin: 'auto', textAlign: 'center', fontFamily: "'Manrope',system-ui,sans-serif", fontSize: 13, color: 'var(--text-muted)' }}>
+                <div style={{ margin: 'auto', textAlign: 'center', fontFamily: "'Manrope',system-ui,sans-serif", fontSize: 15, color: 'var(--text-muted)' }}>
                   No messages match “{threadSearchQuery}”.
                 </div>
               ) : (
@@ -651,7 +651,7 @@ export default function Chat() {
                         <div style={{ display: 'flex', justifyContent: 'center', margin: '10px 0' }}>
                           <span style={{
                             background: '#FFFFFF', border: '1px solid var(--border)', borderRadius: 999, padding: '4px 14px',
-                            fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11, color: 'var(--text-muted)',
+                            fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 13, color: 'var(--text-muted)',
                           }}>
                             {formatDaySeparator(m.createdAt)}
                           </span>
@@ -660,7 +660,7 @@ export default function Chat() {
                       {dividerMessageId === m.id && (
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '4px 0 10px' }}>
                           <div style={{ flex: 1, height: 1, background: 'var(--amber-fill)', opacity: 0.5 }} />
-                          <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 10.5, color: 'var(--amber-text)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>New messages</span>
+                          <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 12.5, color: 'var(--amber-text)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>New messages</span>
                           <div style={{ flex: 1, height: 1, background: 'var(--amber-fill)', opacity: 0.5 }} />
                         </div>
                       )}
@@ -670,7 +670,7 @@ export default function Chat() {
                         style={{ display: 'flex', flexDirection: 'column', alignItems: mine ? 'flex-end' : 'flex-start', padding: '3px 0' }}
                       >
                         {active.type === 'group' && !mine && (
-                          <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11, color: 'var(--accent-dark)', marginBottom: 2, marginLeft: 4 }}>{sender?.name}</span>
+                          <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 13, color: 'var(--accent-dark)', marginBottom: 2, marginLeft: 4 }}>{sender?.name}</span>
                         )}
                         <div
                           style={{
@@ -692,7 +692,7 @@ export default function Chat() {
                             }}
                           >
                             {isDeleted && (
-                              <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontStyle: 'italic', fontSize: 13, opacity: 0.75 }}>
+                              <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontStyle: 'italic', fontSize: 15, opacity: 0.75 }}>
                                 This message was deleted
                               </div>
                             )}
@@ -710,7 +710,7 @@ export default function Chat() {
                                   style={{
                                     flex: 1, border: 'none', outline: 'none', background: 'rgba(255,255,255,0.18)',
                                     borderRadius: 7, padding: '5px 8px', fontFamily: "'Manrope',system-ui,sans-serif",
-                                    fontWeight: 500, fontSize: 13.5, color: mine ? '#FFFFFF' : 'var(--text-primary)',
+                                    fontWeight: 500, fontSize: 15.5, color: mine ? '#FFFFFF' : 'var(--text-primary)',
                                     resize: 'none', maxHeight: 120, overflowY: 'auto',
                                   }}
                                 />
@@ -733,11 +733,11 @@ export default function Chat() {
                                       borderLeft: `3px solid ${mine ? 'rgba(255,255,255,0.55)' : 'var(--accent)'}`,
                                     }}
                                   >
-                                    <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11, color: mine ? 'rgba(255,255,255,0.85)' : 'var(--accent-dark)' }}>
+                                    <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 13, color: mine ? 'rgba(255,255,255,0.85)' : 'var(--accent-dark)' }}>
                                       {repliedMsg.senderId === currentUser.id ? 'You' : users.find((u) => u.id === repliedMsg.senderId)?.name || 'Someone'}
                                     </span>
                                     <span style={{
-                                      fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 12, opacity: 0.85,
+                                      fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 14, opacity: 0.85,
                                       overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 240,
                                     }}>
                                       {messageSummary(repliedMsg)}
@@ -749,10 +749,10 @@ export default function Chat() {
                                   <audio controls src={m.audioUrl} style={{ display: 'block', width: 220, maxWidth: '100%' }} />
                                 )}
                                 {m.text && (
-                                  <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13.5, lineHeight: 1.45, whiteSpace: 'pre-wrap', wordBreak: 'break-word', marginTop: m.imageUrl ? 6 : 0, padding: m.imageUrl ? '0 6px' : 0 }}>
+                                  <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 15.5, lineHeight: 1.45, whiteSpace: 'pre-wrap', wordBreak: 'break-word', marginTop: m.imageUrl ? 6 : 0, padding: m.imageUrl ? '0 6px' : 0 }}>
                                     {renderMessageText(m.text, active.members, mine)}
                                     {m.editedAt && (
-                                      <span style={{ fontSize: 10.5, fontWeight: 500, opacity: 0.7, marginLeft: 6 }}>(edited)</span>
+                                      <span style={{ fontSize: 12.5, fontWeight: 500, opacity: 0.7, marginLeft: 6 }}>(edited)</span>
                                     )}
                                   </div>
                                 )}
@@ -779,7 +779,7 @@ export default function Chat() {
                           {pickerOpen && (
                             <div onClick={(e) => e.stopPropagation()} style={{ ...popoverStyle, [mine ? 'right' : 'left']: 0, bottom: '100%', marginBottom: 6, display: 'flex', gap: 4, padding: '6px 8px' }}>
                               {REACTION_EMOJIS.map((emoji) => (
-                                <span key={emoji} onClick={() => handleReact(m, emoji)} style={{ fontSize: 18, cursor: 'pointer', lineHeight: 1, padding: 3, borderRadius: 6 }}>{emoji}</span>
+                                <span key={emoji} onClick={() => handleReact(m, emoji)} style={{ fontSize: 20, cursor: 'pointer', lineHeight: 1, padding: 3, borderRadius: 6 }}>{emoji}</span>
                               ))}
                             </div>
                           )}
@@ -812,11 +812,11 @@ export default function Chat() {
                                   style={{
                                     display: 'inline-flex', alignItems: 'center', gap: 3, padding: '2px 7px', borderRadius: 999, cursor: 'pointer',
                                     background: reactedByMe ? 'var(--accent-soft)' : '#FFFFFF', border: `1px solid ${reactedByMe ? 'var(--accent)' : 'var(--border)'}`,
-                                    fontSize: 12,
+                                    fontSize: 14,
                                   }}
                                 >
                                   <span>{r.emoji}</span>
-                                  <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 10.5, color: reactedByMe ? 'var(--accent-dark)' : 'var(--text-muted)' }}>{r.userIds.length}</span>
+                                  <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 12.5, color: reactedByMe ? 'var(--accent-dark)' : 'var(--text-muted)' }}>{r.userIds.length}</span>
                                 </span>
                               );
                             })}
@@ -824,7 +824,7 @@ export default function Chat() {
                         )}
 
                         <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 3 }}>
-                          <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 10.5, color: 'var(--text-muted)' }}>{formatMessageTime(m.createdAt)}</span>
+                          <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 12.5, color: 'var(--text-muted)' }}>{formatMessageTime(m.createdAt)}</span>
                           {status === 'sent' && <IconCheck size={11} color="var(--text-muted)" />}
                           {status === 'read' && <IconCheckDouble size={13} color="var(--accent)" />}
                         </div>
@@ -838,7 +838,7 @@ export default function Chat() {
                   <span className="typing-dots" style={{ display: 'inline-flex', gap: 3, padding: '8px 12px', background: '#FFFFFF', border: '1px solid var(--border)', borderRadius: 14 }}>
                     <i /><i /><i />
                   </span>
-                  <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 11.5, color: 'var(--text-muted)' }}>
+                  <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 13.5, color: 'var(--text-muted)' }}>
                     {typingUserIds.map((id) => users.find((u) => u.id === id)?.name?.split(' ')[0] || 'Someone').join(', ')} typing
                   </span>
                 </div>
@@ -850,10 +850,10 @@ export default function Chat() {
               <div style={{ padding: '9px 18px', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 10, background: 'var(--field-bg)' }}>
                 <div style={{ width: 3, alignSelf: 'stretch', background: 'var(--accent)', borderRadius: 2 }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11.5, color: 'var(--accent-dark)' }}>
+                  <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 13.5, color: 'var(--accent-dark)' }}>
                     Replying to {replyingTo.senderId === currentUser.id ? 'yourself' : users.find((u) => u.id === replyingTo.senderId)?.name || 'someone'}
                   </div>
-                  <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 12, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 14, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {messageSummary(replyingTo)}
                   </div>
                 </div>
@@ -873,7 +873,7 @@ export default function Chat() {
                       style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', cursor: 'pointer' }}
                     >
                       <Avatar initial={m.initial} size={22} />
-                      <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12.5, color: 'var(--text-primary)' }}>{m.name}</span>
+                      <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 14.5, color: 'var(--text-primary)' }}>{m.name}</span>
                     </div>
                   ))}
                 </div>
@@ -881,7 +881,7 @@ export default function Chat() {
               {showEmojiPicker && (
                 <div style={{ ...popoverStyle, left: 18, bottom: '100%', marginBottom: 6, width: 240, display: 'grid', gridTemplateColumns: 'repeat(6,1fr)', gap: 2, padding: 8 }}>
                   {COMPOSER_EMOJIS.map((emoji) => (
-                    <span key={emoji} onClick={() => insertEmoji(emoji)} style={{ fontSize: 19, textAlign: 'center', cursor: 'pointer', padding: 5, borderRadius: 6, lineHeight: 1 }}>{emoji}</span>
+                    <span key={emoji} onClick={() => insertEmoji(emoji)} style={{ fontSize: 21, textAlign: 'center', cursor: 'pointer', padding: 5, borderRadius: 6, lineHeight: 1 }}>{emoji}</span>
                   ))}
                 </div>
               )}
@@ -893,7 +893,7 @@ export default function Chat() {
                   </button>
                   <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span style={{ width: 9, height: 9, borderRadius: 999, background: 'var(--amber-text)', animation: 'pulse 1.2s infinite' }} />
-                    <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 13, color: 'var(--text-primary)' }}>
+                    <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 15, color: 'var(--text-primary)' }}>
                       Recording… {formatDuration(recordingSeconds)}
                     </span>
                   </div>
@@ -1003,7 +1003,7 @@ const bgPatternStyle = {
 };
 
 const emptyStateStyle = {
-  padding: '36px 20px', textAlign: 'center', fontFamily: "'Manrope',system-ui,sans-serif", fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6,
+  padding: '36px 20px', textAlign: 'center', fontFamily: "'Manrope',system-ui,sans-serif", fontSize: 15, color: 'var(--text-muted)', lineHeight: 1.6,
 };
 
 const searchFieldStyle = {
@@ -1039,12 +1039,12 @@ const dropdownStyle = {
 
 const menuItemStyle = {
   display: 'flex', alignItems: 'center', gap: 7, padding: '9px 12px', cursor: 'pointer',
-  fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12.5, color: 'var(--text-primary)', whiteSpace: 'nowrap',
+  fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 14.5, color: 'var(--text-primary)', whiteSpace: 'nowrap',
 };
 
 const composerTextareaStyle = {
   width: '100%', padding: '11px 15px', border: '1px solid var(--border)', borderRadius: 20, background: 'var(--field-bg)',
-  fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13.5, color: 'var(--text-primary)',
+  fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 15.5, color: 'var(--text-primary)',
   resize: 'none', maxHeight: 120, overflowY: 'auto', lineHeight: 1.4, display: 'block',
 };
 
@@ -1097,19 +1097,19 @@ function NewGroupModal({ onClose, onCreate }) {
         <Field label={`Add members (${selected.size} selected)`}>
           <div style={{ maxHeight: 220, overflowY: 'auto', border: '1px solid var(--border)', borderRadius: 9 }}>
             {candidates.length === 0 && (
-              <div style={{ padding: 14, fontFamily: "'Manrope',system-ui,sans-serif", fontSize: 12.5, color: 'var(--text-muted)' }}>Nobody available to add.</div>
+              <div style={{ padding: 14, fontFamily: "'Manrope',system-ui,sans-serif", fontSize: 14.5, color: 'var(--text-muted)' }}>Nobody available to add.</div>
             )}
             {candidates.map((u) => (
               <label key={u.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', cursor: 'pointer', borderBottom: '1px solid var(--border)' }}>
                 <input type="checkbox" checked={selected.has(u.id)} onChange={() => toggle(u.id)} style={{ accentColor: 'var(--accent)', width: 15, height: 15 }} />
                 <Avatar initial={u.initial} size={24} />
-                <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 13, color: 'var(--text-primary)' }}>{u.name}</span>
-                <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 11.5, color: 'var(--text-muted)' }}>{u.title}</span>
+                <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 15, color: 'var(--text-primary)' }}>{u.name}</span>
+                <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13.5, color: 'var(--text-muted)' }}>{u.title}</span>
               </label>
             ))}
           </div>
         </Field>
-        {error && <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12, color: 'var(--amber-text)' }}>{error}</div>}
+        {error && <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 14, color: 'var(--amber-text)' }}>{error}</div>}
       </div>
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 22 }}>
         <Button variant="secondary" onClick={onClose}>Cancel</Button>
@@ -1141,19 +1141,19 @@ function NewDMModal({ onClose, onPick }) {
     <Modal title="New chat" onClose={onClose}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <TextInput value={search} onChange={setSearch} placeholder="Search people…" />
-        {error && <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12, color: 'var(--amber-text)' }}>{error}</div>}
+        {error && <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 14, color: 'var(--amber-text)' }}>{error}</div>}
         <div style={{ maxHeight: 280, overflowY: 'auto', border: '1px solid var(--border)', borderRadius: 9 }}>
           {candidates.map((u) => (
             <div key={u.id} onClick={() => handlePick(u.id)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', cursor: 'pointer', borderBottom: '1px solid var(--border)' }}>
               <Avatar initial={u.initial} size={28} />
               <div>
-                <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 13, color: 'var(--text-primary)' }}>{u.name}</div>
-                <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 11.5, color: 'var(--text-muted)' }}>{u.title}</div>
+                <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 15, color: 'var(--text-primary)' }}>{u.name}</div>
+                <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13.5, color: 'var(--text-muted)' }}>{u.title}</div>
               </div>
             </div>
           ))}
           {candidates.length === 0 && (
-            <div style={{ padding: 14, fontFamily: "'Manrope',system-ui,sans-serif", fontSize: 12.5, color: 'var(--text-muted)' }}>No one matches.</div>
+            <div style={{ padding: 14, fontFamily: "'Manrope',system-ui,sans-serif", fontSize: 14.5, color: 'var(--text-muted)' }}>No one matches.</div>
           )}
         </div>
       </div>
@@ -1189,7 +1189,7 @@ function GroupInfoModal({ conversation, onClose, onAddMember, onRemoveMember }) 
   return (
     <Modal title={conversation.name} onClose={onClose}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 12, letterSpacing: '0.03em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>
+        <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 14, letterSpacing: '0.03em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>
           {conversation.members.length} members
         </div>
         <div style={{ maxHeight: 220, overflowY: 'auto' }}>
@@ -1197,10 +1197,10 @@ function GroupInfoModal({ conversation, onClose, onAddMember, onRemoveMember }) 
             <div key={m.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <Avatar initial={m.initial} size={26} />
-                <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 13, color: 'var(--text-primary)' }}>{m.name}{m.id === currentUser.id ? ' (you)' : ''}</span>
+                <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 15, color: 'var(--text-primary)' }}>{m.name}{m.id === currentUser.id ? ' (you)' : ''}</span>
               </div>
               {canManage && m.id !== currentUser.id && (
-                <span onClick={() => onRemoveMember(m.id)} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 11.5, color: 'var(--amber-text)', cursor: 'pointer' }}>Remove</span>
+                <span onClick={() => onRemoveMember(m.id)} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 13.5, color: 'var(--amber-text)', cursor: 'pointer' }}>Remove</span>
               )}
             </div>
           ))}
@@ -1209,14 +1209,14 @@ function GroupInfoModal({ conversation, onClose, onAddMember, onRemoveMember }) 
           adding ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <Select value={pickUserId} onChange={setPickUserId} options={[{ value: '', label: 'Choose someone' }, ...candidates.map((u) => ({ value: u.id, label: u.name }))]} />
-              {error && <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12, color: 'var(--amber-text)' }}>{error}</div>}
+              {error && <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 14, color: 'var(--amber-text)' }}>{error}</div>}
               <div style={{ display: 'flex', gap: 8 }}>
                 <Button variant="primary" style={{ flex: 1, justifyContent: 'center' }} disabled={!pickUserId} onClick={handleAdd}>Add</Button>
                 <Button variant="secondary" style={{ flex: 1, justifyContent: 'center' }} onClick={() => { setAdding(false); setPickUserId(''); }}>Cancel</Button>
               </div>
             </div>
           ) : (
-            <span onClick={() => setAdding(true)} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12.5, color: 'var(--accent-dark)', cursor: 'pointer' }}>+ Add member</span>
+            <span onClick={() => setAdding(true)} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 14.5, color: 'var(--accent-dark)', cursor: 'pointer' }}>+ Add member</span>
           )
         )}
       </div>

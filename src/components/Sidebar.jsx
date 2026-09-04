@@ -98,7 +98,7 @@ export default function Sidebar({ open = false, onNavigate }) {
             <Icon size={17} color={isActive ? 'var(--accent-dark)' : 'var(--text-muted)'} />
             <span style={{
               flex: 1,
-              fontFamily: "'Manrope',system-ui,sans-serif", fontSize: 13.5,
+              fontFamily: "'Manrope',system-ui,sans-serif", fontSize: 15.5,
               fontWeight: isActive ? 700 : 500,
               color: isActive ? 'var(--accent-dark)' : 'var(--text-secondary)',
             }}>
@@ -108,7 +108,7 @@ export default function Sidebar({ open = false, onNavigate }) {
               <span style={{
                 minWidth: 18, height: 18, padding: '0 5px', borderRadius: 999, background: 'var(--amber-fill)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 10.5, color: '#FFFFFF',
+                fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 12.5, color: '#FFFFFF',
               }}>
                 {unreadChatCount > 9 ? '9+' : unreadChatCount}
               </span>

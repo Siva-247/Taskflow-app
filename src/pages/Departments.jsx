@@ -145,8 +145,8 @@ export default function Departments() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
       <div className="stack-mobile" style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
         <div>
-          <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 24, color: 'var(--heading)' }}>Departments</div>
-          <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 14, color: 'var(--text-secondary)', marginTop: 4 }}>Company-wide department overview</div>
+          <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 26, color: 'var(--heading)' }}>Departments</div>
+          <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 16, color: 'var(--text-secondary)', marginTop: 4 }}>Company-wide department overview</div>
         </div>
         <Button onClick={() => setShowAddDept(true)}>
           <IconPlusCircle size={15} color="#FFFFFF" /> Add department
@@ -158,35 +158,35 @@ export default function Departments() {
           <Card key={row.dept.id}>
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
               <div>
-                <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 18, color: 'var(--heading)' }}>{row.dept.name}</div>
+                <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 20, color: 'var(--heading)' }}>{row.dept.name}</div>
                 {row.manager ? (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 8, flexWrap: 'wrap' }}>
                     <Avatar initial={row.manager.initial} size={22} />
-                    <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 13, color: 'var(--text-secondary)' }}>{row.manager.name} · {row.manager.title || 'Manager'}</span>
-                    <span onClick={() => startEditManager(row.manager)} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11, color: 'var(--accent-dark)', cursor: 'pointer' }}>
+                    <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 15, color: 'var(--text-secondary)' }}>{row.manager.name} · {row.manager.title || 'Manager'}</span>
+                    <span onClick={() => startEditManager(row.manager)} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 13, color: 'var(--accent-dark)', cursor: 'pointer' }}>
                       Edit
                     </span>
-                    <span onClick={() => setPendingPasswordReset(row.manager)} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11, color: 'var(--accent-dark)', cursor: 'pointer' }}>
+                    <span onClick={() => setPendingPasswordReset(row.manager)} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 13, color: 'var(--accent-dark)', cursor: 'pointer' }}>
                       Reset password
                     </span>
                   </div>
                 ) : (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 8 }}>
-                    <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13, color: 'var(--text-muted)' }}>No manager assigned yet</span>
-                    <span onClick={() => setAddManagerFor(row.dept)} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12.5, color: 'var(--accent-dark)', cursor: 'pointer' }}>+ Add manager</span>
+                    <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 15, color: 'var(--text-muted)' }}>No manager assigned yet</span>
+                    <span onClick={() => setAddManagerFor(row.dept)} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 14.5, color: 'var(--accent-dark)', cursor: 'pointer' }}>+ Add manager</span>
                   </div>
                 )}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                <span onClick={() => startEditDept(row.dept)} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12.5, color: 'var(--accent-dark)', cursor: 'pointer' }}>
+                <span onClick={() => startEditDept(row.dept)} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 14.5, color: 'var(--accent-dark)', cursor: 'pointer' }}>
                   Edit
                 </span>
-                <span onClick={() => { setPendingDeleteDept(row.dept); setDeleteError(''); }} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12.5, color: 'var(--amber-text)', cursor: 'pointer' }}>
+                <span onClick={() => { setPendingDeleteDept(row.dept); setDeleteError(''); }} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 14.5, color: 'var(--amber-text)', cursor: 'pointer' }}>
                   Delete
                 </span>
                 <div
                   onClick={() => navigate('/teams')}
-                  style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12.5, color: 'var(--accent-dark)', cursor: 'pointer' }}
+                  style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 14.5, color: 'var(--accent-dark)', cursor: 'pointer' }}
                 >
                   View teams →
                 </div>
@@ -204,8 +204,8 @@ export default function Departments() {
 
             <div style={{ marginTop: 18 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12, color: 'var(--text-muted)' }}>Completion rate</span>
-                <span style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 13, color: 'var(--heading)' }}>{row.completionRate}%</span>
+                <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 14, color: 'var(--text-muted)' }}>Completion rate</span>
+                <span style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 15, color: 'var(--heading)' }}>{row.completionRate}%</span>
               </div>
               <ProgressBar value={row.completionRate} height={8} />
             </div>
@@ -219,7 +219,7 @@ export default function Departments() {
             <Field label="Name" required>
               <TextInput value={newDeptName} onChange={setNewDeptName} placeholder="e.g. Design" />
             </Field>
-            {error && <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12, color: 'var(--amber-text)' }}>{error}</div>}
+            {error && <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 14, color: 'var(--amber-text)' }}>{error}</div>}
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 22 }}>
             <Button variant="secondary" onClick={resetAddDept}>Cancel</Button>
@@ -234,7 +234,7 @@ export default function Departments() {
             <Field label="Name" required>
               <TextInput value={editDeptName} onChange={setEditDeptName} placeholder="e.g. Design" />
             </Field>
-            {error && <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12, color: 'var(--amber-text)' }}>{error}</div>}
+            {error && <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 14, color: 'var(--amber-text)' }}>{error}</div>}
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 22 }}>
             <Button variant="secondary" onClick={resetEditDept}>Cancel</Button>
@@ -245,10 +245,10 @@ export default function Departments() {
 
       {pendingDeleteDept && (
         <Modal title={`Delete ${pendingDeleteDept.name}?`} onClose={() => setPendingDeleteDept(null)}>
-          <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13.5, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+          <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 15.5, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
             This can't be undone. A department can only be deleted once every team and member has been moved out of it or removed.
           </div>
-          {deleteError && <div style={{ marginTop: 12, fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12.5, color: 'var(--amber-text)' }}>{deleteError}</div>}
+          {deleteError && <div style={{ marginTop: 12, fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 14.5, color: 'var(--amber-text)' }}>{deleteError}</div>}
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 22 }}>
             <Button variant="secondary" onClick={() => setPendingDeleteDept(null)}>Cancel</Button>
             <Button variant="danger" onClick={handleDeleteDept} disabled={saving}>{saving ? 'Deleting…' : 'Delete department'}</Button>
@@ -268,10 +268,10 @@ export default function Departments() {
             <Field label="Password (optional)">
               <TextInput value={newManagerPassword} onChange={setNewManagerPassword} placeholder="Leave blank to auto-generate one" type="password" />
             </Field>
-            <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 12, color: 'var(--text-muted)' }}>
+            <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 14, color: 'var(--text-muted)' }}>
               Set this yourself if you'd rather they sign in with a real password right away — otherwise a temporary one is generated for you to hand off. Either way they'll be asked to set their own on first sign-in.
             </div>
-            {error && <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12, color: 'var(--amber-text)' }}>{error}</div>}
+            {error && <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 14, color: 'var(--amber-text)' }}>{error}</div>}
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 22 }}>
             <Button variant="secondary" onClick={resetAddManager}>Cancel</Button>
@@ -283,7 +283,7 @@ export default function Departments() {
       {createdManager && (
         <Modal title={`${createdManager.user.name} was added`} onClose={resetAddManager}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontSize: 13.5, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+            <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontSize: 15.5, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
               {createdManager.tempPassword
                 ? "Share these sign-in details with them directly — there's no email delivery configured, so this is the only place the temporary password is shown."
                 : "They can sign in with the password you set. Here's their email for reference."}
@@ -292,7 +292,7 @@ export default function Departments() {
               <CredentialRow label="Email" value={createdManager.user.email} />
               {createdManager.tempPassword && <CredentialRow label="Temporary password" value={createdManager.tempPassword} mono />}
             </div>
-            <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 12, color: 'var(--text-muted)' }}>
+            <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 14, color: 'var(--text-muted)' }}>
               They'll be required to set their own password the first time they sign in.
             </div>
           </div>
@@ -311,7 +311,7 @@ export default function Departments() {
             <Field label="Email" required>
               <TextInput value={editManagerEmail} onChange={setEditManagerEmail} placeholder="name@company.com" />
             </Field>
-            {editManagerError && <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12, color: 'var(--amber-text)' }}>{editManagerError}</div>}
+            {editManagerError && <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 14, color: 'var(--amber-text)' }}>{editManagerError}</div>}
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 22 }}>
             <Button variant="secondary" onClick={resetEditManager}>Cancel</Button>
@@ -322,7 +322,7 @@ export default function Departments() {
 
       {pendingPasswordReset && (
         <Modal title={`Reset ${pendingPasswordReset.name}'s password?`} onClose={() => setPendingPasswordReset(null)}>
-          <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13.5, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+          <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 15.5, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
             Their current password stops working immediately. You'll get a new temporary password to hand off to them directly — they'll be asked to set their own on next sign-in.
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 22 }}>
@@ -334,19 +334,19 @@ export default function Departments() {
 
       {passwordResetResult && (
         <Modal title={`${passwordResetResult.name}'s new temporary password`} onClose={() => setPasswordResetResult(null)}>
-          <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13.5, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+          <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 15.5, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
             Share this with them now — it won't be shown again. They'll be asked to set their own password the next time they sign in.
           </div>
           <div style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginTop: 16,
             padding: '12px 16px', background: 'var(--field-bg)', border: '1px solid var(--border)', borderRadius: 9,
           }}>
-            <span style={{ fontFamily: "monospace", fontWeight: 700, fontSize: 15, letterSpacing: '0.04em', color: 'var(--heading)' }}>
+            <span style={{ fontFamily: "monospace", fontWeight: 700, fontSize: 17, letterSpacing: '0.04em', color: 'var(--heading)' }}>
               {passwordResetResult.tempPassword}
             </span>
             <Button
               variant="secondary"
-              style={{ padding: '6px 14px', fontSize: 12 }}
+              style={{ padding: '6px 14px', fontSize: 14 }}
               onClick={() => navigator.clipboard?.writeText(passwordResetResult.tempPassword)}
             >
               Copy
@@ -364,8 +364,8 @@ export default function Departments() {
 function CredentialRow({ label, value, mono }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-      <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12, color: 'var(--text-muted)' }}>{label}</span>
-      <span style={{ fontFamily: mono ? 'monospace' : "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 13, color: 'var(--text-primary)' }}>{value}</span>
+      <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 14, color: 'var(--text-muted)' }}>{label}</span>
+      <span style={{ fontFamily: mono ? 'monospace' : "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 15, color: 'var(--text-primary)' }}>{value}</span>
     </div>
   );
 }
@@ -373,8 +373,8 @@ function CredentialRow({ label, value, mono }) {
 function DeptStat({ value, label, color = 'var(--heading)' }) {
   return (
     <div style={{ textAlign: 'center', padding: '10px 6px', border: '1px solid var(--border)', borderRadius: 10 }}>
-      <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 17, color }}>{value}</div>
-      <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 10.5, color: 'var(--text-muted)' }}>{label}</div>
+      <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 19, color }}>{value}</div>
+      <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12.5, color: 'var(--text-muted)' }}>{label}</div>
     </div>
   );
 }

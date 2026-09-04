@@ -84,8 +84,8 @@ export default function SignUp() {
             <IconLogo size={24} />
           </div>
           <div style={{ textAlign: 'center' }}>
-            <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 24, color: 'var(--heading)' }}>Create your TaskFlow account</div>
-            <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 14, color: 'var(--text-secondary)', marginTop: 6 }}>
+            <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 26, color: 'var(--heading)' }}>Create your TaskFlow account</div>
+            <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 16, color: 'var(--text-secondary)', marginTop: 6 }}>
               Enter your name exactly as your team lead has it on file — this connects your account to your existing role, team, and task history.
             </div>
           </div>
@@ -125,12 +125,12 @@ export default function SignUp() {
             <Field label="Confirm Password" required>
               <TextInput value={confirm} onChange={setConfirm} placeholder="Repeat the password" type="password" />
             </Field>
-            {error && <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12.5, color: 'var(--amber-text)' }}>{error}</div>}
+            {error && <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 14.5, color: 'var(--amber-text)' }}>{error}</div>}
             <Button variant="primary" style={{ justifyContent: 'center', marginTop: 4 }} onClick={handleSubmit} disabled={submitting}>
               {submitting ? 'Creating account…' : 'Create Account'}
             </Button>
             <div style={{ textAlign: 'center' }}>
-              <span onClick={() => navigate('/')} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 12.5, color: 'var(--text-secondary)' }}>
+              <span onClick={() => navigate('/')} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 14.5, color: 'var(--text-secondary)' }}>
                 Already have an account? <span style={{ color: 'var(--accent-dark)', fontWeight: 700, cursor: 'pointer' }}>Sign In</span>
               </span>
             </div>

@@ -29,7 +29,7 @@ export function StatusBadge({ status }) {
     <span style={{
       display: 'inline-block', padding: '4px 11px', borderRadius: 999,
       background: s.bg, color: s.color,
-      fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11.5,
+      fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 13.5,
     }}>
       {status}
     </span>
@@ -47,7 +47,7 @@ export function PriorityBadge({ priority }) {
   return (
     <span style={{
       padding: '3px 10px', borderRadius: 999, background: s.bg, color: s.color,
-      fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11,
+      fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 13,
     }}>
       {priority} priority
     </span>
@@ -70,7 +70,7 @@ export function ProgressBar({ value, height = 8, color = 'var(--accent)' }) {
 export function Button({ variant = 'primary', children, onClick, style, type = 'button', disabled }) {
   const base = {
     padding: '10px 22px', borderRadius: 9, fontFamily: "'Manrope',system-ui,sans-serif",
-    fontWeight: 700, fontSize: 13.5, border: '1px solid transparent', display: 'inline-flex',
+    fontWeight: 700, fontSize: 15.5, border: '1px solid transparent', display: 'inline-flex',
     alignItems: 'center', gap: 7, opacity: disabled ? 0.5 : 1, cursor: disabled ? 'not-allowed' : 'pointer',
   };
   const variants = {
@@ -101,7 +101,7 @@ export function SectionLabel({ children, first }) {
   return (
     <div style={{ padding: first ? '20px 0 10px' : '26px 0 10px' }}>
       <div style={{
-        fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11.5,
+        fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 13.5,
         letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--accent-dark)',
         borderTop: first ? 'none' : '1px solid var(--border)', paddingTop: first ? 0 : 20,
       }}>
@@ -114,7 +114,7 @@ export function SectionLabel({ children, first }) {
 export function Field({ label, required, children }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      <label style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 13, color: 'var(--text-primary)' }}>
+      <label style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 15, color: 'var(--text-primary)' }}>
         {label} {required && <span style={{ color: 'var(--amber-text)' }}>*</span>}
       </label>
       {children}
@@ -124,7 +124,7 @@ export function Field({ label, required, children }) {
 
 const inputStyle = {
   padding: '12px 15px', border: '1px solid var(--border)', borderRadius: 9, background: 'var(--neutral-bg)',
-  fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13.5, color: 'var(--text-primary)', width: '100%',
+  fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 15.5, color: 'var(--text-primary)', width: '100%',
 };
 
 export function TextInput({ value, onChange, placeholder, type = 'text', disabled = false, min, onKeyDown }) {
@@ -173,7 +173,7 @@ export function Modal({ title, children, onClose, maxWidth = 400 }) {
           boxShadow: '0 0 0 1px rgba(124,58,237,0.08), 0 28px 64px -20px rgba(20,10,40,0.4), 0 0 46px -10px rgba(124,58,237,0.35)',
         }}
       >
-        {title && <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 17, color: 'var(--heading)', marginBottom: 10 }}>{title}</div>}
+        {title && <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 19, color: 'var(--heading)', marginBottom: 10 }}>{title}</div>}
         {children}
       </div>
     </div>
@@ -202,7 +202,7 @@ export function Drawer({ title, children, onClose, width = 'clamp(300px, 25vw, 4
           padding: '26px 24px', overflowY: 'auto', display: 'flex', flexDirection: 'column',
         }}
       >
-        {title && <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 17, color: 'var(--heading)', marginBottom: 18 }}>{title}</div>}
+        {title && <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 19, color: 'var(--heading)', marginBottom: 18 }}>{title}</div>}
         {children}
       </div>
     </div>
@@ -215,7 +215,7 @@ export function Toast({ message }) {
     <div style={{
       position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)',
       background: 'var(--heading)', color: '#FFFFFF', padding: '12px 22px', borderRadius: 10,
-      fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 13.5,
+      fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 15.5,
       boxShadow: '0 10px 28px -10px rgba(0,0,0,0.35)', zIndex: 1000,
     }}>
       {message}

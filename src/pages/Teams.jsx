@@ -159,8 +159,8 @@ export default function Teams() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
       <div className="stack-mobile" style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
         <div>
-          <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 24, color: 'var(--heading)' }}>Teams</div>
-          <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 14, color: 'var(--text-secondary)', marginTop: 4 }}>
+          <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 26, color: 'var(--heading)' }}>Teams</div>
+          <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 16, color: 'var(--text-secondary)', marginTop: 4 }}>
             {isAdmin ? 'Every team across the company' : `Teams in ${myDepartment?.name || 'your department'}`}
           </div>
         </div>
@@ -181,15 +181,15 @@ export default function Teams() {
           <Card key={row.team.id} style={{ cursor: 'pointer' }}>
             <div onClick={() => navigate(`/tasks?team=${row.team.id}`)}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
-                <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 16.5, color: 'var(--heading)' }}>{row.team.name}</div>
+                <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 18.5, color: 'var(--heading)' }}>{row.team.name}</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11, color: 'var(--text-muted)' }}>{row.memberCount} member{row.memberCount === 1 ? '' : 's'}</span>
+                  <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 13, color: 'var(--text-muted)' }}>{row.memberCount} member{row.memberCount === 1 ? '' : 's'}</span>
                   {isAdmin && (
                     <div onClick={(e) => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <span onClick={() => startEditTeam(row.team)} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11, color: 'var(--accent-dark)', cursor: 'pointer' }}>
+                      <span onClick={() => startEditTeam(row.team)} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 13, color: 'var(--accent-dark)', cursor: 'pointer' }}>
                         Edit
                       </span>
-                      <span onClick={() => { setPendingDeleteTeam(row.team); setDeleteTeamError(''); }} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11, color: 'var(--amber-text)', cursor: 'pointer' }}>
+                      <span onClick={() => { setPendingDeleteTeam(row.team); setDeleteTeamError(''); }} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 13, color: 'var(--amber-text)', cursor: 'pointer' }}>
                         Delete
                       </span>
                     </div>
@@ -199,14 +199,14 @@ export default function Teams() {
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <Avatar initial={row.lead?.initial} size={24} />
-                  <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 13, color: 'var(--text-secondary)' }}>{row.lead?.name} · Team Lead</span>
+                  <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 15, color: 'var(--text-secondary)' }}>{row.lead?.name} · Team Lead</span>
                 </div>
                 {!isAdmin && row.lead && (
                   <div onClick={(e) => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <span onClick={() => startEdit(row.lead)} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11, color: 'var(--accent-dark)', cursor: 'pointer' }}>
+                    <span onClick={() => startEdit(row.lead)} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 13, color: 'var(--accent-dark)', cursor: 'pointer' }}>
                       Edit
                     </span>
-                    <span onClick={() => setPendingPasswordReset(row.lead)} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11, color: 'var(--accent-dark)', cursor: 'pointer' }}>
+                    <span onClick={() => setPendingPasswordReset(row.lead)} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 13, color: 'var(--accent-dark)', cursor: 'pointer' }}>
                       Reset password
                     </span>
                   </div>
@@ -222,8 +222,8 @@ export default function Teams() {
 
               <div style={{ marginTop: 16 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                  <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 11.5, color: 'var(--text-muted)' }}>Completion</span>
-                  <span style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 12.5, color: 'var(--heading)' }}>{row.completionRate}%</span>
+                  <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 13.5, color: 'var(--text-muted)' }}>Completion</span>
+                  <span style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 14.5, color: 'var(--heading)' }}>{row.completionRate}%</span>
                 </div>
                 <ProgressBar value={row.completionRate} height={7} />
               </div>
@@ -247,8 +247,8 @@ export default function Teams() {
             <Field label="Password (optional)">
               <TextInput value={newPassword} onChange={setNewPassword} placeholder="Leave blank to auto-generate one" type="password" />
             </Field>
-            {error && <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12, color: 'var(--amber-text)' }}>{error}</div>}
-            <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 12, color: 'var(--text-muted)' }}>
+            {error && <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 14, color: 'var(--amber-text)' }}>{error}</div>}
+            <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 14, color: 'var(--text-muted)' }}>
               A new team is created with them as its lead. Set a password yourself if you'd rather they sign in with a real one right away — otherwise a temporary one is generated for you to hand off. Either way they'll set their own on first sign-in.
             </div>
           </div>
@@ -262,7 +262,7 @@ export default function Teams() {
       {created && (
         <Modal title={`${created.user.name} was added`} onClose={resetAddForm}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontSize: 13.5, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+            <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontSize: 15.5, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
               {created.tempPassword
                 ? "Share these sign-in details with them directly — there's no email delivery configured, so this is the only place the temporary password is shown."
                 : "They can sign in with the password you set. Here's their email for reference."}
@@ -271,7 +271,7 @@ export default function Teams() {
               <CredentialRow label="Email" value={created.user.email} />
               {created.tempPassword && <CredentialRow label="Temporary password" value={created.tempPassword} mono />}
             </div>
-            <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 12, color: 'var(--text-muted)' }}>
+            <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 14, color: 'var(--text-muted)' }}>
               They'll be required to set their own password the first time they sign in.
             </div>
           </div>
@@ -290,7 +290,7 @@ export default function Teams() {
             <Field label="Email" required>
               <TextInput value={editEmail} onChange={setEditEmail} placeholder="name@company.com" />
             </Field>
-            {editError && <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12, color: 'var(--amber-text)' }}>{editError}</div>}
+            {editError && <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 14, color: 'var(--amber-text)' }}>{editError}</div>}
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 22 }}>
             <Button variant="secondary" onClick={resetEdit}>Cancel</Button>
@@ -301,7 +301,7 @@ export default function Teams() {
 
       {pendingPasswordReset && (
         <Modal title={`Reset ${pendingPasswordReset.name}'s password?`} onClose={() => setPendingPasswordReset(null)}>
-          <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13.5, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+          <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 15.5, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
             Their current password stops working immediately. You'll get a new temporary password to hand off to them directly — they'll be asked to set their own on next sign-in.
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 22 }}>
@@ -313,19 +313,19 @@ export default function Teams() {
 
       {passwordResetResult && (
         <Modal title={`${passwordResetResult.name}'s new temporary password`} onClose={() => setPasswordResetResult(null)}>
-          <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13.5, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+          <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 15.5, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
             Share this with them now — it won't be shown again. They'll be asked to set their own password the next time they sign in.
           </div>
           <div style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginTop: 16,
             padding: '12px 16px', background: 'var(--field-bg)', border: '1px solid var(--border)', borderRadius: 9,
           }}>
-            <span style={{ fontFamily: "monospace", fontWeight: 700, fontSize: 15, letterSpacing: '0.04em', color: 'var(--heading)' }}>
+            <span style={{ fontFamily: "monospace", fontWeight: 700, fontSize: 17, letterSpacing: '0.04em', color: 'var(--heading)' }}>
               {passwordResetResult.tempPassword}
             </span>
             <Button
               variant="secondary"
-              style={{ padding: '6px 14px', fontSize: 12 }}
+              style={{ padding: '6px 14px', fontSize: 14 }}
               onClick={() => navigator.clipboard?.writeText(passwordResetResult.tempPassword)}
             >
               Copy
@@ -350,8 +350,8 @@ export default function Teams() {
                 options={[{ value: '', label: 'Choose a department' }, ...departments.map((d) => ({ value: d.id, label: d.name }))]}
               />
             </Field>
-            {addTeamError && <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12, color: 'var(--amber-text)' }}>{addTeamError}</div>}
-            <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 12, color: 'var(--text-muted)' }}>
+            {addTeamError && <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 14, color: 'var(--amber-text)' }}>{addTeamError}</div>}
+            <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 14, color: 'var(--text-muted)' }}>
               Creates an empty team with no lead yet — add one later from Employees, or use "Add team lead" as a manager to create both together.
             </div>
           </div>
@@ -368,7 +368,7 @@ export default function Teams() {
             <Field label="Team name" required>
               <TextInput value={editTeamName} onChange={setEditTeamName} placeholder="Team name" />
             </Field>
-            {editTeamError && <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12, color: 'var(--amber-text)' }}>{editTeamError}</div>}
+            {editTeamError && <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 14, color: 'var(--amber-text)' }}>{editTeamError}</div>}
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 22 }}>
             <Button variant="secondary" onClick={resetEditTeam}>Cancel</Button>
@@ -379,10 +379,10 @@ export default function Teams() {
 
       {pendingDeleteTeam && (
         <Modal title={`Delete ${pendingDeleteTeam.name}?`} onClose={() => setPendingDeleteTeam(null)}>
-          <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13.5, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+          <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 15.5, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
             This only works if the team has no lead or members left on it — reassign or remove them first if it does.
           </div>
-          {deleteTeamError && <div style={{ marginTop: 12, fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12.5, color: 'var(--amber-text)' }}>{deleteTeamError}</div>}
+          {deleteTeamError && <div style={{ marginTop: 12, fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 14.5, color: 'var(--amber-text)' }}>{deleteTeamError}</div>}
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 22 }}>
             <Button variant="secondary" onClick={() => setPendingDeleteTeam(null)}>Cancel</Button>
             <Button variant="danger" onClick={handleDeleteTeam} disabled={deletingTeam}>{deletingTeam ? 'Deleting…' : 'Delete team'}</Button>
@@ -396,8 +396,8 @@ export default function Teams() {
 function CredentialRow({ label, value, mono }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-      <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12, color: 'var(--text-muted)' }}>{label}</span>
-      <span style={{ fontFamily: mono ? 'monospace' : "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 13, color: 'var(--text-primary)' }}>{value}</span>
+      <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 14, color: 'var(--text-muted)' }}>{label}</span>
+      <span style={{ fontFamily: mono ? 'monospace' : "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 15, color: 'var(--text-primary)' }}>{value}</span>
     </div>
   );
 }
@@ -405,8 +405,8 @@ function CredentialRow({ label, value, mono }) {
 function TeamStat({ value, label, color = 'var(--heading)' }) {
   return (
     <div style={{ textAlign: 'center' }}>
-      <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 16, color }}>{value}</div>
-      <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 10.5, color: 'var(--text-muted)' }}>{label}</div>
+      <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 18, color }}>{value}</div>
+      <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12.5, color: 'var(--text-muted)' }}>{label}</div>
     </div>
   );
 }

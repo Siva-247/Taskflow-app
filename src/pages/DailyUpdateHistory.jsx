@@ -116,8 +116,8 @@ export default function DailyUpdateHistory() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
         <div>
-          <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 24, color: 'var(--heading)' }}>Daily work update history</div>
-          <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 14, color: 'var(--text-secondary)', marginTop: 4 }}>{scopeLabel}</div>
+          <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 26, color: 'var(--heading)' }}>Daily work update history</div>
+          <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 16, color: 'var(--text-secondary)', marginTop: 4 }}>{scopeLabel}</div>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
           {currentUser.role === ROLES.EMPLOYEE && (
@@ -137,7 +137,7 @@ export default function DailyUpdateHistory() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search updates, tasks, employees..."
-              style={{ border: 'none', outline: 'none', flex: 1, fontFamily: "'Manrope',system-ui,sans-serif", fontSize: 13.5, color: 'var(--text-primary)' }}
+              style={{ border: 'none', outline: 'none', flex: 1, fontFamily: "'Manrope',system-ui,sans-serif", fontSize: 15.5, color: 'var(--text-primary)' }}
             />
           </div>
           <div className="filter-field" style={{ width: 150 }}>
@@ -149,15 +149,15 @@ export default function DailyUpdateHistory() {
             </div>
           )}
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-            <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12, color: 'var(--text-muted)' }}>From</span>
+            <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 14, color: 'var(--text-muted)' }}>From</span>
             <div className="filter-field" style={{ width: 145 }}><TextInput type="date" value={dateFrom} onChange={setDateFrom} /></div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-            <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12, color: 'var(--text-muted)' }}>To</span>
+            <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 14, color: 'var(--text-muted)' }}>To</span>
             <div className="filter-field" style={{ width: 145 }}><TextInput type="date" value={dateTo} onChange={setDateTo} /></div>
           </div>
           {hasActiveFilters && (
-            <span onClick={clearFilters} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12.5, color: 'var(--accent-dark)', cursor: 'pointer' }}>
+            <span onClick={clearFilters} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 14.5, color: 'var(--accent-dark)', cursor: 'pointer' }}>
               Clear filters
             </span>
           )}
@@ -175,12 +175,12 @@ export default function DailyUpdateHistory() {
                   style={{
                     display: 'flex', alignItems: 'center', gap: 4, padding: '11px 14px',
                     borderRight: '1px solid var(--border)', cursor: col.sortable ? 'pointer' : 'default',
-                    fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11, letterSpacing: '0.04em',
+                    fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 13, letterSpacing: '0.04em',
                     textTransform: 'uppercase', color: sortKey === col.key ? 'var(--accent-dark)' : 'var(--text-muted)',
                   }}
                 >
                   {col.label}
-                  {col.sortable && sortKey === col.key && <span style={{ fontSize: 10 }}>{sortDir === 'asc' ? '▲' : '▼'}</span>}
+                  {col.sortable && sortKey === col.key && <span style={{ fontSize: 12 }}>{sortDir === 'asc' ? '▲' : '▼'}</span>}
                 </div>
               ))}
             </div>
@@ -198,27 +198,27 @@ export default function DailyUpdateHistory() {
                     borderBottom: '1px solid var(--border)',
                   }}
                 >
-                  <Cell><span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12.5, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>{formatDate(u.date)}</span></Cell>
+                  <Cell><span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 14.5, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>{formatDate(u.date)}</span></Cell>
                   <Cell>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
                       <Avatar initial={author?.initial} size={20} />
-                      <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12.5, color: 'var(--text-primary)' }}>{author?.name}</span>
+                      <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 14.5, color: 'var(--text-primary)' }}>{author?.name}</span>
                     </div>
                   </Cell>
-                  <Cell><span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 12.5, color: 'var(--text-secondary)' }}>{u.taskCompleted || '—'}</span></Cell>
-                  <Cell><span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 12.5, color: 'var(--text-secondary)' }}>{u.conceptsCovered || '—'}</span></Cell>
-                  <Cell><span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 12.5, color: 'var(--text-secondary)' }}>{u.practicalTask || '—'}</span></Cell>
+                  <Cell><span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 14.5, color: 'var(--text-secondary)' }}>{u.taskCompleted || '—'}</span></Cell>
+                  <Cell><span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 14.5, color: 'var(--text-secondary)' }}>{u.conceptsCovered || '—'}</span></Cell>
+                  <Cell><span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 14.5, color: 'var(--text-secondary)' }}>{u.practicalTask || '—'}</span></Cell>
                   <Cell><StatusBadge status={u.status} /></Cell>
-                  <Cell><span style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 12.5, color: 'var(--heading)', fontVariantNumeric: 'tabular-nums' }}>{u.videosCompleted || 0}</span></Cell>
+                  <Cell><span style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 14.5, color: 'var(--heading)', fontVariantNumeric: 'tabular-nums' }}>{u.videosCompleted || 0}</span></Cell>
                   <Cell>
                     {videoLinks.length > 0 ? (
                       <a
                         href={videoLinks[0]} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}
-                        style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12, color: 'var(--accent-dark)' }}
+                        style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 14, color: 'var(--accent-dark)' }}
                       >
                         {videoLinks.length > 1 ? `${videoLinks.length} links` : 'Link'}
                       </a>
-                    ) : <span style={{ color: 'var(--text-muted)', fontSize: 12.5 }}>—</span>}
+                    ) : <span style={{ color: 'var(--text-muted)', fontSize: 14.5 }}>—</span>}
                   </Cell>
                   <Cell>
                     {linked ? (
@@ -226,19 +226,19 @@ export default function DailyUpdateHistory() {
                         type="button"
                         onClick={() => navigate(`/tasks/${u.taskId}`)}
                         style={{
-                          display: 'flex', alignItems: 'center', gap: 4, fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12,
+                          display: 'flex', alignItems: 'center', gap: 4, fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 14,
                           color: 'var(--accent-dark)', background: 'transparent', border: 'none', padding: '4px 2px', cursor: 'pointer',
                         }}
                       >
                         View <IconArrowRight size={11} />
                       </button>
-                    ) : <span style={{ color: 'var(--text-muted)', fontSize: 12.5 }}>—</span>}
+                    ) : <span style={{ color: 'var(--text-muted)', fontSize: 14.5 }}>—</span>}
                   </Cell>
                 </div>
               );
             })}
             {updates.length === 0 && (
-              <div style={{ padding: '32px 22px', textAlign: 'center', fontFamily: "'Manrope',system-ui,sans-serif", fontSize: 13.5, color: 'var(--text-muted)' }}>
+              <div style={{ padding: '32px 22px', textAlign: 'center', fontFamily: "'Manrope',system-ui,sans-serif", fontSize: 15.5, color: 'var(--text-muted)' }}>
                 {allUpdates.length === 0 ? 'No daily updates submitted yet.' : 'No updates match your filters.'}
               </div>
             )}
@@ -247,7 +247,7 @@ export default function DailyUpdateHistory() {
       </Card>
 
       {updates.length > 0 && (
-        <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 12.5, color: 'var(--text-muted)' }}>
+        <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 14.5, color: 'var(--text-muted)' }}>
           {updates.length} of {allUpdates.length} update{allUpdates.length === 1 ? '' : 's'}
         </div>
       )}

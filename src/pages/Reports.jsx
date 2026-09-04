@@ -60,8 +60,8 @@ export default function Reports() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
         <div>
-          <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 24, color: 'var(--heading)' }}>Reports</div>
-          <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 14, color: 'var(--text-secondary)', marginTop: 4 }}>{scopeLabel}</div>
+          <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 26, color: 'var(--heading)' }}>Reports</div>
+          <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 16, color: 'var(--text-secondary)', marginTop: 4 }}>{scopeLabel}</div>
         </div>
         <Button onClick={handleExport} disabled={filtered.length === 0}>
           <IconDownload size={14} color="#FFFFFF" /> Export CSV
@@ -100,7 +100,7 @@ export default function Reports() {
           <div style={{ minWidth: 860 }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1.8fr 1.1fr 1fr 0.8fr 1.1fr 0.8fr 0.8fr', padding: '12px 22px', background: 'var(--field-bg)', borderBottom: '1px solid var(--border)' }}>
               {['Task', 'Assignee', 'Team', 'Priority', 'Status', 'Progress', 'Due'].map((h) => (
-                <div key={h} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11.5, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>{h}</div>
+                <div key={h} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 13.5, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>{h}</div>
               ))}
             </div>
             {filtered.map((task, i) => {
@@ -108,18 +108,18 @@ export default function Reports() {
               const team = teamById(task.teamId);
               return (
                 <div key={task.id} style={{ display: 'grid', gridTemplateColumns: '1.8fr 1.1fr 1fr 0.8fr 1.1fr 0.8fr 0.8fr', padding: '13px 22px', alignItems: 'center', borderBottom: i < filtered.length - 1 ? '1px solid var(--border)' : 'none' }}>
-                  <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 13, color: 'var(--text-primary)' }}>{task.title}</div>
-                  <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13, color: 'var(--text-secondary)' }}>{assignee?.name}</div>
-                  <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13, color: 'var(--text-secondary)' }}>{team?.name.replace("'s Team", '')}</div>
-                  <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 12.5, color: 'var(--text-secondary)' }}>{task.priority}</div>
+                  <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 15, color: 'var(--text-primary)' }}>{task.title}</div>
+                  <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 15, color: 'var(--text-secondary)' }}>{assignee?.name}</div>
+                  <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 15, color: 'var(--text-secondary)' }}>{team?.name.replace("'s Team", '')}</div>
+                  <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 14.5, color: 'var(--text-secondary)' }}>{task.priority}</div>
                   <div><StatusBadge status={task.status} /></div>
-                  <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 13, color: 'var(--heading)' }}>{task.progress}%</div>
-                  <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 12.5, color: bucketOf(task) === 'overdue' ? 'var(--amber-text)' : 'var(--text-muted)' }}>{formatDate(task.dueDate)}</div>
+                  <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 15, color: 'var(--heading)' }}>{task.progress}%</div>
+                  <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 14.5, color: bucketOf(task) === 'overdue' ? 'var(--amber-text)' : 'var(--text-muted)' }}>{formatDate(task.dueDate)}</div>
                 </div>
               );
             })}
             {filtered.length === 0 && (
-              <div style={{ padding: '32px 22px', textAlign: 'center', fontFamily: "'Manrope',system-ui,sans-serif", fontSize: 13.5, color: 'var(--text-muted)' }}>
+              <div style={{ padding: '32px 22px', textAlign: 'center', fontFamily: "'Manrope',system-ui,sans-serif", fontSize: 15.5, color: 'var(--text-muted)' }}>
                 No tasks match your filters.
               </div>
             )}
@@ -133,8 +133,8 @@ export default function Reports() {
 function ReportStat({ value, label, color = 'var(--heading)' }) {
   return (
     <Card style={{ textAlign: 'center' }}>
-      <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 22, color }}>{value}</div>
-      <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 11.5, color: 'var(--text-muted)', marginTop: 4 }}>{label}</div>
+      <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 24, color }}>{value}</div>
+      <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 13.5, color: 'var(--text-muted)', marginTop: 4 }}>{label}</div>
     </Card>
   );
 }

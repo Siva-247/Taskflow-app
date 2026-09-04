@@ -40,10 +40,10 @@ export default function ChangePassword() {
             <IconLogo size={24} />
           </div>
           <div style={{ textAlign: 'center' }}>
-            <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 24, color: 'var(--heading)' }}>
+            <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 26, color: 'var(--heading)' }}>
               {mustChangePassword ? 'Set a permanent password' : 'Change your password'}
             </div>
-            <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 14, color: 'var(--text-secondary)', marginTop: 6 }}>
+            <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 16, color: 'var(--text-secondary)', marginTop: 6 }}>
               {mustChangePassword ? "You're signed in with a temporary password — set your own before continuing." : `Signed in as ${currentUser.name}`}
             </div>
           </div>
@@ -60,7 +60,7 @@ export default function ChangePassword() {
             <Field label="Confirm new password" required>
               <TextInput value={confirm} onChange={setConfirm} placeholder="Repeat the password" type="password" />
             </Field>
-            {error && <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12.5, color: 'var(--amber-text)' }}>{error}</div>}
+            {error && <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 14.5, color: 'var(--amber-text)' }}>{error}</div>}
             <div style={{ display: 'flex', gap: 10 }}>
               {!mustChangePassword && (
                 <Button variant="secondary" style={{ flex: 1, justifyContent: 'center' }} onClick={() => navigate(-1)}>Cancel</Button>
