@@ -123,7 +123,7 @@ export function Field({ label, required, children }) {
 }
 
 const inputStyle = {
-  padding: '12px 15px', border: '1px solid var(--border)', borderRadius: 9, background: '#FFFFFF',
+  padding: '12px 15px', border: '1px solid var(--border)', borderRadius: 9, background: 'var(--neutral-bg)',
   fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13.5, color: 'var(--text-primary)', width: '100%',
 };
 
@@ -168,7 +168,10 @@ export function Modal({ title, children, onClose, maxWidth = 400 }) {
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        style={{ background: '#FFFFFF', borderRadius: 14, boxShadow: '0 28px 64px -20px rgba(20,10,40,0.4)', padding: '26px 28px', maxWidth, width: '100%', maxHeight: '90vh', overflowY: 'auto' }}
+        style={{
+          background: '#FFFFFF', borderRadius: 14, padding: '26px 28px', maxWidth, width: '100%', maxHeight: '90vh', overflowY: 'auto',
+          boxShadow: '0 0 0 1px rgba(124,58,237,0.08), 0 28px 64px -20px rgba(20,10,40,0.4), 0 0 46px -10px rgba(124,58,237,0.35)',
+        }}
       >
         {title && <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 17, color: 'var(--heading)', marginBottom: 10 }}>{title}</div>}
         {children}
@@ -193,7 +196,9 @@ export function Drawer({ title, children, onClose, width = 'clamp(300px, 25vw, 4
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
-          background: '#FFFFFF', width, height: '100%', boxShadow: '-28px 0 64px -20px rgba(20,10,40,0.35)',
+          background: 'rgba(255,255,255,0.78)', backdropFilter: 'blur(20px) saturate(160%)', WebkitBackdropFilter: 'blur(20px) saturate(160%)',
+          borderLeft: '1px solid rgba(255,255,255,0.4)', width, height: '100%',
+          boxShadow: '-28px 0 64px -20px rgba(20,10,40,0.35), -10px 0 40px -14px rgba(124,58,237,0.4)',
           padding: '26px 24px', overflowY: 'auto', display: 'flex', flexDirection: 'column',
         }}
       >

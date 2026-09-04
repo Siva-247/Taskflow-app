@@ -23,17 +23,15 @@ export default function StatBar({ items }) {
   const navigate = useNavigate();
 
   return (
-    <div className="stat-bar" style={{
-      background: '#FFFFFF', border: '1px solid var(--border)', borderRadius: 14,
-      display: 'grid', boxShadow: 'var(--card-shadow)', '--stat-cols': items.length,
-    }}>
-      {items.map((item, i) => (
+    <div className="stat-bar" style={{ display: 'grid', '--stat-cols': items.length }}>
+      {items.map((item) => (
         <div
           key={item.label}
           onClick={item.to ? () => navigate(item.to) : undefined}
+          className={item.to ? 'stat-card stat-card-clickable' : 'stat-card'}
           style={{
-            padding: '18px 22px', display: 'flex', alignItems: 'center', gap: 13,
-            borderRight: i < items.length - 1 ? '1px solid var(--border)' : 'none',
+            padding: '18px 20px', display: 'flex', alignItems: 'center', gap: 13,
+            background: 'var(--accent-soft)', borderRadius: 14,
             cursor: item.to ? 'pointer' : 'default',
           }}
         >

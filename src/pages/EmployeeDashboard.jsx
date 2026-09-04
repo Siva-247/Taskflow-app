@@ -46,20 +46,12 @@ export default function EmployeeDashboard() {
           <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 14, color: 'var(--text-secondary)', marginTop: 4 }}>Here's your work for today.</div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 22, padding: '11px 20px', background: '#FFFFFF', border: '1px solid var(--border)', borderRadius: 12, boxShadow: 'var(--card-shadow)' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
           <StatChip value={myTasks.length} label="tasks" color="var(--heading)" />
-          <Divider />
           <StatChip value={done} label="done" color="var(--accent-dark)" />
-          <Divider />
           <StatChip value={inProgressCount} label="active" color="var(--accent-mid)" />
-          <Divider />
           <StatChip value={overdueCount} label="overdue" color="var(--amber-text)" />
-          {averageMarks != null && (
-            <>
-              <Divider />
-              <StatChip value={`${averageMarks}%`} label="avg marks" color="var(--accent-dark)" />
-            </>
-          )}
+          {averageMarks != null && <StatChip value={`${averageMarks}%`} label="avg marks" color="var(--accent-dark)" />}
         </div>
       </div>
 
@@ -189,13 +181,12 @@ export default function EmployeeDashboard() {
 
 function StatChip({ value, label, color }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+    <div style={{
+      display: 'flex', alignItems: 'baseline', gap: 6, padding: '10px 16px',
+      background: 'var(--accent-soft)', borderRadius: 12,
+    }}>
       <span style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 17, color }}>{value}</span>
       <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 11.5, color: 'var(--text-muted)' }}>{label}</span>
     </div>
   );
-}
-
-function Divider() {
-  return <div style={{ width: 1, height: 18, background: 'var(--border)' }} />;
 }

@@ -76,6 +76,7 @@ export default function Sidebar({ open = false, onNavigate }) {
   return (
     <div className={`sidebar${open ? ' open' : ''}`} style={{
       width, flexShrink: 0, background: '#FFFFFF', borderRight: '1px solid var(--border)',
+      boxShadow: '4px 0 24px -12px rgba(124,58,237,0.22)', position: 'relative', zIndex: 1,
       padding: '20px 14px', display: 'flex', flexDirection: 'column', gap: 2,
     }}>
       {items.map((item) => {
@@ -86,10 +87,13 @@ export default function Sidebar({ open = false, onNavigate }) {
             key={item.label}
             onClick={() => (item.to ? go(item.to) : showToast(`${item.label} is planned for Phase 2`))}
             style={{
-              display: 'flex', alignItems: 'center', gap: 11, padding: '9px 12px', borderRadius: 9,
+              display: 'flex', alignItems: 'center', gap: 11, padding: '9px 12px', borderRadius: 12,
               background: isActive ? 'var(--accent-soft)' : 'transparent',
-              cursor: 'pointer', userSelect: 'none',
+              boxShadow: isActive ? '0 0 0 1px rgba(124,58,237,0.12), 0 4px 14px -6px rgba(124,58,237,0.35)' : 'none',
+              cursor: 'pointer', userSelect: 'none', transition: 'background 150ms ease, box-shadow 150ms ease',
             }}
+            onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = 'var(--field-bg)'; }}
+            onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = 'transparent'; }}
           >
             <Icon size={17} color={isActive ? 'var(--accent-dark)' : 'var(--text-muted)'} />
             <span style={{

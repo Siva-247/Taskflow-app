@@ -33,7 +33,9 @@ export default function Header({ onMenuClick }) {
   return (
     <div style={{
       height: 68, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      padding: '0 32px', background: '#FFFFFF', borderBottom: '1px solid var(--border)', position: 'relative', gap: 12,
+      padding: '0 32px', gap: 12, position: 'sticky', top: 0, zIndex: 40,
+      background: 'rgba(255,255,255,0.72)', backdropFilter: 'blur(14px) saturate(160%)', WebkitBackdropFilter: 'blur(14px) saturate(160%)',
+      borderBottom: '1px solid rgba(230,225,240,0.8)', boxShadow: '0 4px 20px -14px rgba(59,30,112,0.2)',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0 }}>
         <button type="button" className="hamburger-btn" onClick={onMenuClick} aria-label="Toggle navigation">
@@ -67,7 +69,8 @@ export default function Header({ onMenuClick }) {
 
           {notifOpen && (
             <div className="notif-panel" style={{
-              position: 'absolute', top: 44, right: -10, background: '#FFFFFF', border: '1px solid var(--border)',
+              position: 'absolute', top: 44, right: -10, border: '1px solid rgba(230,225,240,0.8)',
+              background: 'rgba(255,255,255,0.86)', backdropFilter: 'blur(16px) saturate(160%)', WebkitBackdropFilter: 'blur(16px) saturate(160%)',
               borderRadius: 10, boxShadow: '0 10px 28px -12px rgba(59,30,112,0.25)', width: 340, maxWidth: 'calc(100vw - 24px)', maxHeight: 420, overflowY: 'auto', zIndex: 20,
             }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderBottom: '1px solid var(--border)' }}>

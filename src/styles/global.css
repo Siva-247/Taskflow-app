@@ -15,7 +15,7 @@
   --amber-fill: #E7A93C;
   --neutral-bg: #EEECF3;
   --field-bg: #FBFAFF;
-  --card-shadow: 0 1px 2px rgba(59, 30, 112, 0.05);
+  --card-shadow: 0 1px 2px rgba(59, 30, 112, 0.05), 0 6px 20px -8px rgba(124, 58, 237, 0.12);
   --page-bg: #F7F5FC;
 }
 
@@ -50,6 +50,16 @@ button {
 
 input, select, textarea {
   font-family: inherit;
+}
+
+/* Every form field's border/background is set inline (used everywhere in
+   this app), which always wins over a plain stylesheet rule regardless of
+   specificity — !important is required to still light them up on focus. */
+input:focus, select:focus, textarea:focus {
+  outline: none !important;
+  border-color: var(--accent) !important;
+  background: #FFFFFF !important;
+  box-shadow: 0 0 0 3px var(--accent-soft), 0 0 16px -4px rgba(124, 58, 237, 0.35) !important;
 }
 
 /* ==========================================================================
@@ -127,17 +137,16 @@ input, select, textarea {
   .stack-mobile { flex-direction: column !important; align-items: stretch !important; }
 }
 
-/* ---- Shared StatBar strip ---- */
-.stat-bar { grid-template-columns: repeat(var(--stat-cols, 4), 1fr); }
+/* ---- Shared StatBar cards ---- */
+.stat-bar { grid-template-columns: repeat(var(--stat-cols, 4), 1fr); gap: 14px; }
 @media (max-width: 780px) {
   .stat-bar { grid-template-columns: repeat(2, 1fr) !important; }
-  .stat-bar > *:nth-child(2n) { border-right: none !important; }
-  .stat-bar > * { border-bottom: 1px solid var(--border); }
 }
 @media (max-width: 420px) {
   .stat-bar { grid-template-columns: 1fr !important; }
-  .stat-bar > * { border-right: none !important; }
 }
+.stat-card-clickable { transition: transform 150ms ease, box-shadow 150ms ease; }
+.stat-card-clickable:hover { transform: translateY(-2px); box-shadow: 0 8px 18px -10px rgba(59, 30, 112, 0.28); }
 
 /* ---- Data tables: keep the table intact and scroll it horizontally inside
    its own box, so the page body itself never scrolls sideways ---- */
