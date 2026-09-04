@@ -17,6 +17,9 @@
   --field-bg: #FBFAFF;
   --card-shadow: 0 1px 2px rgba(59, 30, 112, 0.05), 0 6px 20px -8px rgba(124, 58, 237, 0.12);
   --page-bg: #F7F5FC;
+  --date-accent: #BA55D3;
+  --date-soft: #F7E9F7;
+  --date-field-bg: rgba(186, 85, 211, 0.12);
 }
 
 * {
@@ -50,25 +53,6 @@ button {
 
 input, select, textarea {
   font-family: inherit;
-}
-
-/* Native date inputs render their value and calendar-picker glyph in plain
-   black by default, regardless of the field's own background — tint both
-   toward the accent purple instead. The picker glyph is monochrome, so
-   recoloring it needs the invert->sepia->hue-rotate trick (Chromium/WebKit
-   only; Firefox falls back to its own default icon color). Every field's
-   own `color` is set inline (see inputStyle in ui.jsx), which always wins
-   over a plain stylesheet rule — !important is required here too. */
-input[type="date"] {
-  color: var(--accent-dark) !important;
-}
-input[type="date"]::-webkit-calendar-picker-indicator {
-  filter: invert(24%) sepia(94%) saturate(3000%) hue-rotate(258deg) brightness(94%) contrast(101%);
-  cursor: pointer;
-  border-radius: 4px;
-}
-input[type="date"]::-webkit-calendar-picker-indicator:hover {
-  background: var(--accent-soft);
 }
 
 /* Every form field's border/background is set inline (used everywhere in

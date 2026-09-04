@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext.jsx';
 import { Card, Field, TextInput, TextArea, Select, Button, StatusBadge, Modal } from '../components/ui.jsx';
+import DatePicker from '../components/DatePicker.jsx';
 import { formatDate } from '../utils.js';
 
 const STATUS_OPTIONS = ['Completed', 'In Progress'];
@@ -95,7 +96,7 @@ export default function DailyUpdate() {
         <Card style={{ maxWidth: 760 }}>
           <div className="responsive-grid" style={{ display: 'grid', '--cols': '1fr 1fr', gap: 22 }}>
             <Field label="Date" required>
-              <TextInput type="date" value={date} onChange={setDate} disabled={Boolean(editingId)} />
+              <DatePicker value={date} onChange={setDate} disabled={Boolean(editingId)} />
             </Field>
             <Field label="Related task">
               <Select value={taskId} onChange={setTaskId} options={[{ value: '', label: '— None —' }, ...myTasks.map((t) => ({ value: t.id, label: t.title }))]} />

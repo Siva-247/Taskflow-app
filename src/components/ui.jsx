@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { STATUS, PRIORITY } from '../data/mockData.js';
 
 export function Avatar({ initial, size = 32, gradient = false }) {
@@ -184,8 +185,14 @@ export function Modal({ title, children, onClose, maxWidth = 400 }) {
 // rather than interrupting it full-screen — sized to roughly a quarter of
 // the viewport, clamped so it never feels cramped on a small screen or
 // oversized on an ultra-wide one.
+//
+// Portaled straight to <body>: this is opened from inside Header, and
+// Header's own backdrop-filter (the glass effect) makes it a new containing
+// block for any `position: fixed` descendant — without the portal, this
+// drawer's "fixed, inset: 0" backdrop gets trapped inside Header's own
+// 68px-tall box instead of covering the viewport.
 export function Drawer({ title, children, onClose, width = 'clamp(300px, 25vw, 420px)' }) {
-  return (
+  return createPortal(
     <div
       onClick={onClose}
       style={{
@@ -205,7 +212,8 @@ export function Drawer({ title, children, onClose, width = 'clamp(300px, 25vw, 4
         {title && <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 19, color: 'var(--heading)', marginBottom: 18 }}>{title}</div>}
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

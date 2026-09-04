@@ -4,6 +4,7 @@ import { useApp } from '../context/AppContext.jsx';
 import { ROLES } from '../data/mockData.js';
 import { Card, Avatar, StatusBadge, Select, TextInput, Button } from '../components/ui.jsx';
 import DailyUpdateForm from '../components/DailyUpdateForm.jsx';
+import DatePicker from '../components/DatePicker.jsx';
 import { IconSearch, IconArrowRight, IconDownload } from '../components/icons.jsx';
 import { formatDate, downloadCsv } from '../utils.js';
 
@@ -150,11 +151,11 @@ export default function DailyUpdateHistory() {
           )}
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
             <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 14, color: 'var(--text-muted)' }}>From</span>
-            <div className="filter-field" style={{ width: 145 }}><TextInput type="date" value={dateFrom} onChange={setDateFrom} /></div>
+            <div className="filter-field" style={{ width: 145 }}><DatePicker value={dateFrom} onChange={setDateFrom} /></div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
             <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 14, color: 'var(--text-muted)' }}>To</span>
-            <div className="filter-field" style={{ width: 145 }}><TextInput type="date" value={dateTo} onChange={setDateTo} /></div>
+            <div className="filter-field" style={{ width: 145 }}><DatePicker value={dateTo} onChange={setDateTo} /></div>
           </div>
           {hasActiveFilters && (
             <span onClick={clearFilters} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 14.5, color: 'var(--accent-dark)', cursor: 'pointer' }}>

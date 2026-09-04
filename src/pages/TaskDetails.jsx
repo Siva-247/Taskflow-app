@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useApp } from '../context/AppContext.jsx';
 import { STATUS, ROLES, teamById } from '../data/mockData.js';
 import { Card, Avatar, StatusBadge, PriorityBadge, Button, Select, TextArea, TextInput, Modal } from '../components/ui.jsx';
+import DatePicker from '../components/DatePicker.jsx';
 import { IconCheck } from '../components/icons.jsx';
 import { formatDate } from '../utils.js';
 
@@ -396,7 +397,7 @@ export default function TaskDetails() {
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                     <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 14, color: 'var(--text-muted)' }}>New due date</div>
-                    <TextInput type="date" value={extensionDate} onChange={setExtensionDate} />
+                    <DatePicker value={extensionDate} onChange={setExtensionDate} />
                     <TextArea value={extensionReason} onChange={setExtensionReason} placeholder="Why do you need more time?" minHeight={44} />
                     {extensionDate && task.dueDate && extensionDate <= task.dueDate && (
                       <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 14, color: 'var(--amber-text)' }}>

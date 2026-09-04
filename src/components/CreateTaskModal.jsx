@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext.jsx';
 import { ROLES, PRIORITY, CATEGORIES } from '../data/mockData.js';
 import { Modal, Field, TextInput, TextArea, Select, Button } from './ui.jsx';
+import DatePicker from './DatePicker.jsx';
 
 const OTHER_CATEGORY = '__other__';
 
@@ -140,10 +141,10 @@ export default function CreateTaskModal({ onClose }) {
       <div style={{ height: 16 }} />
       <div className="responsive-grid" style={{ display: 'grid', '--cols': '1fr 1fr', gap: 16 }}>
         <Field label="Start date" required>
-          <TextInput type="date" value={startDate} onChange={setStartDate} min={TODAY} />
+          <DatePicker value={startDate} onChange={setStartDate} min={TODAY} />
         </Field>
         <Field label="Due date" required>
-          <TextInput type="date" value={dueDate} onChange={setDueDate} min={startDate || TODAY} />
+          <DatePicker value={dueDate} onChange={setDueDate} min={startDate || TODAY} />
         </Field>
       </div>
       {errors.startInPast && <ErrorText>Start date can't be in the past.</ErrorText>}

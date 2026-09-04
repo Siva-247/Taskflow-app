@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useApp } from '../context/AppContext.jsx';
 import { ROLES, PRIORITY, CATEGORIES, STATUS } from '../data/mockData.js';
 import { Card, SectionLabel, Field, TextInput, TextArea, Select, Button, Modal, Avatar } from '../components/ui.jsx';
+import DatePicker from '../components/DatePicker.jsx';
 import { roleHome } from '../utils.js';
 
 export default function EditTask() {
@@ -141,10 +142,10 @@ export default function EditTask() {
         <SectionLabel>Schedule</SectionLabel>
         <div className="responsive-grid" style={{ display: 'grid', '--cols': '1fr 1fr', gap: 22 }}>
           <Field label="Start date" required>
-            <TextInput type="date" value={startDate} onChange={setStartDate} min={TODAY} />
+            <DatePicker value={startDate} onChange={setStartDate} min={TODAY} />
           </Field>
           <Field label="Due date" required>
-            <TextInput type="date" value={dueDate} onChange={setDueDate} min={startDate || TODAY} />
+            <DatePicker value={dueDate} onChange={setDueDate} min={startDate || TODAY} />
           </Field>
         </div>
         {errors.startInPast && <ErrorText>Start date can't be in the past.</ErrorText>}

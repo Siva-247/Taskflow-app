@@ -4,6 +4,7 @@ import { useApp } from '../context/AppContext.jsx';
 import { STATUS, PRIORITY, ROLES, teamById } from '../data/mockData.js';
 import { Card, Avatar, StatusBadge, PriorityDot, Button, Select, TextInput } from '../components/ui.jsx';
 import CreateTaskModal from '../components/CreateTaskModal.jsx';
+import DatePicker from '../components/DatePicker.jsx';
 import { IconSearch, IconPlusCircle, IconArrowRight } from '../components/icons.jsx';
 
 const STATUS_OPTIONS = [STATUS.PENDING_APPROVAL, STATUS.TODO, STATUS.IN_PROGRESS, STATUS.IN_REVIEW, STATUS.COMPLETED];
@@ -141,7 +142,7 @@ export default function TaskList() {
             </div>
           )}
           <div className="filter-field" style={{ width: 150 }}>
-            <TextInput type="date" value={dueBefore} onChange={setDueBefore} placeholder="Due before" />
+            <DatePicker value={dueBefore} onChange={setDueBefore} placeholder="Due before" />
           </div>
         </div>
       </Card>

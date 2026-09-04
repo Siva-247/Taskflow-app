@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { useApp } from '../context/AppContext.jsx';
 import { STATUS, PRIORITY, ROLES, teamById } from '../data/mockData.js';
 import { Card, Select, TextInput, Button, StatusBadge } from '../components/ui.jsx';
+import DatePicker from '../components/DatePicker.jsx';
 import { IconDownload } from '../components/icons.jsx';
 import { useRoleGuard } from '../hooks/useRoleGuard.js';
 import { formatDate, downloadCsv } from '../utils.js';
@@ -87,10 +88,10 @@ export default function Reports() {
             </div>
           )}
           <div className="filter-field" style={{ width: 160 }}>
-            <TextInput type="date" value={dueFrom} onChange={setDueFrom} placeholder="Due from" />
+            <DatePicker value={dueFrom} onChange={setDueFrom} placeholder="Due from" />
           </div>
           <div className="filter-field" style={{ width: 160 }}>
-            <TextInput type="date" value={dueTo} onChange={setDueTo} placeholder="Due to" />
+            <DatePicker value={dueTo} onChange={setDueTo} placeholder="Due to" />
           </div>
         </div>
       </Card>
