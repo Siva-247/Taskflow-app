@@ -42,10 +42,8 @@ export default function Header({ onMenuClick }) {
           <IconMenu size={20} />
         </button>
         <div style={{ display: 'flex', alignItems: 'center', gap: 11, cursor: 'pointer', minWidth: 0 }} onClick={() => navigate(roleHome(currentUser.role))}>
-          <div style={{ width: 34, height: 34, flexShrink: 0, borderRadius: 10, background: 'var(--accent-dark)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <IconLogo size={19} />
-          </div>
-          <span className="header-brand-text" style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 20, letterSpacing: '-0.01em', color: 'var(--heading)', whiteSpace: 'nowrap' }}>TaskFlow</span>
+          <IconLogo size={34} />
+          <span className="header-brand-text" style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 20, letterSpacing: '-0.01em', color: 'var(--heading)', whiteSpace: 'nowrap' }}>TMS</span>
         </div>
       </div>
 

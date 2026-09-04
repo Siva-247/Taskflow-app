@@ -53,12 +53,10 @@ export default function Login() {
       <div style={{ width: '100%', maxWidth: 400, padding: '40px 20px' }}>
 
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, marginBottom: 32 }}>
-          <div style={{ width: 46, height: 46, borderRadius: 13, background: 'var(--accent-dark)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <IconLogo size={24} />
-          </div>
+          <IconLogo size={46} />
           <div style={{ textAlign: 'center' }}>
             <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 26, color: 'var(--heading)' }}>
-              {mode === 'login' ? 'Sign in to TaskFlow' : 'Reset your password'}
+              {mode === 'login' ? 'Sign in to TMS' : 'Reset your password'}
             </div>
             <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 16, color: 'var(--text-secondary)', marginTop: 6 }}>
               {mode === 'login' ? 'Task Management System' : "We'll create a reset link for the email on your account"}

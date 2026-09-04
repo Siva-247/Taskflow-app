@@ -80,11 +80,9 @@ export default function SignUp() {
     <div style={{ minHeight: '100vh', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--page-bg)' }}>
       <div style={{ width: '100%', maxWidth: 400, padding: '40px 20px' }}>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, marginBottom: 32 }}>
-          <div style={{ width: 46, height: 46, borderRadius: 13, background: 'var(--accent-dark)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <IconLogo size={24} />
-          </div>
+          <IconLogo size={46} />
           <div style={{ textAlign: 'center' }}>
-            <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 26, color: 'var(--heading)' }}>Create your TaskFlow account</div>
+            <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 26, color: 'var(--heading)' }}>Create your TMS account</div>
             <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 16, color: 'var(--text-secondary)', marginTop: 6 }}>
               Enter your name exactly as your team lead has it on file — this connects your account to your existing role, team, and task history.
             </div>

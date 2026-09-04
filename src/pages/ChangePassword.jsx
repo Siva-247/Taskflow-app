@@ -36,9 +36,7 @@ export default function ChangePassword() {
     <div style={{ minHeight: '100vh', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--page-bg)' }}>
       <div style={{ width: '100%', maxWidth: 400, padding: '40px 20px' }}>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, marginBottom: 32 }}>
-          <div style={{ width: 46, height: 46, borderRadius: 13, background: 'var(--accent-dark)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <IconLogo size={24} />
-          </div>
+          <IconLogo size={46} />
           <div style={{ textAlign: 'center' }}>
             <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 26, color: 'var(--heading)' }}>
               {mustChangePassword ? 'Set a permanent password' : 'Change your password'}

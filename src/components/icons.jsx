@@ -4,9 +4,7 @@ const base = (size) => ({ width: size, height: size, fill: 'none', xmlns: 'http:
 
 export function IconLogo({ size = 19 }) {
   return (
-    <svg {...base(size)} viewBox="0 0 24 24">
-      <path d="M4 12c2.5 0 2.5-5 5-5s2.5 10 5 10 2.5-5 5-5" stroke="white" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
+    <img src="/logo.png" alt="TMS" style={{ width: size, height: size, objectFit: 'contain', flexShrink: 0, display: 'block' }} />
   );
 }
 

@@ -25,9 +25,9 @@ export async function sendPasswordResetEmail(toEmail, resetLink) {
   await transport.sendMail({
     from: process.env.SMTP_FROM || process.env.SMTP_USER,
     to: toEmail,
-    subject: 'Reset your TaskFlow password',
-    text: `We received a request to reset your TaskFlow password.\n\nReset it here (expires in 30 minutes):\n${resetLink}\n\nIf you didn't request this, you can ignore this email.`,
-    html: `<p>We received a request to reset your TaskFlow password.</p>
+    subject: 'Reset your TMS password',
+    text: `We received a request to reset your TMS password.\n\nReset it here (expires in 30 minutes):\n${resetLink}\n\nIf you didn't request this, you can ignore this email.`,
+    html: `<p>We received a request to reset your TMS password.</p>
 <p><a href="${resetLink}">Click here to reset your password</a> (expires in 30 minutes).</p>
 <p>If you didn't request this, you can ignore this email.</p>`,
   });

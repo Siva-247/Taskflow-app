@@ -171,7 +171,7 @@ router.post('/signup', asyncRoute(async (req, res) => {
     return res.status(409).json({ error: 'This user already has an account. Please sign in using the registered email.' });
   }
 
-  return res.status(403).json({ error: 'Your name is not registered in TaskFlow. Please contact the administrator.' });
+  return res.status(403).json({ error: 'Your name is not registered in TMS. Please contact the administrator.' });
 }));
 
 router.post('/login', asyncRoute(async (req, res) => {

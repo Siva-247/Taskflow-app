@@ -45,7 +45,7 @@ function notifyOutsideApp(message, users, onClick) {
         ? `${senderName} sent a voice message`
         : `${senderName} sent a message`;
   try {
-    const n = new Notification('MHS TaskFlow Management System', { body, tag: message.conversationId, renotify: true });
+    const n = new Notification('MHS TMS', { body, tag: message.conversationId, renotify: true });
     n.onclick = () => {
       window.focus();
       onClick?.();
