@@ -992,14 +992,13 @@ function MessagesSkeleton() {
 }
 
 const panelStyle = {
-  display: 'flex', flexDirection: 'column', background: '#FFFFFF', border: '1px solid var(--border)',
+  display: 'flex', flexDirection: 'column', background: 'linear-gradient(160deg, #FBF7FE 0%, #F1E4FA 100%)', border: '1px solid var(--border)',
   borderRadius: 16, overflow: 'hidden', boxShadow: 'var(--card-shadow)',
 };
 
 const bgPatternStyle = {
-  backgroundColor: 'var(--page-bg)',
-  backgroundImage: 'radial-gradient(circle, rgba(124,58,237,0.07) 1px, transparent 1px)',
-  backgroundSize: '20px 20px',
+  backgroundImage: 'radial-gradient(circle, rgba(91,33,182,0.08) 1px, transparent 1px), linear-gradient(160deg, #EDE0FA 0%, #DCC2F2 60%, #CBA8ED 100%)',
+  backgroundSize: '20px 20px, 100% 100%',
 };
 
 const emptyStateStyle = {
