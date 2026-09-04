@@ -56,9 +56,11 @@ input, select, textarea {
    black by default, regardless of the field's own background — tint both
    toward the accent purple instead. The picker glyph is monochrome, so
    recoloring it needs the invert->sepia->hue-rotate trick (Chromium/WebKit
-   only; Firefox falls back to its own default icon color). */
+   only; Firefox falls back to its own default icon color). Every field's
+   own `color` is set inline (see inputStyle in ui.jsx), which always wins
+   over a plain stylesheet rule — !important is required here too. */
 input[type="date"] {
-  color: var(--accent-dark);
+  color: var(--accent-dark) !important;
 }
 input[type="date"]::-webkit-calendar-picker-indicator {
   filter: invert(24%) sepia(94%) saturate(3000%) hue-rotate(258deg) brightness(94%) contrast(101%);
