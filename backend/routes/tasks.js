@@ -101,12 +101,14 @@ router.patch('/:id', asyncRoute(async (req, res) => {
   const existing = await prepare('SELECT * FROM tasks WHERE id = ?').get(req.params.id);
   if (!existing) return res.status(404).json({ error: 'Task not found' });
   // A draft can only be edited by the person who started it. A published task
-  // can also be edited by whoever created it, or by an admin — but never by
-  // just anyone with view access, and reassigning to a different employee only
-  // happens through a fresh draft, not by editing one that's already live.
+  // can also be edited by whoever created it, by an admin, or by the manager
+  // over the department it belongs to — but never by just anyone with view
+  // access, and reassigning to a different employee only happens through a
+  // fresh draft, not by editing one that's already live.
   const isOwner = existing.created_by === req.user.id;
   const isAdmin = req.user.role === 'admin';
-  if (existing.status === STATUS.DRAFT ? !isOwner : !isOwner && !isAdmin) {
+  const isDeptManager = req.user.role === 'manager' && await userCanAccessTask(req.user, existing);
+  if (existing.status === STATUS.DRAFT ? !isOwner : !isOwner && !isAdmin && !isDeptManager) {
     return res.status(403).json({ error: 'You do not have permission to edit this task' });
   }
   const b = req.body;
@@ -185,11 +187,12 @@ router.patch('/:id', asyncRoute(async (req, res) => {
 }));
 
 router.delete('/:id', asyncRoute(async (req, res) => {
-  const existing = await prepare('SELECT status, created_by FROM tasks WHERE id = ?').get(req.params.id);
+  const existing = await prepare('SELECT status, created_by, team_id FROM tasks WHERE id = ?').get(req.params.id);
   if (!existing) return res.status(404).json({ error: 'Task not found' });
   const isOwner = existing.created_by === req.user.id;
   const isAdmin = req.user.role === 'admin';
-  if (!isOwner && !isAdmin) return res.status(403).json({ error: 'You do not have permission to delete this task' });
+  const isDeptManager = req.user.role === 'manager' && await userCanAccessTask(req.user, existing);
+  if (!isOwner && !isAdmin && !isDeptManager) return res.status(403).json({ error: 'You do not have permission to delete this task' });
   await prepare('DELETE FROM tasks WHERE id = ?').run(req.params.id);
   res.json({ ok: true });
 }));

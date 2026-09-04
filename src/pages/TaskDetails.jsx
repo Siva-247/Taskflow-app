@@ -60,7 +60,8 @@ export default function TaskDetails() {
   const team = teamById(task.teamId);
   const department = departments.find((d) => d.id === team?.departmentId) || null;
   const isAssignee = currentUser.id === task.assigneeId;
-  const canManageTask = currentUser.id === task.createdBy || currentUser.role === ROLES.ADMIN;
+  const canManageTask = currentUser.id === task.createdBy || currentUser.role === ROLES.ADMIN
+    || (currentUser.role === ROLES.MANAGER && team?.departmentId === currentUser.departmentId);
   const isReviewer = currentUser.role === ROLES.ADMIN
     || (currentUser.role === ROLES.TEAM_LEAD && task.teamId === currentUser.teamId)
     || (currentUser.role === ROLES.MANAGER && team?.departmentId === currentUser.departmentId);

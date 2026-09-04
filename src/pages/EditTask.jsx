@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useApp } from '../context/AppContext.jsx';
-import { ROLES, PRIORITY, CATEGORIES, STATUS } from '../data/mockData.js';
+import { ROLES, PRIORITY, CATEGORIES, STATUS, teamById } from '../data/mockData.js';
 import { Card, SectionLabel, Field, TextInput, TextArea, Select, Button, Modal, Avatar } from '../components/ui.jsx';
 import DatePicker from '../components/DatePicker.jsx';
 import { roleHome } from '../utils.js';
@@ -12,7 +12,9 @@ export default function EditTask() {
   const { currentUser, users, tasks, updateTask, showToast, TODAY } = useApp();
 
   const task = tasks.find((t) => t.id === taskId);
-  const canManage = task && (currentUser.id === task.createdBy || currentUser.role === ROLES.ADMIN);
+  const team = task && teamById(task.teamId);
+  const canManage = task && (currentUser.id === task.createdBy || currentUser.role === ROLES.ADMIN
+    || (currentUser.role === ROLES.MANAGER && team?.departmentId === currentUser.departmentId));
 
   useEffect(() => {
     if (task && !canManage) {
