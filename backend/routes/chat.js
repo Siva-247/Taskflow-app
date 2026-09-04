@@ -24,18 +24,31 @@ async function memberRows(conversationId) {
   return prepare(`SELECT u.id, u.name, u.initial, cm.last_read_at as "lastReadAt" FROM chat_members cm JOIN users u ON u.id = cm.user_id WHERE cm.conversation_id = ?`).all(conversationId);
 }
 
-// Who a person may add to a group they're creating — admin reaches anyone;
-// a manager or a team lead both reach their whole department (every team
-// in it, every other team lead, the manager themself), not just their own
-// team — a team lead's group can pull in anyone across the department, the
-// same reach a manager already had. Deliberately not reused for DMs —
-// anyone may DM anyone, no scoping there, same as canAddToGroup isn't
-// consulted at all on that path below.
+// Who a person may add to a group they're creating — admin reaches anyone,
+// and admin is always reachable as a target too (admin sits outside every
+// department, so the plain department match below would otherwise never
+// let a manager or team lead pull them in); a manager or a team lead both
+// reach their whole department (every team in it, every other team lead,
+// the manager themself), not just their own team — a team lead's group can
+// pull in anyone across the department, the same reach a manager already
+// had. Deliberately not reused for DMs — anyone may DM anyone, no scoping
+// there, same as canAddToGroup isn't consulted at all on that path below.
 function canAddToGroup(actor, targetUser) {
-  if (actor.role === 'admin') return true;
+  if (actor.role === 'admin' || targetUser.role === 'admin') return true;
   if (actor.role === 'manager' || actor.role === 'team_lead') return targetUser.department_id === actor.department_id;
   return false;
 }
+
+// The main /api/users list is department-scoped (routes/users.js's
+// scopeUsers), which normally makes sense — but it also means admin, who
+// has no department, is invisible there to everyone but themselves. Chat
+// needs its own unscoped directory so admin shows up as a DM/group-member
+// candidate for anyone, without loosening who a manager/team lead sees on
+// the Teams/Employees pages elsewhere in the app.
+router.get('/directory', asyncRoute(async (req, res) => {
+  const rows = await prepare(`SELECT id, name, initial, role, title, department_id as "departmentId" FROM users WHERE is_active = 1 ORDER BY name`).all();
+  res.json(rows);
+}));
 
 router.get('/conversations', asyncRoute(async (req, res) => {
   const rows = await prepare(`
@@ -96,7 +109,7 @@ router.post('/conversations/group', asyncRoute(async (req, res) => {
   if (memberIds.length === 0) return res.status(400).json({ error: 'Add at least one member' });
 
   for (const memberId of memberIds) {
-    const target = await prepare('SELECT id, team_id, department_id FROM users WHERE id = ?').get(memberId);
+    const target = await prepare('SELECT id, role, team_id, department_id FROM users WHERE id = ?').get(memberId);
     if (!target) return res.status(404).json({ error: `Member ${memberId} not found` });
     if (!canAddToGroup(req.user, target)) {
       return res.status(403).json({ error: 'You can only add people from your own team/department' });
@@ -168,7 +181,7 @@ router.post('/conversations/:id/members', asyncRoute(async (req, res) => {
   }
 
   const memberId = req.body.userId;
-  const target = await prepare('SELECT id, team_id, department_id FROM users WHERE id = ?').get(memberId);
+  const target = await prepare('SELECT id, role, team_id, department_id FROM users WHERE id = ?').get(memberId);
   if (!target) return res.status(404).json({ error: 'User not found' });
   if (!canAddToGroup(req.user, target)) return res.status(403).json({ error: 'You can only add people from your own team/department' });
   if (await isMember(req.params.id, memberId)) return res.status(409).json({ error: 'Already a member' });
@@ -194,7 +207,7 @@ router.delete('/conversations/:id/members/:userId', asyncRoute(async (req, res) 
     if (!['admin', 'manager', 'team_lead'].includes(req.user.role)) {
       return res.status(403).json({ error: 'Only an admin, manager, or team lead can remove members' });
     }
-    const target = await prepare('SELECT id, team_id, department_id FROM users WHERE id = ?').get(req.params.userId);
+    const target = await prepare('SELECT id, role, team_id, department_id FROM users WHERE id = ?').get(req.params.userId);
     if (!target || !canAddToGroup(req.user, target)) {
       return res.status(403).json({ error: 'You can only remove people from your own team/department' });
     }

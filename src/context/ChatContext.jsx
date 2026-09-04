@@ -58,8 +58,13 @@ function notifyOutsideApp(message, users, onClick) {
 }
 
 export function ChatProvider({ children }) {
-  const { currentUser, token, users, showToast } = useApp();
+  const { currentUser, token, showToast } = useApp();
   const [conversations, setConversations] = useState([]);
+  // The app-wide `users` list is department-scoped, which hides admin from
+  // everyone but themself — fine for the Teams/Employees pages, wrong for
+  // chat (admin should be a reachable DM/group-member candidate for
+  // anyone). This is chat's own unscoped directory for exactly that.
+  const [directoryUsers, setDirectoryUsers] = useState([]);
   const [activeConversationId, setActiveConversationId] = useState(null);
   const [messagesByConversation, setMessagesByConversation] = useState({});
   const [typingByConversation, setTypingByConversation] = useState({});
@@ -72,8 +77,8 @@ export function ChatProvider({ children }) {
   // created the socket.
   const activeConversationIdRef = useRef(null);
   useEffect(() => { activeConversationIdRef.current = activeConversationId; }, [activeConversationId]);
-  const usersRef = useRef(users);
-  useEffect(() => { usersRef.current = users; }, [users]);
+  const usersRef = useRef(directoryUsers);
+  useEffect(() => { usersRef.current = directoryUsers; }, [directoryUsers]);
 
   const loadConversations = useCallback(async () => {
     if (!token) return;
@@ -83,6 +88,11 @@ export function ChatProvider({ children }) {
       // Silent — the list just stays stale until the next successful load,
       // not worth a toast for a background refresh.
     }
+  }, [token]);
+
+  useEffect(() => {
+    if (!token) { setDirectoryUsers([]); return; }
+    chatRequest('/directory', {}, token).then(setDirectoryUsers).catch(() => {});
   }, [token]);
 
   // One socket per signed-in session, torn down and rebuilt on login/logout
@@ -313,7 +323,7 @@ export function ChatProvider({ children }) {
   }, []);
 
   const value = {
-    conversations, activeConversationId, setActiveConversationId,
+    conversations, activeConversationId, setActiveConversationId, directoryUsers,
     messagesByConversation, typingByConversation, connected, onlineUserIds,
     loadMessages, sendMessage, editMessage, deleteMessage, uploadImage, uploadAudio, toggleReaction,
     createGroup, startDM, addMember, removeMember, markRead, setTyping,

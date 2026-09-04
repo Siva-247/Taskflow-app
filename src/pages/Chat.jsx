@@ -125,10 +125,10 @@ function messageSummary(m) {
 }
 
 export default function Chat() {
-  const { currentUser, users, showToast } = useApp();
+  const { currentUser, showToast } = useApp();
   const {
     conversations, activeConversationId, setActiveConversationId, messagesByConversation, typingByConversation,
-    connected, onlineUserIds, loadMessages, sendMessage, editMessage, deleteMessage, uploadImage, uploadAudio,
+    connected, onlineUserIds, directoryUsers, loadMessages, sendMessage, editMessage, deleteMessage, uploadImage, uploadAudio,
     toggleReaction, createGroup, startDM, addMember, removeMember, markRead, setTyping,
   } = useChat();
 
@@ -518,7 +518,7 @@ export default function Chat() {
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 3 }}>
                     <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: unread ? 700 : 500, fontSize: 14.5, color: unread ? 'var(--text-primary)' : 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {c.type === 'group' && c.lastMessageSenderId && !c.lastMessageDeletedAt && `${c.lastMessageSenderId === currentUser.id ? 'You' : users.find((u) => u.id === c.lastMessageSenderId)?.name?.split(' ')[0] || ''}: `}
+                      {c.type === 'group' && c.lastMessageSenderId && !c.lastMessageDeletedAt && `${c.lastMessageSenderId === currentUser.id ? 'You' : directoryUsers.find((u) => u.id === c.lastMessageSenderId)?.name?.split(' ')[0] || ''}: `}
                       {c.lastMessageDeletedAt ? 'This message was deleted'
                         : c.lastMessageText || (c.lastMessageImage ? '📷 Photo' : c.lastMessageAudio ? '🎤 Voice message' : 'No messages yet')}
                     </span>
@@ -635,7 +635,7 @@ export default function Chat() {
               ) : (
                 visibleMessages.map((m, i) => {
                   const mine = m.senderId === currentUser.id;
-                  const sender = users.find((u) => u.id === m.senderId);
+                  const sender = directoryUsers.find((u) => u.id === m.senderId);
                   const isEditing = editingMessageId === m.id;
                   const isDeleted = !!m.deletedAt;
                   const menuOpen = openMenuMessageId === m.id;
@@ -734,7 +734,7 @@ export default function Chat() {
                                     }}
                                   >
                                     <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 13, color: mine ? 'rgba(255,255,255,0.85)' : 'var(--accent-dark)' }}>
-                                      {repliedMsg.senderId === currentUser.id ? 'You' : users.find((u) => u.id === repliedMsg.senderId)?.name || 'Someone'}
+                                      {repliedMsg.senderId === currentUser.id ? 'You' : directoryUsers.find((u) => u.id === repliedMsg.senderId)?.name || 'Someone'}
                                     </span>
                                     <span style={{
                                       fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 14, opacity: 0.85,
@@ -808,7 +808,7 @@ export default function Chat() {
                                 <span
                                   key={r.emoji}
                                   onClick={() => handleReact(m, r.emoji)}
-                                  title={r.userIds.map((id) => (id === currentUser.id ? 'You' : users.find((u) => u.id === id)?.name || '')).filter(Boolean).join(', ')}
+                                  title={r.userIds.map((id) => (id === currentUser.id ? 'You' : directoryUsers.find((u) => u.id === id)?.name || '')).filter(Boolean).join(', ')}
                                   style={{
                                     display: 'inline-flex', alignItems: 'center', gap: 3, padding: '2px 7px', borderRadius: 999, cursor: 'pointer',
                                     background: reactedByMe ? 'var(--accent-soft)' : '#FFFFFF', border: `1px solid ${reactedByMe ? 'var(--accent)' : 'var(--border)'}`,
@@ -839,7 +839,7 @@ export default function Chat() {
                     <i /><i /><i />
                   </span>
                   <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 13.5, color: 'var(--text-muted)' }}>
-                    {typingUserIds.map((id) => users.find((u) => u.id === id)?.name?.split(' ')[0] || 'Someone').join(', ')} typing
+                    {typingUserIds.map((id) => directoryUsers.find((u) => u.id === id)?.name?.split(' ')[0] || 'Someone').join(', ')} typing
                   </span>
                 </div>
               )}
@@ -851,7 +851,7 @@ export default function Chat() {
                 <div style={{ width: 3, alignSelf: 'stretch', background: 'var(--accent)', borderRadius: 2 }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 13.5, color: 'var(--accent-dark)' }}>
-                    Replying to {replyingTo.senderId === currentUser.id ? 'yourself' : users.find((u) => u.id === replyingTo.senderId)?.name || 'someone'}
+                    Replying to {replyingTo.senderId === currentUser.id ? 'yourself' : directoryUsers.find((u) => u.id === replyingTo.senderId)?.name || 'someone'}
                   </div>
                   <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 14, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {messageSummary(replyingTo)}
@@ -1048,25 +1048,27 @@ const composerTextareaStyle = {
 };
 
 // Mirrors the backend's canAddToGroup exactly, so the picker never offers a
-// choice the server would reject — admin reaches anyone, a manager or a
-// team lead both reach their whole department (every team in it, each
-// other, the manager themself), not just their own team.
+// choice the server would reject — admin reaches anyone, and admin is
+// always reachable as a target too (admin sits outside every department),
+// a manager or a team lead both reach their whole department (every team
+// in it, each other, the manager themself), not just their own team.
 function pickableMembers(currentUser, users) {
   return users.filter((u) => {
     if (u.id === currentUser.id) return false;
-    if (currentUser.role === ROLES.ADMIN) return true;
+    if (currentUser.role === ROLES.ADMIN || u.role === ROLES.ADMIN) return true;
     if (currentUser.role === ROLES.MANAGER || currentUser.role === ROLES.TEAM_LEAD) return u.departmentId === currentUser.departmentId;
     return false;
   });
 }
 
 function NewGroupModal({ onClose, onCreate }) {
-  const { currentUser, users } = useApp();
+  const { currentUser } = useApp();
+  const { directoryUsers } = useChat();
   const [name, setName] = useState('');
   const [selected, setSelected] = useState(new Set());
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
-  const candidates = useMemo(() => pickableMembers(currentUser, users), [currentUser, users]);
+  const candidates = useMemo(() => pickableMembers(currentUser, directoryUsers), [currentUser, directoryUsers]);
 
   const toggle = (id) => setSelected((prev) => {
     const next = new Set(prev);
@@ -1119,12 +1121,13 @@ function NewGroupModal({ onClose, onCreate }) {
 }
 
 function NewDMModal({ onClose, onPick }) {
-  const { currentUser, users } = useApp();
+  const { currentUser } = useApp();
+  const { directoryUsers } = useChat();
   const [search, setSearch] = useState('');
   const [error, setError] = useState('');
   const candidates = useMemo(
-    () => users.filter((u) => u.id !== currentUser.id && (!search.trim() || u.name.toLowerCase().includes(search.trim().toLowerCase()))),
-    [users, currentUser, search],
+    () => directoryUsers.filter((u) => u.id !== currentUser.id && (!search.trim() || u.name.toLowerCase().includes(search.trim().toLowerCase()))),
+    [directoryUsers, currentUser, search],
   );
 
   const handlePick = async (userId) => {
@@ -1161,16 +1164,17 @@ function NewDMModal({ onClose, onPick }) {
 }
 
 function GroupInfoModal({ conversation, onClose, onAddMember, onRemoveMember }) {
-  const { currentUser, users } = useApp();
+  const { currentUser } = useApp();
+  const { directoryUsers } = useChat();
   const [adding, setAdding] = useState(false);
   const [pickUserId, setPickUserId] = useState('');
   const [error, setError] = useState('');
   const canManage = CAN_CREATE_GROUP.includes(currentUser.role);
   const memberIds = new Set(conversation.members.map((m) => m.id));
   const candidates = useMemo(
-    () => pickableMembers(currentUser, users).filter((u) => !memberIds.has(u.id)),
+    () => pickableMembers(currentUser, directoryUsers).filter((u) => !memberIds.has(u.id)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [currentUser, users, conversation.members],
+    [currentUser, directoryUsers, conversation.members],
   );
 
   const handleAdd = async () => {
