@@ -33,8 +33,8 @@ export default function Drafts() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
         <div>
-          <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 26, color: 'var(--heading)' }}>Drafts</div>
-          <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 16, color: 'var(--text-secondary)', marginTop: 4 }}>
+          <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 24, color: 'var(--heading)' }}>Drafts</div>
+          <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 14, color: 'var(--text-secondary)', marginTop: 4 }}>
             Tasks you've started but haven't assigned yet — not counted in your active task stats.
           </div>
         </div>
@@ -43,7 +43,7 @@ export default function Drafts() {
 
       <Card padded={false}>
         {drafts.length === 0 && (
-          <div style={{ padding: '40px 22px', textAlign: 'center', fontFamily: "'Manrope',system-ui,sans-serif", fontSize: 15.5, color: 'var(--text-muted)' }}>
+          <div style={{ padding: '40px 22px', textAlign: 'center', fontFamily: "'Manrope',system-ui,sans-serif", fontSize: 13.5, color: 'var(--text-muted)' }}>
             No drafts saved. Start a task and choose "Save draft" to come back to it later.
           </div>
         )}
@@ -58,28 +58,28 @@ export default function Drafts() {
               }}
             >
               <div style={{ minWidth: 220 }}>
-                <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 17, color: 'var(--text-primary)' }}>
+                <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 15, color: 'var(--text-primary)' }}>
                   {task.title || <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>Untitled draft</span>}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 8 }}>
                   <PriorityBadge priority={task.priority} />
-                  <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 14.5, color: 'var(--text-muted)' }}>
+                  <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 12.5, color: 'var(--text-muted)' }}>
                     {assignee ? `For ${assignee.name}` : 'No assignee chosen yet'}
                   </span>
                 </div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                <Button variant="secondary" style={{ padding: '8px 16px', fontSize: 14.5 }} onClick={() => navigate(`/tasks/new/${task.id}`)}>
+                <Button variant="secondary" style={{ padding: '8px 16px', fontSize: 12.5 }} onClick={() => navigate(`/tasks/new/${task.id}`)}>
                   Continue editing
                 </Button>
                 <Button
-                  variant="primary" style={{ padding: '8px 16px', fontSize: 14.5 }}
+                  variant="primary" style={{ padding: '8px 16px', fontSize: 12.5 }}
                   disabled={!task.title.trim() || !task.description.trim() || !task.assigneeId || !task.startDate || !task.dueDate || task.dueDate < task.startDate}
                   onClick={() => publishDraft(task.id)}
                 >
                   {needsApproval ? 'Submit for approval' : 'Assign as task'}
                 </Button>
-                <Button variant="danger" style={{ padding: '8px 16px', fontSize: 14.5 }} onClick={() => setPendingDeleteId(task.id)}>
+                <Button variant="danger" style={{ padding: '8px 16px', fontSize: 12.5 }} onClick={() => setPendingDeleteId(task.id)}>
                   Delete
                 </Button>
               </div>
@@ -90,7 +90,7 @@ export default function Drafts() {
 
       {pendingDeleteId && (
         <Modal title="Delete this draft?" onClose={() => setPendingDeleteId(null)}>
-          <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 15.5, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+          <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13.5, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
             This can't be undone. The draft will be permanently removed.
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 22 }}>

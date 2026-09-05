@@ -100,8 +100,8 @@ export default function EditTask() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
       <div>
-        <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 26, color: 'var(--heading)' }}>Edit task</div>
-        <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 16, color: 'var(--text-secondary)', marginTop: 4 }}>
+        <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 24, color: 'var(--heading)' }}>Edit task</div>
+        <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 14, color: 'var(--text-secondary)', marginTop: 4 }}>
           Update the details — the assignee stays fixed once a task is live.
         </div>
       </div>
@@ -130,7 +130,7 @@ export default function EditTask() {
           <Field label="Assigned to">
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '11px 15px', border: '1px solid var(--border)', borderRadius: 9, background: 'var(--field-bg)' }}>
               <Avatar initial={assignee?.initial} size={20} />
-              <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 15, color: 'var(--text-secondary)' }}>{assignee?.name}</span>
+              <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 13, color: 'var(--text-secondary)' }}>{assignee?.name}</span>
             </div>
           </Field>
           <Field label="Priority" required>
@@ -164,8 +164,8 @@ export default function EditTask() {
             {subtasks.map((s) => (
               <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0', borderBottom: '1px solid var(--border)' }}>
                 <input type="checkbox" checked={s.done} onChange={() => toggleSubtaskDone(s.id)} style={{ width: 15, height: 15, accentColor: 'var(--accent)' }} />
-                <span style={{ flex: 1, fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 15.5, color: 'var(--text-primary)' }}>{s.title}</span>
-                <span onClick={() => removeSubtask(s.id)} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 14, color: 'var(--text-muted)', cursor: 'pointer' }}>Remove</span>
+                <span style={{ flex: 1, fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13.5, color: 'var(--text-primary)' }}>{s.title}</span>
+                <span onClick={() => removeSubtask(s.id)} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12, color: 'var(--text-muted)', cursor: 'pointer' }}>Remove</span>
               </div>
             ))}
           </div>
@@ -185,7 +185,7 @@ export default function EditTask() {
 
       {showDiscardConfirm && (
         <Modal title="Discard changes?" onClose={() => setShowDiscardConfirm(false)}>
-          <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 15.5, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+          <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13.5, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
             You have unsaved changes on this task. If you leave now, they'll be lost.
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 22 }}>
@@ -199,5 +199,5 @@ export default function EditTask() {
 }
 
 function ErrorText({ children }) {
-  return <div style={{ marginTop: 6, fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 14, color: 'var(--amber-text)' }}>{children}</div>;
+  return <div style={{ marginTop: 6, fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12, color: 'var(--amber-text)' }}>{children}</div>;
 }

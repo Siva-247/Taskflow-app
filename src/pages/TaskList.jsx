@@ -104,8 +104,8 @@ export default function TaskList() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
         <div>
-          <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 26, color: 'var(--heading)' }}>Tasks</div>
-          <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 16, color: 'var(--text-secondary)', marginTop: 4 }}>{scopeLabel}</div>
+          <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 24, color: 'var(--heading)' }}>Tasks</div>
+          <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 14, color: 'var(--text-secondary)', marginTop: 4 }}>{scopeLabel}</div>
         </div>
         {canCreate && (
           <Button onClick={() => setShowCreate(true)}>
@@ -122,7 +122,7 @@ export default function TaskList() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search tasks by title..."
-              style={{ border: 'none', outline: 'none', flex: 1, fontFamily: "'Manrope',system-ui,sans-serif", fontSize: 15.5, color: 'var(--text-primary)' }}
+              style={{ border: 'none', outline: 'none', flex: 1, fontFamily: "'Manrope',system-ui,sans-serif", fontSize: 13.5, color: 'var(--text-primary)' }}
             />
           </div>
           <div className="filter-field" style={{ width: 158 }}>
@@ -152,7 +152,7 @@ export default function TaskList() {
           <div style={{ minWidth: 900 }}>
             <div style={{ display: 'grid', gridTemplateColumns: showTeamColumn ? '2fr 1.1fr 1.1fr 0.9fr 0.8fr 1.1fr 1.2fr 0.8fr 0.7fr' : '2fr 1.1fr 1.1fr 0.8fr 1.1fr 1.2fr 0.8fr 0.7fr', padding: '12px 22px', background: 'var(--field-bg)', borderBottom: '1px solid var(--border)' }}>
               {['Task', 'Assigned To', 'Assigned By', ...(showTeamColumn ? ['Team'] : []), 'Priority', 'Status', 'Progress', 'Due', 'Actions'].map((h) => (
-                <div key={h} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 13.5, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>{h}</div>
+                <div key={h} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11.5, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>{h}</div>
               ))}
             </div>
             {filtered.map((task, i) => {
@@ -168,23 +168,23 @@ export default function TaskList() {
                     borderBottom: i < filtered.length - 1 ? '1px solid var(--border)' : 'none', cursor: 'pointer',
                   }}
                 >
-                  <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 15.5, color: 'var(--text-primary)' }}>{task.title}</div>
+                  <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 13.5, color: 'var(--text-primary)' }}>{task.title}</div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
                     <Avatar initial={assignee?.initial} size={22} />
-                    <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 15, color: 'var(--text-secondary)' }}>{assignee?.name}</span>
+                    <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13, color: 'var(--text-secondary)' }}>{assignee?.name}</span>
                   </div>
-                  <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 15, color: 'var(--text-secondary)' }}>{assignedBy?.name || '—'}</div>
-                  {showTeamColumn && <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 15, color: 'var(--text-secondary)' }}>{team?.name.replace("'s Team", '')}</div>}
+                  <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13, color: 'var(--text-secondary)' }}>{assignedBy?.name || '—'}</div>
+                  {showTeamColumn && <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13, color: 'var(--text-secondary)' }}>{team?.name.replace("'s Team", '')}</div>}
                   <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
                     <PriorityDot priority={task.priority} />
-                    <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 15, color: 'var(--text-secondary)' }}>{task.priority}</span>
+                    <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13, color: 'var(--text-secondary)' }}>{task.priority}</span>
                   </div>
                   <div>
                     <StatusBadge status={task.status} />
                     {status === STATUS.PENDING_APPROVAL && approvalTag(task) && (
                       <div style={{
                         marginTop: 5, display: 'inline-block', padding: '2px 8px', borderRadius: 999,
-                        fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 12.5,
+                        fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 10.5,
                         background: task.approvedBy ? 'var(--accent-soft)' : 'var(--amber-bg)',
                         color: task.approvedBy ? 'var(--accent-dark)' : 'var(--amber-text)',
                       }}>
@@ -192,14 +192,14 @@ export default function TaskList() {
                       </div>
                     )}
                   </div>
-                  <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 15.5, color: 'var(--heading)' }}>{task.progress}%</div>
-                  <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 15, color: bucketOf(task) === 'overdue' ? 'var(--amber-text)' : 'var(--text-muted)' }}>{task.dueDate ? task.dueDate.slice(5) : '—'}</div>
+                  <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 13.5, color: 'var(--heading)' }}>{task.progress}%</div>
+                  <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13, color: bucketOf(task) === 'overdue' ? 'var(--amber-text)' : 'var(--text-muted)' }}>{task.dueDate ? task.dueDate.slice(5) : '—'}</div>
                   <button
                     type="button"
                     onClick={(e) => { e.stopPropagation(); navigate(`/tasks/${task.id}`); }}
                     style={{
                       display: 'flex', alignItems: 'center', gap: 5, fontFamily: "'Manrope',system-ui,sans-serif",
-                      fontWeight: 600, fontSize: 14.5, color: 'var(--accent-dark)', background: 'transparent',
+                      fontWeight: 600, fontSize: 12.5, color: 'var(--accent-dark)', background: 'transparent',
                       border: 'none', padding: '6px 4px', cursor: 'pointer', justifySelf: 'start',
                     }}
                   >
@@ -209,7 +209,7 @@ export default function TaskList() {
               );
             })}
             {filtered.length === 0 && (
-              <div style={{ padding: '32px 22px', textAlign: 'center', fontFamily: "'Manrope',system-ui,sans-serif", fontSize: 15.5, color: 'var(--text-muted)' }}>
+              <div style={{ padding: '32px 22px', textAlign: 'center', fontFamily: "'Manrope',system-ui,sans-serif", fontSize: 13.5, color: 'var(--text-muted)' }}>
                 No tasks match your filters.
               </div>
             )}

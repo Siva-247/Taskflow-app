@@ -55,10 +55,10 @@ export default function Login() {
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, marginBottom: 32 }}>
           <IconLogo size={46} />
           <div style={{ textAlign: 'center' }}>
-            <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 26, color: 'var(--heading)' }}>
+            <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 24, color: 'var(--heading)' }}>
               {mode === 'login' ? 'Sign in to TMS' : 'Reset your password'}
             </div>
-            <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 16, color: 'var(--text-secondary)', marginTop: 6 }}>
+            <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 14, color: 'var(--text-secondary)', marginTop: 6 }}>
               {mode === 'login' ? 'Task Management System' : "We'll create a reset link for the email on your account"}
             </div>
           </div>
@@ -73,17 +73,17 @@ export default function Login() {
               <Field label="Password" required>
                 <TextInput value={password} onChange={setPassword} placeholder="••••••••" type="password" />
               </Field>
-              {error && <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 14.5, color: 'var(--amber-text)' }}>{error}</div>}
+              {error && <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12.5, color: 'var(--amber-text)' }}>{error}</div>}
               <Button type="submit" variant="primary" style={{ justifyContent: 'center', marginTop: 4 }} disabled={submitting}>
                 {submitting ? 'Signing in…' : 'Sign In'}
               </Button>
               <div style={{ textAlign: 'center' }}>
-                <span onClick={() => { setMode('forgot'); setError(''); }} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 14.5, color: 'var(--accent-dark)', cursor: 'pointer' }}>
+                <span onClick={() => { setMode('forgot'); setError(''); }} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12.5, color: 'var(--accent-dark)', cursor: 'pointer' }}>
                   Forgot password?
                 </span>
               </div>
               <div style={{ textAlign: 'center', paddingTop: 12, borderTop: '1px solid var(--border)' }}>
-                <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 14.5, color: 'var(--text-secondary)' }}>
+                <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 12.5, color: 'var(--text-secondary)' }}>
                   Don't have an account?{' '}
                   <span onClick={() => navigate('/signup')} style={{ color: 'var(--accent-dark)', fontWeight: 700, cursor: 'pointer' }}>Create Account</span>
                 </span>
@@ -96,20 +96,20 @@ export default function Login() {
                   <Field label="Email" required>
                     <TextInput value={email} onChange={setEmail} placeholder="you.company@gmail.com" />
                   </Field>
-                  {error && <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 14.5, color: 'var(--amber-text)' }}>{error}</div>}
+                  {error && <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12.5, color: 'var(--amber-text)' }}>{error}</div>}
                   <Button variant="primary" style={{ justifyContent: 'center' }} onClick={handleForgot} disabled={submitting}>
                     {submitting ? 'Sending…' : 'Send reset link'}
                   </Button>
                 </>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 15.5, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                  <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13.5, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
                     If that email exists on an account, a reset link has been created. It expires in 30 minutes.
                   </div>
                 </div>
               )}
               <div style={{ textAlign: 'center' }}>
-                <span onClick={backToLogin} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 14.5, color: 'var(--accent-dark)', cursor: 'pointer' }}>
+                <span onClick={backToLogin} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12.5, color: 'var(--accent-dark)', cursor: 'pointer' }}>
                   ← Back to sign in
                 </span>
               </div>
@@ -117,7 +117,7 @@ export default function Login() {
           )}
         </div>
 
-        <div style={{ textAlign: 'center', marginTop: 24, fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 14.5, color: 'var(--text-muted)' }}>
+        <div style={{ textAlign: 'center', marginTop: 24, fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 12.5, color: 'var(--text-muted)' }}>
           Your role and access are set by your account — there's no role picker here.
         </div>
       </div>

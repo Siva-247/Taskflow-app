@@ -178,10 +178,10 @@ export default function CreateTask() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
       <div>
-        <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 26, color: 'var(--heading)' }}>
+        <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 24, color: 'var(--heading)' }}>
           {isEditingDraft ? 'Edit draft' : 'Create new task'}
         </div>
-        <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 16, color: 'var(--text-secondary)', marginTop: 4 }}>
+        <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 14, color: 'var(--text-secondary)', marginTop: 4 }}>
           {isEditingDraft
             ? 'Continue where you left off, then assign it or save it again.'
             : (currentUser.role === ROLES.EMPLOYEE ? 'Create a task for yourself — your team lead or manager will need to approve it first' : 'Assign a task to a member of your team')}
@@ -256,8 +256,8 @@ export default function CreateTask() {
           <div style={{ border: '1px solid var(--border)', borderRadius: 9, background: '#FFFFFF', padding: subtasks.length ? '4px 15px' : 0 }}>
             {subtasks.map((s) => (
               <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0', borderBottom: '1px solid var(--border)' }}>
-                <span style={{ flex: 1, fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 15.5, color: 'var(--text-primary)' }}>{s.title}</span>
-                <span onClick={() => removeSubtask(s.id)} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 14, color: 'var(--text-muted)', cursor: 'pointer' }}>Remove</span>
+                <span style={{ flex: 1, fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13.5, color: 'var(--text-primary)' }}>{s.title}</span>
+                <span onClick={() => removeSubtask(s.id)} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12, color: 'var(--text-muted)', cursor: 'pointer' }}>Remove</span>
               </div>
             ))}
           </div>
@@ -270,7 +270,7 @@ export default function CreateTask() {
         </Field>
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 26, flexWrap: 'wrap', gap: 10 }}>
-          <span onClick={() => navigate('/drafts')} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 14.5, color: 'var(--accent-dark)', cursor: 'pointer' }}>
+          <span onClick={() => navigate('/drafts')} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12.5, color: 'var(--accent-dark)', cursor: 'pointer' }}>
             View drafts
           </span>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
@@ -283,7 +283,7 @@ export default function CreateTask() {
 
       {showDiscardConfirm && (
         <Modal title="Discard changes?" onClose={() => setShowDiscardConfirm(false)}>
-          <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 15.5, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+          <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13.5, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
             You have unsaved changes on this task. If you leave now, they'll be lost.
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 22 }}>
@@ -297,5 +297,5 @@ export default function CreateTask() {
 }
 
 function ErrorText({ children }) {
-  return <div style={{ marginTop: 6, fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 14, color: 'var(--amber-text)' }}>{children}</div>;
+  return <div style={{ marginTop: 6, fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12, color: 'var(--amber-text)' }}>{children}</div>;
 }

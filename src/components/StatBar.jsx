@@ -38,10 +38,10 @@ export default function StatBar({ items }) {
           {item.icon}
           <div>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-              <span style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 24, color: 'var(--heading)', lineHeight: 1 }}>{item.value}</span>
-              {item.badge && <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 13.5, color: 'var(--accent-dark)' }}>{item.badge}</span>}
+              <span style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 22, color: 'var(--heading)', lineHeight: 1 }}>{item.value}</span>
+              {item.badge && <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11.5, color: 'var(--accent-dark)' }}>{item.badge}</span>}
             </div>
-            <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 14, color: 'var(--text-secondary)', marginTop: 3 }}>{item.label}</div>
+            <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12, color: 'var(--text-secondary)', marginTop: 3 }}>{item.label}</div>
           </div>
         </div>
       ))}

@@ -71,8 +71,8 @@ export default function ManagerDashboard() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
       <div>
-        <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 26, color: 'var(--heading)' }}>Welcome to today's update, {currentUser.name}</div>
-        <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 16, color: 'var(--text-secondary)', marginTop: 4 }}>
+        <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 24, color: 'var(--heading)' }}>Welcome to today's update, {currentUser.name}</div>
+        <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 14, color: 'var(--text-secondary)', marginTop: 4 }}>
           {department?.name || 'Department'} — {deptTeams.length} team{deptTeams.length === 1 ? '' : 's'}
         </div>
       </div>
@@ -80,12 +80,12 @@ export default function ManagerDashboard() {
       <StatBar items={defaultStatItems(stats, 'Total Tasks')} />
 
       <Card padded={false}>
-        <div style={{ padding: '22px 26px 4px', fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 17.5, color: 'var(--heading)' }}>Team performance</div>
+        <div style={{ padding: '22px 26px 4px', fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 15.5, color: 'var(--heading)' }}>Team performance</div>
         <div style={{ overflowX: 'auto' }}>
           <div style={{ minWidth: 720 }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr 1fr 1fr 1fr 1.2fr', padding: '12px 26px', marginTop: 12, background: 'var(--field-bg)' }}>
               {['Team', 'Team Lead', 'Total Tasks', 'Completed', 'In Progress', 'Completion Rate'].map((h) => (
-                <div key={h} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 13.5, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>{h}</div>
+                <div key={h} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11.5, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>{h}</div>
               ))}
             </div>
             {teamRows.map((row, i) => (
@@ -94,16 +94,16 @@ export default function ManagerDashboard() {
                 onClick={() => navigate(`/tasks?team=${row.team.id}`)}
                 style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr 1fr 1fr 1fr 1.2fr', padding: '15px 26px', alignItems: 'center', borderTop: '1px solid var(--border)', borderBottom: i === teamRows.length - 1 ? '1px solid var(--border)' : 'none', cursor: 'pointer' }}
               >
-                <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 15.5, color: 'var(--text-primary)' }}>{row.team.name}</div>
-                <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 15.5, color: 'var(--text-secondary)' }}>{row.lead?.name}</div>
-                <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 15.5, color: 'var(--heading)' }}>{row.total}</div>
-                <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 15.5, color: 'var(--heading)' }}>{row.completed}</div>
-                <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 15.5, color: 'var(--heading)' }}>{row.inProgress}</div>
+                <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 13.5, color: 'var(--text-primary)' }}>{row.team.name}</div>
+                <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13.5, color: 'var(--text-secondary)' }}>{row.lead?.name}</div>
+                <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 13.5, color: 'var(--heading)' }}>{row.total}</div>
+                <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 13.5, color: 'var(--heading)' }}>{row.completed}</div>
+                <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 13.5, color: 'var(--heading)' }}>{row.inProgress}</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <div style={{ flex: 1, height: 7, borderRadius: 999, background: 'var(--track-bg)', overflow: 'hidden' }}>
                     <div style={{ width: `${row.completionRate}%`, height: '100%', borderRadius: 999, background: ['var(--accent-dark)', 'var(--accent)'][i % 2] }} />
                   </div>
-                  <span style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 15, color: 'var(--heading)', width: 34, textAlign: 'right' }}>{row.completionRate}%</span>
+                  <span style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 13, color: 'var(--heading)', width: 34, textAlign: 'right' }}>{row.completionRate}%</span>
                 </div>
               </div>
             ))}
@@ -113,12 +113,12 @@ export default function ManagerDashboard() {
 
       {overallTopPerformers.length > 0 && (
         <Card>
-          <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 17.5, color: 'var(--heading)' }}>Top performers</div>
-          <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 14.5, color: 'var(--text-muted)', marginTop: 2 }}>
+          <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 15.5, color: 'var(--heading)' }}>Top performers</div>
+          <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 12.5, color: 'var(--text-muted)', marginTop: 2 }}>
             Ranked by average marks across graded work
           </div>
 
-          <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 13.5, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-muted)', marginTop: 20 }}>
+          <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11.5, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-muted)', marginTop: 20 }}>
             {department?.name || 'Department'}-wide
           </div>
           <div className="responsive-grid" style={{ display: 'grid', '--cols': 'repeat(3, 1fr)', gap: 12, marginTop: 10 }}>
@@ -127,20 +127,20 @@ export default function ManagerDashboard() {
 
           {topPerformersByTeam.length > 0 && (
             <>
-              <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 13.5, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-muted)', marginTop: 24 }}>
+              <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11.5, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-muted)', marginTop: 24 }}>
                 By team
               </div>
               <div className="responsive-grid" style={{ display: 'grid', '--cols': `repeat(${Math.min(topPerformersByTeam.length, 2)}, 1fr)`, gap: 20, marginTop: 10 }}>
                 {topPerformersByTeam.map(({ team, top3 }) => (
                   <div key={team.id} style={{ border: '1px solid var(--border)', borderRadius: 12, padding: '14px 16px' }}>
-                    <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 15.5, color: 'var(--text-primary)', marginBottom: 10 }}>{team.name}</div>
+                    <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 13.5, color: 'var(--text-primary)', marginBottom: 10 }}>{team.name}</div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                       {top3.map((p, i) => (
                         <div key={p.user.id} onClick={() => navigate(`/tasks?assignee=${p.user.id}`)} style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
                           <RankBadge rank={i + 1} size={22} />
                           <Avatar initial={p.user.initial} size={22} />
-                          <span style={{ flex: 1, fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 15, color: 'var(--text-primary)' }}>{p.user.name}</span>
-                          <span style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 15, color: 'var(--accent-dark)' }}>{p.avgMarks}%</span>
+                          <span style={{ flex: 1, fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 13, color: 'var(--text-primary)' }}>{p.user.name}</span>
+                          <span style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 13, color: 'var(--accent-dark)' }}>{p.avgMarks}%</span>
                         </div>
                       ))}
                     </div>
@@ -154,9 +154,9 @@ export default function ManagerDashboard() {
 
       <Card padded={false}>
         <div style={{ padding: '22px 26px 4px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 17.5, color: 'var(--heading)' }}>Employee workload</div>
+          <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 15.5, color: 'var(--heading)' }}>Employee workload</div>
           <div onClick={() => navigate('/daily-updates')} style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
-            <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 15, color: 'var(--accent-dark)' }}>Daily updates</span>
+            <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 13, color: 'var(--accent-dark)' }}>Daily updates</span>
             <IconArrowRight size={13} />
           </div>
         </div>
@@ -164,7 +164,7 @@ export default function ManagerDashboard() {
           <div style={{ minWidth: 760 }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr 1fr 1fr 1fr', padding: '12px 26px', marginTop: 12, background: 'var(--field-bg)' }}>
               {['Employee', 'Team', 'Role', 'Assigned', 'Completed'].map((h) => (
-                <div key={h} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 13.5, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>{h}</div>
+                <div key={h} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11.5, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>{h}</div>
               ))}
             </div>
             {workload.map((row, i) => (
@@ -175,12 +175,12 @@ export default function ManagerDashboard() {
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <Avatar initial={row.user.initial} size={24} />
-                  <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 15.5, color: 'var(--text-primary)' }}>{row.user.name}</span>
+                  <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 13.5, color: 'var(--text-primary)' }}>{row.user.name}</span>
                 </div>
-                <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 15, color: 'var(--text-secondary)' }}>{row.teamName.replace("'s Team", '')}</div>
-                <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 15, color: 'var(--text-secondary)' }}>{row.user.title}</div>
-                <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 15.5, color: 'var(--heading)' }}>{row.assigned}</div>
-                <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 15.5, color: 'var(--heading)' }}>{row.completed}</div>
+                <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13, color: 'var(--text-secondary)' }}>{row.teamName.replace("'s Team", '')}</div>
+                <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13, color: 'var(--text-secondary)' }}>{row.user.title}</div>
+                <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 13.5, color: 'var(--heading)' }}>{row.assigned}</div>
+                <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 13.5, color: 'var(--heading)' }}>{row.completed}</div>
               </div>
             ))}
           </div>
@@ -189,10 +189,10 @@ export default function ManagerDashboard() {
 
       <div className="responsive-grid" style={{ display: 'grid', '--cols': '1fr 1fr', gap: 20 }}>
         <Card>
-          <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 17.5, color: 'var(--heading)' }}>Overdue tasks</div>
+          <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 15.5, color: 'var(--heading)' }}>Overdue tasks</div>
           <div style={{ display: 'flex', flexDirection: 'column', marginTop: 14 }}>
             {overdueTasks.length === 0 && (
-              <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontSize: 15.5, color: 'var(--text-muted)', padding: '11px 0' }}>Nothing overdue right now.</div>
+              <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontSize: 13.5, color: 'var(--text-muted)', padding: '11px 0' }}>Nothing overdue right now.</div>
             )}
             {overdueTasks.map((task) => {
               const team = teams.find((tm) => tm.id === task.teamId);
@@ -201,8 +201,8 @@ export default function ManagerDashboard() {
                 <div key={task.id} onClick={() => navigate(`/tasks/${task.id}`)} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '11px 0', borderTop: '1px solid var(--border)', cursor: 'pointer' }}>
                   <IconAlertTriangle size={16} />
                   <div>
-                    <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 15.5, color: 'var(--text-primary)' }}>{task.title}</div>
-                    <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 14, color: 'var(--text-muted)', marginTop: 2 }}>
+                    <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 13.5, color: 'var(--text-primary)' }}>{task.title}</div>
+                    <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
                       {team?.name} · {daysOver} day{daysOver === 1 ? '' : 's'} overdue
                     </div>
                   </div>
@@ -213,13 +213,13 @@ export default function ManagerDashboard() {
         </Card>
 
         <Card>
-          <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 17.5, color: 'var(--heading)' }}>Recent department activity</div>
+          <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 15.5, color: 'var(--heading)' }}>Recent department activity</div>
           <div style={{ display: 'flex', flexDirection: 'column', marginTop: 14 }}>
-            {deptActivity.length === 0 && <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontSize: 15.5, color: 'var(--text-muted)', padding: '11px 0' }}>Nothing yet.</div>}
+            {deptActivity.length === 0 && <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontSize: 13.5, color: 'var(--text-muted)', padding: '11px 0' }}>Nothing yet.</div>}
             {deptActivity.map((item) => (
               <div key={item.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '11px 0', borderTop: '1px solid var(--border)' }}>
                 {item.type === 'completed' ? <IconCheckCircle size={16} color="var(--accent-dark)" /> : item.type === 'update' ? <IconUser size={16} color="var(--amber-text)" /> : <IconPlusCircle size={16} color="var(--accent)" />}
-                <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 15.5, color: 'var(--text-primary)' }}>{item.text}</div>
+                <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13.5, color: 'var(--text-primary)' }}>{item.text}</div>
               </div>
             ))}
           </div>
@@ -228,15 +228,15 @@ export default function ManagerDashboard() {
 
       {trend.length > 0 && (
         <Card>
-          <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 17.5, color: 'var(--heading)', marginBottom: 18 }}>Completion trend</div>
+          <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 15.5, color: 'var(--heading)', marginBottom: 18 }}>Completion trend</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             {trend.map((week) => (
               <div key={week.label} style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                <div style={{ width: 110, flexShrink: 0, fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 15, color: 'var(--text-primary)' }}>{week.label}</div>
+                <div style={{ width: 110, flexShrink: 0, fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 13, color: 'var(--text-primary)' }}>{week.label}</div>
                 <div style={{ flex: 1, height: 8, borderRadius: 999, background: 'var(--track-bg)', overflow: 'hidden' }}>
                   <div style={{ width: `${week.pct}%`, height: '100%', borderRadius: 999, background: 'var(--accent)' }} />
                 </div>
-                <div style={{ width: 38, textAlign: 'right', fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 15, color: 'var(--heading)' }}>{week.pct}%</div>
+                <div style={{ width: 38, textAlign: 'right', fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 13, color: 'var(--heading)' }}>{week.pct}%</div>
               </div>
             ))}
           </div>
@@ -277,12 +277,12 @@ function PerformerCard({ rank, performer, onClick }) {
       <RankBadge rank={rank} size={28} />
       <Avatar initial={performer.user.initial} size={38} />
       <div>
-        <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 15.5, color: 'var(--text-primary)' }}>{performer.user.name}</div>
-        <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 14, color: 'var(--text-muted)', marginTop: 2 }}>{performer.teamName}</div>
+        <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 13.5, color: 'var(--text-primary)' }}>{performer.user.name}</div>
+        <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>{performer.teamName}</div>
       </div>
       <div>
-        <span style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 22, color: 'var(--accent-dark)' }}>{performer.avgMarks}%</span>
-        <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13.5, color: 'var(--text-muted)' }}>
+        <span style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 20, color: 'var(--accent-dark)' }}>{performer.avgMarks}%</span>
+        <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 11.5, color: 'var(--text-muted)' }}>
           avg · {performer.gradedCount} graded
         </div>
       </div>

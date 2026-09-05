@@ -43,7 +43,7 @@ export default function Header({ onMenuClick }) {
         </button>
         <div style={{ display: 'flex', alignItems: 'center', gap: 11, cursor: 'pointer', minWidth: 0 }} onClick={() => navigate(roleHome(currentUser.role))}>
           <IconLogo size={34} />
-          <span className="header-brand-text" style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 20, letterSpacing: '-0.01em', color: 'var(--heading)', whiteSpace: 'nowrap' }}>TMS</span>
+          <span className="header-brand-text" style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 18, letterSpacing: '-0.01em', color: 'var(--heading)', whiteSpace: 'nowrap' }}>TMS</span>
         </div>
       </div>
 
@@ -58,7 +58,7 @@ export default function Header({ onMenuClick }) {
               <span style={{
                 position: 'absolute', top: 3, right: 3, minWidth: 15, height: 15, borderRadius: 999, background: 'var(--amber-fill)',
                 border: '1.5px solid #FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11.5, color: '#FFFFFF', padding: '0 3px',
+                fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 9.5, color: '#FFFFFF', padding: '0 3px',
               }}>
                 {unreadCount > 9 ? '9+' : unreadCount}
               </span>
@@ -72,15 +72,15 @@ export default function Header({ onMenuClick }) {
               borderRadius: 10, boxShadow: '0 10px 28px -12px rgba(59,30,112,0.25)', width: 340, maxWidth: 'calc(100vw - 24px)', maxHeight: 420, overflowY: 'auto', zIndex: 20,
             }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderBottom: '1px solid var(--border)' }}>
-                <span style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 15.5, color: 'var(--heading)' }}>Notifications</span>
+                <span style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 13.5, color: 'var(--heading)' }}>Notifications</span>
                 {unreadCount > 0 && (
-                  <span onClick={() => markAllNotificationsRead()} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 14, color: 'var(--accent-dark)', cursor: 'pointer' }}>
+                  <span onClick={() => markAllNotificationsRead()} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12, color: 'var(--accent-dark)', cursor: 'pointer' }}>
                     Mark all read
                   </span>
                 )}
               </div>
               {notifications.length === 0 && (
-                <div style={{ padding: '24px 16px', textAlign: 'center', fontFamily: "'Manrope',system-ui,sans-serif", fontSize: 15, color: 'var(--text-muted)' }}>
+                <div style={{ padding: '24px 16px', textAlign: 'center', fontFamily: "'Manrope',system-ui,sans-serif", fontSize: 13, color: 'var(--text-muted)' }}>
                   No notifications yet.
                 </div>
               )}
@@ -95,8 +95,8 @@ export default function Header({ onMenuClick }) {
                 >
                   {(NOTIFICATION_ICON[n.type] || NOTIFICATION_ICON.assigned)('var(--accent-dark)')}
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: n.read ? 500 : 700, fontSize: 15, color: 'var(--text-primary)', lineHeight: 1.4 }}>{n.text}</div>
-                    <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13, color: 'var(--text-muted)', marginTop: 2 }}>{formatDate(n.createdAt)}</div>
+                    <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: n.read ? 500 : 700, fontSize: 13, color: 'var(--text-primary)', lineHeight: 1.4 }}>{n.text}</div>
+                    <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{formatDate(n.createdAt)}</div>
                   </div>
                 </div>
               ))}
@@ -107,8 +107,8 @@ export default function Header({ onMenuClick }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 9, cursor: 'pointer' }} onClick={() => { setProfileOpen((v) => !v); setNotifOpen(false); }}>
           <Avatar initial={currentUser.initial} size={32} />
           <div className="header-user-text" style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>
-            <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 15.5, color: 'var(--text-primary)' }}>{currentUser.name}</span>
-            {currentUser.title && <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13, color: 'var(--text-muted)' }}>{currentUser.title}</span>}
+            <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 13.5, color: 'var(--text-primary)' }}>{currentUser.name}</span>
+            {currentUser.title && <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 11, color: 'var(--text-muted)' }}>{currentUser.title}</span>}
           </div>
         </div>
       </div>

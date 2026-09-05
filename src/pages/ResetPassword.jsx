@@ -37,18 +37,18 @@ export default function ResetPassword() {
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, marginBottom: 32 }}>
           <IconLogo size={46} />
           <div style={{ textAlign: 'center' }}>
-            <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 26, color: 'var(--heading)' }}>Choose a new password</div>
+            <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 24, color: 'var(--heading)' }}>Choose a new password</div>
           </div>
         </div>
 
         <div style={{ background: '#FFFFFF', border: '1px solid var(--border)', borderRadius: 14, boxShadow: 'var(--card-shadow)', padding: '26px 24px' }}>
           {!token ? (
-            <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontSize: 15.5, color: 'var(--amber-text)' }}>
+            <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontSize: 13.5, color: 'var(--amber-text)' }}>
               This reset link is missing its token. Request a new one from the sign-in page.
             </div>
           ) : done ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontSize: 15.5, color: 'var(--text-secondary)' }}>Your password has been reset.</div>
+              <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontSize: 13.5, color: 'var(--text-secondary)' }}>Your password has been reset.</div>
               <Button variant="primary" style={{ justifyContent: 'center' }} onClick={() => navigate('/')}>Go to sign in</Button>
             </div>
           ) : (
@@ -59,7 +59,7 @@ export default function ResetPassword() {
               <Field label="Confirm new password" required>
                 <TextInput value={confirm} onChange={setConfirm} placeholder="Repeat the password" type="password" />
               </Field>
-              {error && <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 14.5, color: 'var(--amber-text)' }}>{error}</div>}
+              {error && <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12.5, color: 'var(--amber-text)' }}>{error}</div>}
               <Button variant="primary" style={{ justifyContent: 'center' }} onClick={handleSubmit} disabled={submitting}>
                 {submitting ? 'Resetting…' : 'Reset password'}
               </Button>

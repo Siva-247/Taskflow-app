@@ -104,7 +104,7 @@ export default function DatePicker({ value, onChange, min, placeholder = 'Select
           boxShadow: open ? '0 0 0 3px rgba(186,85,211,0.35)' : 'none', transition: 'box-shadow 150ms ease, border-color 150ms ease',
         }}
       >
-        <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 15.5, color: value ? 'var(--accent-dark)' : 'var(--text-muted)' }}>
+        <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13.5, color: value ? 'var(--accent-dark)' : 'var(--text-muted)' }}>
           {value ? formatDisplay(value) : placeholder}
         </span>
         <svg width="18" height="18" viewBox="0 0 20 20" fill="none" style={{ flexShrink: 0 }}>
@@ -122,7 +122,7 @@ export default function DatePicker({ value, onChange, min, placeholder = 'Select
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
             <button type="button" onClick={() => goMonth(-1)} style={navBtnStyle}>‹</button>
-            <span style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 14, color: 'var(--heading)' }}>
+            <span style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 12, color: 'var(--heading)' }}>
               {MONTHS[viewMonth]} {viewYear}
             </span>
             <button type="button" onClick={() => goMonth(1)} style={navBtnStyle}>›</button>
@@ -130,7 +130,7 @@ export default function DatePicker({ value, onChange, min, placeholder = 'Select
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 2, marginBottom: 4 }}>
             {WEEKDAYS.map((w) => (
-              <div key={w} style={{ textAlign: 'center', fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 10.5, color: 'var(--text-muted)', padding: '4px 0' }}>{w}</div>
+              <div key={w} style={{ textAlign: 'center', fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 8.5, color: 'var(--text-muted)', padding: '4px 0' }}>{w}</div>
             ))}
           </div>
 
@@ -150,7 +150,7 @@ export default function DatePicker({ value, onChange, min, placeholder = 'Select
                     background: isSelected ? 'var(--date-accent)' : 'transparent',
                     color: disabledDay ? 'var(--text-muted)' : isSelected ? '#FFFFFF' : 'var(--text-primary)',
                     opacity: c.muted ? 0.35 : 1, cursor: disabledDay ? 'not-allowed' : 'pointer',
-                    fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: isSelected || isToday ? 700 : 500, fontSize: 13,
+                    fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: isSelected || isToday ? 700 : 500, fontSize: 11,
                     transition: 'background 120ms ease',
                   }}
                   onMouseEnter={(e) => { if (!disabledDay && !isSelected) e.currentTarget.style.background = 'rgba(186,85,211,0.3)'; }}
@@ -174,9 +174,9 @@ export default function DatePicker({ value, onChange, min, placeholder = 'Select
 
 const navBtnStyle = {
   width: 24, height: 24, borderRadius: 6, border: 'none', background: 'transparent', cursor: 'pointer',
-  fontSize: 16, color: 'var(--accent-dark)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+  fontSize: 14, color: 'var(--accent-dark)', display: 'flex', alignItems: 'center', justifyContent: 'center',
 };
 
 const linkStyle = {
-  fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12.5, color: 'var(--accent-dark)', cursor: 'pointer',
+  fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 10.5, color: 'var(--accent-dark)', cursor: 'pointer',
 };
