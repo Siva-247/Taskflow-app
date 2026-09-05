@@ -115,7 +115,7 @@ export default function SignUp() {
               </Field>
             )}
             <Field label="Email" required>
-              <TextInput value={email} onChange={setEmail} placeholder="you@company.com" />
+              <TextInput value={email} onChange={setEmail} placeholder="you.company@gmail.com" />
             </Field>
             <Field label="Password" required>
               <TextInput value={password} onChange={setPassword} placeholder="At least 8 characters" type="password" />

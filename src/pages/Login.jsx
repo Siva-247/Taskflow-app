@@ -68,7 +68,7 @@ export default function Login() {
           {mode === 'login' ? (
             <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <Field label="Email" required>
-                <TextInput value={email} onChange={setEmail} placeholder="you@company.com" />
+                <TextInput value={email} onChange={setEmail} placeholder="you.company@gmail.com" />
               </Field>
               <Field label="Password" required>
                 <TextInput value={password} onChange={setPassword} placeholder="••••••••" type="password" />
@@ -94,7 +94,7 @@ export default function Login() {
               {!resetSent ? (
                 <>
                   <Field label="Email" required>
-                    <TextInput value={email} onChange={setEmail} placeholder="you@company.com" />
+                    <TextInput value={email} onChange={setEmail} placeholder="you.company@gmail.com" />
                   </Field>
                   {error && <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 14.5, color: 'var(--amber-text)' }}>{error}</div>}
                   <Button variant="primary" style={{ justifyContent: 'center' }} onClick={handleForgot} disabled={submitting}>
