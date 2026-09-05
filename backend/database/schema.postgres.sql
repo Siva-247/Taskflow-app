@@ -41,6 +41,15 @@ CREATE TABLE IF NOT EXISTS users (
   seq BIGSERIAL
 );
 
+-- Added after `teams` and `users` already existed live, so CREATE TABLE IF
+-- NOT EXISTS alone (a no-op there) wouldn't apply it — runs every time this
+-- file is applied, itself a no-op once the column is already present. Must
+-- come after `users` is created (it references users(id)). Unlike `lead_id`
+-- (a legacy plain column with no FK), this one gets a real FK — one
+-- Assistant Manager per team, the same granularity as a team's lead,
+-- sitting between the team's lead and the department's one manager.
+ALTER TABLE teams ADD COLUMN IF NOT EXISTS assistant_manager_id TEXT REFERENCES users(id);
+
 -- Short-lived, single-use tokens for the forgot-password flow. token_hash is
 -- a plain SHA-256 digest (not bcrypt) — the raw token already has enough
 -- entropy that a fast deterministic lookup is correct here, unlike a password.

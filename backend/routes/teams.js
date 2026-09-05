@@ -2,12 +2,12 @@ import { Router } from 'express';
 import { prepare } from '../database/db.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
 import { asyncRoute } from '../middleware/asyncRoute.js';
-import { scopeTeams } from '../database/helpers.js';
+import { scopeTeams } from '../database/hierarchy.js';
 
 const router = Router();
 router.use(requireAuth);
 
-const SELECT_TEAM = `SELECT id, name, department_id as "departmentId", lead_id as "leadId" FROM teams`;
+const SELECT_TEAM = `SELECT id, name, department_id as "departmentId", lead_id as "leadId", assistant_manager_id as "assistantManagerId" FROM teams`;
 
 router.get('/', asyncRoute(async (req, res) => {
   const all = await prepare(`${SELECT_TEAM} ORDER BY seq ASC`).all();
@@ -22,7 +22,7 @@ function slugify(name) {
 // (adding a team lead) already creates its own brand-new team bundled with
 // that person, so this exists for the cases that leaves uncovered: a
 // pre-staffed placeholder, or replacing an empty team removed elsewhere.
-router.post('/', requireRole('admin'), asyncRoute(async (req, res) => {
+router.post('/', requireRole('admin', 'super_admin'), asyncRoute(async (req, res) => {
   const name = (req.body.name || '').trim();
   const departmentId = req.body.departmentId;
   if (!name) return res.status(400).json({ error: 'Team name is required' });
@@ -44,7 +44,7 @@ router.post('/', requireRole('admin'), asyncRoute(async (req, res) => {
   res.status(201).json({ team });
 }));
 
-router.patch('/:id', requireRole('admin'), asyncRoute(async (req, res) => {
+router.patch('/:id', requireRole('admin', 'super_admin'), asyncRoute(async (req, res) => {
   const existing = await prepare('SELECT id FROM teams WHERE id = ?').get(req.params.id);
   if (!existing) return res.status(404).json({ error: 'Team not found' });
 
@@ -61,7 +61,7 @@ router.patch('/:id', requireRole('admin'), asyncRoute(async (req, res) => {
 // than the team's own lead_id column, since lead_id carries no foreign key
 // and can be left holding a stale id after that person's account is
 // deleted, which would otherwise look like an occupied team forever.
-router.delete('/:id', requireRole('admin'), asyncRoute(async (req, res) => {
+router.delete('/:id', requireRole('admin', 'super_admin'), asyncRoute(async (req, res) => {
   const existing = await prepare('SELECT id FROM teams WHERE id = ?').get(req.params.id);
   if (!existing) return res.status(404).json({ error: 'Team not found' });
 

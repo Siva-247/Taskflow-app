@@ -14,7 +14,7 @@ function slugify(name) {
   return name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-+|-+$)/g, '');
 }
 
-router.post('/', requireRole('admin'), asyncRoute(async (req, res) => {
+router.post('/', requireRole('admin', 'super_admin'), asyncRoute(async (req, res) => {
   const name = (req.body.name || '').trim();
   if (!name) return res.status(400).json({ error: 'Name is required' });
 
@@ -30,7 +30,7 @@ router.post('/', requireRole('admin'), asyncRoute(async (req, res) => {
   res.status(201).json({ department: { id, name } });
 }));
 
-router.patch('/:id', requireRole('admin'), asyncRoute(async (req, res) => {
+router.patch('/:id', requireRole('admin', 'super_admin'), asyncRoute(async (req, res) => {
   const existing = await prepare('SELECT * FROM departments WHERE id = ?').get(req.params.id);
   if (!existing) return res.status(404).json({ error: 'Department not found' });
 
@@ -44,7 +44,7 @@ router.patch('/:id', requireRole('admin'), asyncRoute(async (req, res) => {
 // Deletion is blocked while the department still has teams or users on it —
 // there's no cascade here (a department going away shouldn't silently orphan
 // or destroy people's accounts and history), so it must be emptied first.
-router.delete('/:id', requireRole('admin'), asyncRoute(async (req, res) => {
+router.delete('/:id', requireRole('admin', 'super_admin'), asyncRoute(async (req, res) => {
   const existing = await prepare('SELECT * FROM departments WHERE id = ?').get(req.params.id);
   if (!existing) return res.status(404).json({ error: 'Department not found' });
 

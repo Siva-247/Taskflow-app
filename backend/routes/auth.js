@@ -4,6 +4,7 @@ import { prepare } from '../database/db.js';
 import { createToken } from '../auth/tokens.js';
 import { hashPassword, verifyPassword } from '../auth/passwords.js';
 import { insertGlobalActivity, slugify } from '../database/helpers.js';
+import { SUPER_ADMIN_ID } from '../database/hierarchy.js';
 import { requireAuth } from '../middleware/auth.js';
 import { asyncRoute } from '../middleware/asyncRoute.js';
 import { isEmailConfigured, sendPasswordResetEmail } from '../email/mailer.js';
@@ -31,7 +32,7 @@ function normalizeEmail(raw) {
 // Lead", "Sivakavitha Intern") — strip those role/title words (longest
 // phrases first, so "team lead" doesn't leave a stray "team" behind) so the
 // bare name still matches the seeded identity underneath.
-const ROLE_WORDS = ['department head', 'team lead', 'lead', 'manager', 'developer', 'intern', 'employee', 'admin'];
+const ROLE_WORDS = ['department head', 'assistant manager', 'team lead', 'lead', 'manager', 'developer', 'intern', 'employee', 'admin'];
 function stripRoleWords(rawName) {
   let cleaned = ` ${rawName} `;
   for (const word of ROLE_WORDS) {
@@ -49,11 +50,14 @@ function nameCandidates(rawName) {
 // stored (team leads/employees/interns all share the `title` column for
 // finer distinctions the `role` column alone doesn't carry).
 //
-// Deliberately NO 'admin' entry: admin is never claimable through public
-// signup, no matter what a request claims — see setup-admin.mjs for how the
-// one seeded admin account actually gets real credentials.
+// Deliberately NO 'admin' and NO 'super_admin' entry: admin is never
+// claimable through public signup (see setup-admin.mjs for the one seeded
+// admin account), and Super Admin is never claimable at all — its
+// credentials come only from .env, provisioned by
+// database/seed-super-admin.mjs, never through this form.
 const ROLE_DROPDOWN = {
   manager: { role: 'manager', label: 'Manager' },
+  'assistant-manager': { role: 'assistant_manager', label: 'Assistant Manager' },
   lead: { role: 'team_lead', label: 'Team Lead' },
   employee: { role: 'employee', excludeTitle: 'Intern', label: 'Employee' },
   intern: { role: 'employee', title: 'Intern', label: 'Intern' },
@@ -67,6 +71,7 @@ function roleMatches(user, roleConfig) {
 }
 
 function describeRole(user) {
+  if (user.role === 'super_admin') return 'Super Admin';
   if (user.role === 'admin') return 'Admin';
   if (user.role === 'employee') return user.title === 'Intern' ? 'Intern' : 'Employee';
   const found = Object.values(ROLE_DROPDOWN).find((r) => r.role === user.role);
@@ -178,6 +183,21 @@ router.post('/login', asyncRoute(async (req, res) => {
   const email = normalizeEmail(req.body.email);
   const { password } = req.body;
   if (!email || !password) return res.status(400).json({ error: 'Email and password are required' });
+
+  // Super Admin is checked before the database at all, and this branch
+  // always returns here — success or "Incorrect password" — never falling
+  // through to the normal lookup below. Its credentials live only in
+  // .env (SUPER_ADMIN_EMAIL/SUPER_ADMIN_PASSWORD), never in password_hash,
+  // so falling through would just fail anyway, but the explicit return
+  // means that's guaranteed rather than incidental.
+  const superAdminEmail = normalizeEmail(process.env.SUPER_ADMIN_EMAIL);
+  if (superAdminEmail && email === superAdminEmail) {
+    if (password !== process.env.SUPER_ADMIN_PASSWORD) {
+      return res.status(401).json({ error: 'Incorrect password' });
+    }
+    const token = createToken(SUPER_ADMIN_ID);
+    return res.json({ token, user: await publicUser(SUPER_ADMIN_ID) });
+  }
 
   const row = await prepare('SELECT * FROM users WHERE LOWER(email) = LOWER(?)').get(email);
   // Split on purpose, per product request — this does mean the login form

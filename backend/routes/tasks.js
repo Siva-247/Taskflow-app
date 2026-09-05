@@ -2,10 +2,10 @@ import { Router } from 'express';
 import { randomUUID } from 'node:crypto';
 import { prepare } from '../database/db.js';
 import { STATUS, TODAY } from '../database/constants.js';
+import { getTask, getGlobalActivity, insertTaskEvent, insertGlobalActivity, userName, insertNotification } from '../database/helpers.js';
 import {
-  getTask, getGlobalActivity, insertTaskEvent, insertGlobalActivity, userName,
-  scopeTasks, userCanAccessTask, userCanReview, userCanApproveCreation, validateAssignee, insertNotification, teamLeadId, managerIdForDepartment,
-} from '../database/helpers.js';
+  scopeTasks, canAccessTask, canManageTask, canReviewTask, canApproveCreationTask, validateAssignee, resolveReviewer, rankIndex,
+} from '../database/hierarchy.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
 import { asyncRoute } from '../middleware/asyncRoute.js';
 
@@ -31,11 +31,11 @@ router.get('/', asyncRoute(async (req, res) => {
 router.get('/:id', asyncRoute(async (req, res) => {
   const existing = await prepare('SELECT * FROM tasks WHERE id = ?').get(req.params.id);
   if (!existing) return res.status(404).json({ error: 'Task not found' });
-  if (!(await userCanAccessTask(req.user, existing))) return res.status(403).json({ error: 'You do not have access to this task' });
+  if (!(await canAccessTask(req.user, existing))) return res.status(403).json({ error: 'You do not have access to this task' });
   res.json({ task: await getTask(req.params.id) });
 }));
 
-router.post('/', requireRole('manager', 'team_lead', 'employee'), asyncRoute(async (req, res) => {
+router.post('/', requireRole('manager', 'assistant_manager', 'team_lead', 'employee'), asyncRoute(async (req, res) => {
   const b = req.body;
   const validation = await validateAssignee(req.user, b.assigneeId);
   if (!validation.ok) return res.status(403).json({ error: validation.error });
@@ -82,11 +82,8 @@ router.post('/', requireRole('manager', 'team_lead', 'employee'), asyncRoute(asy
     await insertTaskEvent(id, `Task created and assigned to ${assigneeName}`);
   } else if (pendingApproval) {
     await insertTaskEvent(id, `${await userName(req.user.id)} created "${b.title}" for ${assigneeName} — awaiting manager approval`);
-    await insertNotification(await managerIdForDepartment(validation.teamId), req.user.id, 'creation_pending', `${await userName(req.user.id)} needs your approval on "${b.title}"`, id);
-    // The team lead isn't the approver, but they should still know their own
-    // report is waiting on sign-off — insertNotification already no-ops when
-    // the creator IS the team lead, so this is safe to call unconditionally.
-    await insertNotification(await teamLeadId(validation.teamId), req.user.id, 'creation_pending', `${await userName(req.user.id)} requested approval on "${b.title}"`, id);
+    const reviewerId = await resolveReviewer(validation.teamId, rankIndex(req.user.role));
+    await insertNotification(reviewerId, req.user.id, 'creation_pending', `${await userName(req.user.id)} needs your approval on "${b.title}"`, id);
   } else {
     await insertTaskEvent(id, `Task created and assigned to ${assigneeName}`);
     await insertGlobalActivity('created', `${await userName(req.user.id)} assigned "${b.title}" to ${assigneeName}`, validation.teamId);
@@ -100,15 +97,13 @@ router.post('/', requireRole('manager', 'team_lead', 'employee'), asyncRoute(asy
 router.patch('/:id', asyncRoute(async (req, res) => {
   const existing = await prepare('SELECT * FROM tasks WHERE id = ?').get(req.params.id);
   if (!existing) return res.status(404).json({ error: 'Task not found' });
-  // A draft can only be edited by the person who started it. A published task
-  // can also be edited by whoever created it, by an admin, or by the manager
-  // over the department it belongs to — but never by just anyone with view
-  // access, and reassigning to a different employee only happens through a
-  // fresh draft, not by editing one that's already live.
-  const isOwner = existing.created_by === req.user.id;
-  const isAdmin = req.user.role === 'admin';
-  const isDeptManager = req.user.role === 'manager' && await userCanAccessTask(req.user, existing);
-  if (existing.status === STATUS.DRAFT ? !isOwner : !isOwner && !isAdmin && !isDeptManager) {
+  // A draft can only be edited by the person who started it. A published
+  // task can also be edited by whoever created it, or by anyone whose
+  // management scope covers its team (see hierarchy.canManageTask) — but
+  // never by just anyone with view access, and reassigning to a different
+  // person only happens through a fresh draft, not by editing one that's
+  // already live.
+  if (!(await canManageTask(req.user, existing))) {
     return res.status(403).json({ error: 'You do not have permission to edit this task' });
   }
   const b = req.body;
@@ -173,8 +168,8 @@ router.patch('/:id', asyncRoute(async (req, res) => {
   if (publishing && pendingApproval) {
     const assigneeName = await userName(merged.assigneeId);
     await insertTaskEvent(req.params.id, `${await userName(req.user.id)} created "${merged.title}" for ${assigneeName} — awaiting manager approval`);
-    await insertNotification(await managerIdForDepartment(merged.teamId), req.user.id, 'creation_pending', `${await userName(req.user.id)} needs your approval on "${merged.title}"`, req.params.id);
-    await insertNotification(await teamLeadId(merged.teamId), req.user.id, 'creation_pending', `${await userName(req.user.id)} requested approval on "${merged.title}"`, req.params.id);
+    const reviewerId = await resolveReviewer(merged.teamId, rankIndex(req.user.role));
+    await insertNotification(reviewerId, req.user.id, 'creation_pending', `${await userName(req.user.id)} needs your approval on "${merged.title}"`, req.params.id);
   } else if (publishing) {
     const assigneeName = await userName(merged.assigneeId);
     await insertTaskEvent(req.params.id, `Assigned to ${assigneeName}`);
@@ -189,10 +184,7 @@ router.patch('/:id', asyncRoute(async (req, res) => {
 router.delete('/:id', asyncRoute(async (req, res) => {
   const existing = await prepare('SELECT status, created_by, team_id FROM tasks WHERE id = ?').get(req.params.id);
   if (!existing) return res.status(404).json({ error: 'Task not found' });
-  const isOwner = existing.created_by === req.user.id;
-  const isAdmin = req.user.role === 'admin';
-  const isDeptManager = req.user.role === 'manager' && await userCanAccessTask(req.user, existing);
-  if (!isOwner && !isAdmin && !isDeptManager) return res.status(403).json({ error: 'You do not have permission to delete this task' });
+  if (!(await canManageTask(req.user, existing))) return res.status(403).json({ error: 'You do not have permission to delete this task' });
   await prepare('DELETE FROM tasks WHERE id = ?').run(req.params.id);
   res.json({ ok: true });
 }));
@@ -213,8 +205,8 @@ router.post('/:id/publish', asyncRoute(async (req, res) => {
   if (needsCreationApproval(req.user.role)) {
     await prepare('UPDATE tasks SET status = ? WHERE id = ?').run(STATUS.PENDING_APPROVAL, req.params.id);
     await insertTaskEvent(req.params.id, `${await userName(req.user.id)} created "${existing.title}" for ${assigneeName} — awaiting manager approval`);
-    await insertNotification(await managerIdForDepartment(existing.team_id), req.user.id, 'creation_pending', `${await userName(req.user.id)} needs your approval on "${existing.title}"`, req.params.id);
-    await insertNotification(await teamLeadId(existing.team_id), req.user.id, 'creation_pending', `${await userName(req.user.id)} requested approval on "${existing.title}"`, req.params.id);
+    const reviewerId = await resolveReviewer(existing.team_id, rankIndex(req.user.role));
+    await insertNotification(reviewerId, req.user.id, 'creation_pending', `${await userName(req.user.id)} needs your approval on "${existing.title}"`, req.params.id);
     return res.json({ task: await getTask(req.params.id), activity: null });
   }
 
@@ -229,7 +221,7 @@ router.post('/:id/publish', asyncRoute(async (req, res) => {
 router.post('/:id/approve-creation', asyncRoute(async (req, res) => {
   const existing = await prepare('SELECT * FROM tasks WHERE id = ?').get(req.params.id);
   if (!existing) return res.status(404).json({ error: 'Task not found' });
-  if (!(await userCanApproveCreation(req.user, existing))) return res.status(403).json({ error: 'You are not authorized to approve this task' });
+  if (!(await canApproveCreationTask(req.user, existing))) return res.status(403).json({ error: 'You are not authorized to approve this task' });
   if (existing.status !== STATUS.PENDING_APPROVAL) return res.status(400).json({ error: 'This task is not waiting on approval' });
 
   await prepare('UPDATE tasks SET status = ?, approved_by = ? WHERE id = ?').run(STATUS.TODO, req.user.id, req.params.id);
@@ -245,7 +237,7 @@ router.post('/:id/approve-creation', asyncRoute(async (req, res) => {
 router.post('/:id/reject-creation', asyncRoute(async (req, res) => {
   const existing = await prepare('SELECT * FROM tasks WHERE id = ?').get(req.params.id);
   if (!existing) return res.status(404).json({ error: 'Task not found' });
-  if (!(await userCanApproveCreation(req.user, existing))) return res.status(403).json({ error: 'You are not authorized to reject this task' });
+  if (!(await canApproveCreationTask(req.user, existing))) return res.status(403).json({ error: 'You are not authorized to reject this task' });
   if (existing.status !== STATUS.PENDING_APPROVAL) return res.status(400).json({ error: 'This task is not waiting on approval' });
 
   const reason = (req.body.reason || '').trim();
@@ -262,7 +254,7 @@ router.post('/:id/reject-creation', asyncRoute(async (req, res) => {
 router.post('/:id/reassign', asyncRoute(async (req, res) => {
   const existing = await prepare('SELECT * FROM tasks WHERE id = ?').get(req.params.id);
   if (!existing) return res.status(404).json({ error: 'Task not found' });
-  if (!(await userCanReview(req.user, existing))) return res.status(403).json({ error: 'You are not authorized to reassign this task' });
+  if (!(await canReviewTask(req.user, existing))) return res.status(403).json({ error: 'You are not authorized to reassign this task' });
   if (existing.status === STATUS.DRAFT || existing.status === STATUS.COMPLETED) {
     return res.status(400).json({ error: 'This task cannot be reassigned in its current state' });
   }
@@ -325,7 +317,7 @@ router.patch('/:id/status', asyncRoute(async (req, res) => {
 router.post('/:id/request-changes', asyncRoute(async (req, res) => {
   const existing = await prepare('SELECT * FROM tasks WHERE id = ?').get(req.params.id);
   if (!existing) return res.status(404).json({ error: 'Task not found' });
-  if (!(await userCanReview(req.user, existing))) return res.status(403).json({ error: 'You are not a reviewer for this task' });
+  if (!(await canReviewTask(req.user, existing))) return res.status(403).json({ error: 'You are not a reviewer for this task' });
 
   await prepare('UPDATE tasks SET status = ? WHERE id = ?').run(STATUS.IN_PROGRESS, req.params.id);
   await insertTaskEvent(req.params.id, 'Reviewer requested changes — back to In Progress');
@@ -347,7 +339,8 @@ router.post('/:id/submit', asyncRoute(async (req, res) => {
   await prepare('UPDATE tasks SET status = ?, progress = 100, submission_note = ? WHERE id = ?').run(STATUS.IN_REVIEW, note, req.params.id);
   await insertTaskEvent(req.params.id, 'Submitted for review');
   await insertGlobalActivity('submitted', `${await userName(existing.assignee_id)} submitted "${existing.title}" for review`, existing.team_id);
-  await insertNotification(await teamLeadId(existing.team_id), req.user.id, 'submitted', `${await userName(req.user.id)} submitted "${existing.title}" for review`, req.params.id);
+  const submitReviewerId = await resolveReviewer(existing.team_id, rankIndex(req.user.role));
+  await insertNotification(submitReviewerId, req.user.id, 'submitted', `${await userName(req.user.id)} submitted "${existing.title}" for review`, req.params.id);
 
   res.json({ task: await getTask(req.params.id), activity: await getGlobalActivity() });
 }));
@@ -355,7 +348,7 @@ router.post('/:id/submit', asyncRoute(async (req, res) => {
 router.post('/:id/approve', asyncRoute(async (req, res) => {
   const existing = await prepare('SELECT * FROM tasks WHERE id = ?').get(req.params.id);
   if (!existing) return res.status(404).json({ error: 'Task not found' });
-  if (!(await userCanReview(req.user, existing))) return res.status(403).json({ error: 'You are not a reviewer for this task' });
+  if (!(await canReviewTask(req.user, existing))) return res.status(403).json({ error: 'You are not a reviewer for this task' });
 
   await prepare('UPDATE tasks SET status = ?, progress = 100 WHERE id = ?').run(STATUS.COMPLETED, req.params.id);
   await insertTaskEvent(req.params.id, 'Approved — task completed');
@@ -383,7 +376,8 @@ router.post('/:id/request-extension', asyncRoute(async (req, res) => {
   await prepare('UPDATE tasks SET requested_due_date = ?, extension_reason = ? WHERE id = ?')
     .run(requestedDueDate, reason.trim(), req.params.id);
   await insertTaskEvent(req.params.id, `${await userName(req.user.id)} requested extending the due date to ${requestedDueDate}`);
-  await insertNotification(await teamLeadId(existing.team_id), req.user.id, 'extension_requested', `${await userName(req.user.id)} requested a due date extension on "${existing.title}"`, req.params.id);
+  const extensionReviewerId = await resolveReviewer(existing.team_id, rankIndex(req.user.role));
+  await insertNotification(extensionReviewerId, req.user.id, 'extension_requested', `${await userName(req.user.id)} requested a due date extension on "${existing.title}"`, req.params.id);
 
   res.json({ task: await getTask(req.params.id), activity: null });
 }));
@@ -391,7 +385,7 @@ router.post('/:id/request-extension', asyncRoute(async (req, res) => {
 router.post('/:id/approve-extension', asyncRoute(async (req, res) => {
   const existing = await prepare('SELECT * FROM tasks WHERE id = ?').get(req.params.id);
   if (!existing) return res.status(404).json({ error: 'Task not found' });
-  if (!(await userCanReview(req.user, existing))) return res.status(403).json({ error: 'You are not a reviewer for this task' });
+  if (!(await canReviewTask(req.user, existing))) return res.status(403).json({ error: 'You are not a reviewer for this task' });
   if (!existing.requested_due_date) return res.status(400).json({ error: 'There is no pending extension request' });
 
   const newDueDate = existing.requested_due_date;
@@ -406,7 +400,7 @@ router.post('/:id/approve-extension', asyncRoute(async (req, res) => {
 router.post('/:id/reject-extension', asyncRoute(async (req, res) => {
   const existing = await prepare('SELECT * FROM tasks WHERE id = ?').get(req.params.id);
   if (!existing) return res.status(404).json({ error: 'Task not found' });
-  if (!(await userCanReview(req.user, existing))) return res.status(403).json({ error: 'You are not a reviewer for this task' });
+  if (!(await canReviewTask(req.user, existing))) return res.status(403).json({ error: 'You are not a reviewer for this task' });
   if (!existing.requested_due_date) return res.status(400).json({ error: 'There is no pending extension request' });
 
   await prepare('UPDATE tasks SET requested_due_date = NULL, extension_reason = NULL WHERE id = ?').run(req.params.id);
@@ -419,7 +413,7 @@ router.post('/:id/reject-extension', asyncRoute(async (req, res) => {
 router.patch('/:id/marks', asyncRoute(async (req, res) => {
   const existing = await prepare('SELECT * FROM tasks WHERE id = ?').get(req.params.id);
   if (!existing) return res.status(404).json({ error: 'Task not found' });
-  if (!(await userCanReview(req.user, existing))) return res.status(403).json({ error: 'You are not a reviewer for this task' });
+  if (!(await canReviewTask(req.user, existing))) return res.status(403).json({ error: 'You are not a reviewer for this task' });
   // Grading only makes sense once there's submitted work to grade — not on a
   // task that's still To Do/In Progress, and never on a Draft.
   if (existing.status !== STATUS.IN_REVIEW && existing.status !== STATUS.COMPLETED) {
@@ -457,7 +451,7 @@ router.post('/:id/comments', asyncRoute(async (req, res) => {
   if (!text || !text.trim()) return res.status(400).json({ error: 'Comment text required' });
   const task = await prepare('SELECT * FROM tasks WHERE id = ?').get(req.params.id);
   if (!task) return res.status(404).json({ error: 'Task not found' });
-  if (!(await userCanAccessTask(req.user, task))) return res.status(403).json({ error: 'You do not have access to this task' });
+  if (!(await canAccessTask(req.user, task))) return res.status(403).json({ error: 'You do not have access to this task' });
 
   // authorId always comes from the verified session, never the request body —
   // otherwise anyone could post a comment attributed to someone else.
@@ -493,9 +487,10 @@ router.delete('/:id/comments/:commentId', asyncRoute(async (req, res) => {
   if (!comment) return res.status(404).json({ error: 'Comment not found' });
 
   const isOwner = comment.author_id === req.user.id;
-  // Admin/manager override: moderation reach follows the same scope rule as
-  // viewing the task (a manager can only moderate within their own department).
-  const isModerator = (req.user.role === 'admin' || req.user.role === 'manager') && (await userCanAccessTask(req.user, task));
+  // Moderation reach now matches review authority exactly (previously
+  // excluded team_lead even though team_lead can review/approve the same
+  // task elsewhere — an inconsistency, not deliberate policy).
+  const isModerator = await canReviewTask(req.user, task);
   if (!isOwner && !isModerator) return res.status(403).json({ error: 'You do not have permission to delete this comment' });
 
   await prepare('DELETE FROM comments WHERE id = ?').run(req.params.commentId);

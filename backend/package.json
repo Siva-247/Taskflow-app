@@ -7,7 +7,8 @@
     "start": "node server.js",
     "migrate:schema": "node database/migrate-postgres-schema.mjs",
     "migrate:data": "node database/migrate-data-to-postgres.mjs",
-    "seed": "node database/run-seed.mjs"
+    "seed": "node database/run-seed.mjs",
+    "provision:super-admin": "node database/seed-super-admin.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.114.0",

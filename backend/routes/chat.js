@@ -24,18 +24,18 @@ async function memberRows(conversationId) {
   return prepare(`SELECT u.id, u.name, u.initial, cm.last_read_at as "lastReadAt" FROM chat_members cm JOIN users u ON u.id = cm.user_id WHERE cm.conversation_id = ?`).all(conversationId);
 }
 
-// Who a person may add to a group they're creating — admin reaches anyone,
-// and admin is always reachable as a target too (admin sits outside every
-// department, so the plain department match below would otherwise never
-// let a manager or team lead pull them in); a manager or a team lead both
-// reach their whole department (every team in it, every other team lead,
-// the manager themself), not just their own team — a team lead's group can
-// pull in anyone across the department, the same reach a manager already
-// had. Deliberately not reused for DMs — anyone may DM anyone, no scoping
-// there, same as canAddToGroup isn't consulted at all on that path below.
+// Who a person may add to a group they're creating — admin/super_admin
+// reach anyone, and both are always reachable as a target too (they sit
+// outside every department, so the plain department match below would
+// otherwise never let a manager/assistant_manager/team_lead pull them in);
+// a manager, assistant_manager, or team lead all reach their whole
+// department (every team in it, every other team lead, the manager
+// themself), not just their own team — same reach a manager already had.
+// Deliberately not reused for DMs — anyone may DM anyone, no scoping there,
+// same as canAddToGroup isn't consulted at all on that path below.
 function canAddToGroup(actor, targetUser) {
-  if (actor.role === 'admin' || targetUser.role === 'admin') return true;
-  if (actor.role === 'manager' || actor.role === 'team_lead') return targetUser.department_id === actor.department_id;
+  if (['admin', 'super_admin'].includes(actor.role) || ['admin', 'super_admin'].includes(targetUser.role)) return true;
+  if (['manager', 'assistant_manager', 'team_lead'].includes(actor.role)) return targetUser.department_id === actor.department_id;
   return false;
 }
 
@@ -100,7 +100,7 @@ router.post('/conversations/:id/read', asyncRoute(async (req, res) => {
 }));
 
 router.post('/conversations/group', asyncRoute(async (req, res) => {
-  if (!['admin', 'manager', 'team_lead'].includes(req.user.role)) {
+  if (!['admin', 'super_admin', 'manager', 'assistant_manager', 'team_lead'].includes(req.user.role)) {
     return res.status(403).json({ error: 'Only an admin, manager, or team lead can create a group' });
   }
   const name = (req.body.name || '').trim();
@@ -176,7 +176,7 @@ router.post('/conversations/:id/members', asyncRoute(async (req, res) => {
   if (!conversation) return res.status(404).json({ error: 'Conversation not found' });
   if (conversation.type !== 'group') return res.status(400).json({ error: 'Only groups can have members added' });
   if (!(await isMember(req.params.id, req.user.id))) return res.status(403).json({ error: 'You are not a member of this group' });
-  if (!['admin', 'manager', 'team_lead'].includes(req.user.role)) {
+  if (!['admin', 'super_admin', 'manager', 'assistant_manager', 'team_lead'].includes(req.user.role)) {
     return res.status(403).json({ error: 'Only an admin, manager, or team lead can add members' });
   }
 
@@ -204,7 +204,7 @@ router.delete('/conversations/:id/members/:userId', asyncRoute(async (req, res) 
   // else requires the same authority that let you add them in the first place.
   const isSelf = req.params.userId === req.user.id;
   if (!isSelf) {
-    if (!['admin', 'manager', 'team_lead'].includes(req.user.role)) {
+    if (!['admin', 'super_admin', 'manager', 'assistant_manager', 'team_lead'].includes(req.user.role)) {
       return res.status(403).json({ error: 'Only an admin, manager, or team lead can remove members' });
     }
     const target = await prepare('SELECT id, role, team_id, department_id FROM users WHERE id = ?').get(req.params.userId);

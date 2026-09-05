@@ -2,7 +2,8 @@ import { Router } from 'express';
 import { randomUUID } from 'node:crypto';
 import { prepare } from '../database/db.js';
 import { TODAY } from '../database/constants.js';
-import { getGlobalActivity, insertGlobalActivity, scopeDailyUpdates } from '../database/helpers.js';
+import { getGlobalActivity, insertGlobalActivity } from '../database/helpers.js';
+import { scopeDailyUpdates } from '../database/hierarchy.js';
 import { requireAuth } from '../middleware/auth.js';
 import { asyncRoute } from '../middleware/asyncRoute.js';
 
@@ -84,7 +85,7 @@ router.patch('/:id', asyncRoute(async (req, res) => {
 router.delete('/:id', asyncRoute(async (req, res) => {
   const existing = await prepare('SELECT * FROM daily_updates WHERE id = ?').get(req.params.id);
   if (!existing) return res.status(404).json({ error: 'Daily update not found' });
-  if (req.user.role !== 'admin') {
+  if (req.user.role !== 'admin' && req.user.role !== 'super_admin') {
     if (existing.user_id !== req.user.id) return res.status(403).json({ error: 'You can only delete your own daily updates' });
     if (existing.date !== TODAY) return res.status(403).json({ error: 'You can only delete a daily update from today' });
   }

@@ -85,18 +85,6 @@ export async function insertNotification(userId, actorId, type, text, taskId) {
     .run(`note-${randomUUID()}`, userId, type, text, taskId, TODAY);
 }
 
-export async function teamLeadId(teamId) {
-  const row = await prepare('SELECT lead_id FROM teams WHERE id = ?').get(teamId);
-  return row?.lead_id || null;
-}
-
-export async function managerIdForDepartment(teamId) {
-  const team = await prepare('SELECT department_id FROM teams WHERE id = ?').get(teamId);
-  if (!team) return null;
-  const manager = await prepare("SELECT id FROM users WHERE role = 'manager' AND department_id = ?").get(team.department_id);
-  return manager?.id || null;
-}
-
 export function slugify(name) {
   return name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-+|-+$)/g, '');
 }
@@ -129,114 +117,9 @@ export async function uniqueTeamId(name) {
   return id;
 }
 
-// Mirrors the frontend's scopedTasks/scopedDailyUpdates exactly, but applied
-// server-side so a role's visibility rules hold even for direct API calls,
-// not just what the UI chooses to render.
-export async function scopeTasks(user, allTasks) {
-  if (user.role === 'admin') return allTasks;
-  if (user.role === 'manager') {
-    const teamRows = await prepare('SELECT id FROM teams WHERE department_id = ?').all(user.department_id);
-    const teamIds = teamRows.map((t) => t.id);
-    return allTasks.filter((t) => teamIds.includes(t.teamId));
-  }
-  if (user.role === 'team_lead') return allTasks.filter((t) => t.teamId === user.team_id);
-  if (user.role === 'employee') return allTasks.filter((t) => t.assigneeId === user.id);
-  return [];
-}
-
-// The company directory (GET /api/users) is scoped to one's own department —
-// needed so a manager/team lead/employee can still resolve names for their
-// own manager, team lead, and department colleagues, while another
-// department's roster (and admin, who isn't tied to a department) never
-// appears in the response at all.
-export function scopeUsers(user, allUsers) {
-  if (user.role === 'admin') return allUsers;
-  return allUsers.filter((u) => u.departmentId === user.department_id);
-}
-
-// Same department-only rule as scopeUsers — a team's name/lead is
-// department-internal directory info, not something another department's
-// manager should see just by calling the API directly.
-export function scopeTeams(user, allTeams) {
-  if (user.role === 'admin') return allTeams;
-  return allTeams.filter((t) => t.departmentId === user.department_id);
-}
-
-export async function scopeDailyUpdates(user, allUpdates) {
-  if (user.role === 'admin') return allUpdates;
-  if (user.role === 'employee') return allUpdates.filter((u) => u.userId === user.id);
-
-  const userIds = [...new Set(allUpdates.map((u) => u.userId))];
-  if (userIds.length === 0) return [];
-  const placeholders = userIds.map((_, i) => `?`).join(', ');
-  const rows = await prepare(`SELECT id, team_id, department_id FROM users WHERE id IN (${placeholders})`).all(...userIds);
-  const infoById = new Map(rows.map((r) => [r.id, r]));
-
-  if (user.role === 'manager') return allUpdates.filter((u) => infoById.get(u.userId)?.department_id === user.department_id);
-  if (user.role === 'team_lead') return allUpdates.filter((u) => infoById.get(u.userId)?.team_id === user.team_id);
-  return [];
-}
-
-// Whether `user` (a DB row) is allowed to view/comment on `task` (a raw
-// tasks-table row) — the same rule scopeTasks applies to a list, applied to one row.
-export async function userCanAccessTask(user, task) {
-  if (user.role === 'admin') return true;
-  if (user.role === 'manager') {
-    const team = await prepare('SELECT department_id FROM teams WHERE id = ?').get(task.team_id);
-    return Boolean(team && team.department_id === user.department_id);
-  }
-  if (user.role === 'team_lead') return task.team_id === user.team_id;
-  if (user.role === 'employee') return task.assignee_id === user.id;
-  return false;
-}
-
-// Whether `reviewer` (a DB row) may approve/request-changes on `task` (a raw
-// tasks-table row) — admin, the task's own team lead, or the department manager.
-export async function userCanReview(reviewer, task) {
-  if (reviewer.role === 'admin') return true;
-  if (reviewer.role === 'team_lead') return task.team_id === reviewer.team_id;
-  if (reviewer.role === 'manager') {
-    const team = await prepare('SELECT department_id FROM teams WHERE id = ?').get(task.team_id);
-    return Boolean(team && team.department_id === reviewer.department_id);
-  }
-  return false;
-}
-
-// Whether `approver` may approve/reject a newly-created task that's waiting
-// on sign-off (Pending Approval) — admin, the department manager, or the
-// task's own team lead. A team lead can't approve their own task creation
-// (that's exactly what this gate would otherwise let them rubber-stamp) —
-// only an employee's task creation opens the team-lead path.
-export async function userCanApproveCreation(approver, task) {
-  if (approver.role === 'admin') return true;
-  if (approver.role === 'manager') {
-    const team = await prepare('SELECT department_id FROM teams WHERE id = ?').get(task.team_id);
-    return Boolean(team && team.department_id === approver.department_id);
-  }
-  if (approver.role === 'team_lead') {
-    return task.team_id === approver.team_id && task.created_by !== approver.id;
-  }
-  return false;
-}
-
-// Confirms `creator` (team_lead or manager) may assign a task to `assigneeId`,
-// and returns the team the task belongs to. Used by both task creation and
-// draft edits so the rule can't be bypassed by editing a draft's assignee.
-export async function validateAssignee(creator, assigneeId) {
-  const assignee = await prepare('SELECT * FROM users WHERE id = ?').get(assigneeId);
-  if (!assignee || assignee.role !== 'employee') return { ok: false, error: 'Invalid assignee' };
-  if (!assignee.is_active) return { ok: false, error: 'This person\'s account has been deactivated' };
-  // An employee can only ever create a task for themselves — never assign
-  // work to a teammate, which stays a team lead/manager privilege.
-  if (creator.role === 'employee' && assigneeId !== creator.id) {
-    return { ok: false, error: 'You can only create tasks for yourself' };
-  }
-  if (creator.role === 'team_lead' && assignee.team_id !== creator.team_id) {
-    return { ok: false, error: 'You can only assign tasks to your own team' };
-  }
-  if (creator.role === 'manager' && assignee.department_id !== creator.department_id) {
-    return { ok: false, error: 'You can only assign tasks within your department' };
-  }
-  const teamId = creator.role === 'team_lead' ? creator.team_id : assignee.team_id;
-  return { ok: true, teamId };
-}
+// scopeTasks, scopeUsers, scopeTeams, scopeDailyUpdates, userCanAccessTask,
+// userCanReview, userCanApproveCreation, and validateAssignee all moved to
+// ../database/hierarchy.js as part of the role-hierarchy overhaul — that
+// module is now the single source of truth for every role/rank-based
+// authorization decision, replacing the near-duplicate 4-branch chains that
+// used to live here.
