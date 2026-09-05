@@ -34,7 +34,15 @@ async function apiRequest(path, options = {}, token) {
   } catch {
     throw new Error('Could not reach the backend server. Is it running on port 4000?');
   }
-  if (res.status === 401) throw new Error('__UNAUTHORIZED__');
+  if (res.status === 401) {
+    // A 401 on an authenticated call (a token was sent) means the session
+    // itself is invalid — `call` below turns that into a forced sign-out.
+    // A 401 with no token is just login/signup rejecting bad credentials,
+    // a normal error that should surface its real message like any other.
+    if (token) throw new Error('__UNAUTHORIZED__');
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error || 'Not authorized');
+  }
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     throw new Error(body.error || `Request failed (${res.status})`);
@@ -113,10 +121,11 @@ export function AppProvider({ children }) {
       writeStoredToken(result.token);
       return { ok: true, mustChangePassword: result.user.mustChangePassword, role: result.user.role };
     } catch (err) {
-      showToast(err.message || 'Could not sign in');
-      return { ok: false };
+      // Login.jsx shows this inline on the form itself — a toast alone was
+      // easy to miss and disappeared before anyone read it.
+      return { ok: false, error: err.message || 'Could not sign in' };
     }
-  }, [showToast]);
+  }, []);
 
   // Claims an existing seeded identity by name (see backend/routes/auth.js)
   // — signup never creates a new person. `role`/`departmentId` are the

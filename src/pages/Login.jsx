@@ -23,7 +23,7 @@ export default function Login() {
     setSubmitting(true);
     try {
       const result = await login(email.trim(), password);
-      if (!result.ok) { setSubmitting(false); return; }
+      if (!result.ok) { setError(result.error || 'Could not sign in'); setSubmitting(false); return; }
       navigate(result.mustChangePassword ? '/change-password' : '/dashboard');
     } finally {
       setSubmitting(false);

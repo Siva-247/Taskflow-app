@@ -180,9 +180,13 @@ router.post('/login', asyncRoute(async (req, res) => {
   if (!email || !password) return res.status(400).json({ error: 'Email and password are required' });
 
   const row = await prepare('SELECT * FROM users WHERE LOWER(email) = LOWER(?)').get(email);
-  // Same error either way — never reveal whether the email itself was the wrong part.
-  if (!row || !verifyPassword(password, row.password_hash)) {
-    return res.status(401).json({ error: 'Invalid email or password' });
+  // Split on purpose, per product request — this does mean the login form
+  // itself confirms whether an email is registered (a user-enumeration
+  // trade-off usually avoided with a single generic error), acceptable here
+  // since this is a closed internal roster, not open public signup.
+  if (!row) return res.status(401).json({ error: 'Invalid email' });
+  if (!verifyPassword(password, row.password_hash)) {
+    return res.status(401).json({ error: 'Incorrect password' });
   }
   if (!row.is_active) {
     return res.status(403).json({ error: 'This account has been deactivated. Contact your admin.' });
