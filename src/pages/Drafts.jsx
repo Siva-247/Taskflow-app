@@ -10,12 +10,12 @@ export default function Drafts() {
   const navigate = useNavigate();
   const [pendingDeleteId, setPendingDeleteId] = useState(null);
 
-  const canCreate = currentUser.role === ROLES.TEAM_LEAD || currentUser.role === ROLES.MANAGER || currentUser.role === ROLES.EMPLOYEE;
+  const canCreate = [ROLES.MANAGER, ROLES.ASSISTANT_MANAGER, ROLES.TEAM_LEAD, ROLES.EMPLOYEE].includes(currentUser.role);
   const needsApproval = currentUser.role === ROLES.TEAM_LEAD || currentUser.role === ROLES.EMPLOYEE;
 
   useEffect(() => {
     if (!canCreate) {
-      showToast('Only Team Leads, Managers, and Employees have drafts');
+      showToast('Only Managers, Assistant Managers, Team Leads, and Employees have drafts');
       navigate(roleHome(currentUser.role));
     }
   }, [canCreate]);

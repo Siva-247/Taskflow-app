@@ -6,7 +6,7 @@ import { useRoleGuard } from '../hooks/useRoleGuard.js';
 
 export default function Settings() {
   const { users, teams, departments } = useApp();
-  const allowed = useRoleGuard(ROLES.ADMIN);
+  const allowed = useRoleGuard([ROLES.SUPER_ADMIN, ROLES.ADMIN]);
   if (!allowed) return null;
 
   return (

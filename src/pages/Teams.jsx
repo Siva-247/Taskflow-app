@@ -9,9 +9,9 @@ import { useRoleGuard } from '../hooks/useRoleGuard.js';
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function Teams() {
-  const { currentUser, users, teams, departments, tasks, statsFor, addTeamLead, addTeam, editTeam, deleteTeam, editUser, resetUserPassword } = useApp();
+  const { currentUser, users, teams, departments, tasks, statsFor, addTeamLead, addTeam, editTeam, deleteTeam, editUser, resetUserPassword, addAssistantManager } = useApp();
   const navigate = useNavigate();
-  const allowed = useRoleGuard([ROLES.ADMIN, ROLES.MANAGER]);
+  const allowed = useRoleGuard([ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.MANAGER]);
 
   const [showAdd, setShowAdd] = useState(false);
   const [newName, setNewName] = useState('');
@@ -41,20 +41,28 @@ export default function Teams() {
   const [pendingDeleteTeam, setPendingDeleteTeam] = useState(null);
   const [deleteTeamError, setDeleteTeamError] = useState('');
   const [deletingTeam, setDeletingTeam] = useState(false);
+  const [addAMFor, setAddAMFor] = useState(null);
+  const [newAMName, setNewAMName] = useState('');
+  const [newAMEmail, setNewAMEmail] = useState('');
+  const [newAMPassword, setNewAMPassword] = useState('');
+  const [amSaving, setAmSaving] = useState(false);
+  const [amError, setAmError] = useState('');
+  const [createdAM, setCreatedAM] = useState(null);
 
   if (!allowed) return null;
 
-  const isAdmin = currentUser.role === ROLES.ADMIN;
+  const isAdmin = currentUser.role === ROLES.SUPER_ADMIN || currentUser.role === ROLES.ADMIN;
   const scopedTeams = isAdmin ? teams : teams.filter((t) => t.departmentId === currentUser.departmentId);
   const myDepartment = departments.find((d) => d.id === currentUser.departmentId);
 
   const rows = scopedTeams.map((team) => {
     const lead = users.find((u) => u.id === team.leadId);
+    const assistantManager = users.find((u) => u.id === team.assistantManagerId);
     const members = users.filter((u) => u.teamId === team.id && u.role === ROLES.EMPLOYEE);
     const teamTasks = tasks.filter((t) => t.teamId === team.id);
     const stats = statsFor(teamTasks);
     const completionRate = stats.total ? Math.round((stats.completed / stats.total) * 100) : 0;
-    return { team, lead, memberCount: members.length, ...stats, completionRate };
+    return { team, lead, assistantManager, memberCount: members.length, ...stats, completionRate };
   });
 
   const resetAddForm = () => {
@@ -77,6 +85,28 @@ export default function Teams() {
       // context already surfaced a toast for the failure
     } finally {
       setSaving(false);
+    }
+  };
+
+  const resetAddAM = () => {
+    setAddAMFor(null); setNewAMName(''); setNewAMEmail(''); setNewAMPassword(''); setAmError(''); setCreatedAM(null);
+  };
+
+  const handleAddAM = async () => {
+    if (!newAMName.trim()) { setAmError('Name is required.'); return; }
+    if (!EMAIL_RE.test(newAMEmail.trim())) { setAmError('Enter a valid email address.'); return; }
+    if (newAMPassword && newAMPassword.length < 8) { setAmError('Password must be at least 8 characters.'); return; }
+    setAmSaving(true);
+    try {
+      const result = await addAssistantManager({
+        name: newAMName.trim(), email: newAMEmail.trim(), teamId: addAMFor.id,
+        ...(newAMPassword ? { password: newAMPassword } : {}),
+      });
+      setCreatedAM(result);
+    } catch {
+      // context already surfaced a toast for the failure
+    } finally {
+      setAmSaving(false);
     }
   };
 
@@ -213,6 +243,32 @@ export default function Teams() {
                 )}
               </div>
 
+              {!isAdmin && (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
+                  {row.assistantManager ? (
+                    <>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <Avatar initial={row.assistantManager.initial} size={24} />
+                        <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 13, color: 'var(--text-secondary)' }}>{row.assistantManager.name} · Assistant Manager</span>
+                      </div>
+                      <div onClick={(e) => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <span onClick={() => startEdit(row.assistantManager)} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11, color: 'var(--accent-dark)', cursor: 'pointer' }}>
+                          Edit
+                        </span>
+                        <span onClick={() => setPendingPasswordReset(row.assistantManager)} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11, color: 'var(--accent-dark)', cursor: 'pointer' }}>
+                          Reset password
+                        </span>
+                      </div>
+                    </>
+                  ) : (
+                    <div onClick={(e) => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13, color: 'var(--text-muted)' }}>No assistant manager assigned yet</span>
+                      <span onClick={() => setAddAMFor(row.team)} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12.5, color: 'var(--accent-dark)', cursor: 'pointer' }}>+ Add assistant manager</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="responsive-grid" style={{ display: 'grid', '--cols': 'repeat(4,1fr)', gap: 8, marginTop: 18 }}>
                 <TeamStat value={row.total} label="Total" />
                 <TeamStat value={row.completed} label="Done" />
@@ -333,6 +389,52 @@ export default function Teams() {
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 22 }}>
             <Button variant="primary" onClick={() => setPasswordResetResult(null)}>Done</Button>
+          </div>
+        </Modal>
+      )}
+
+      {addAMFor && !createdAM && (
+        <Modal title={`Add assistant manager to ${addAMFor.name}`} onClose={resetAddAM}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <Field label="Full name" required>
+              <TextInput value={newAMName} onChange={setNewAMName} placeholder="Full name" />
+            </Field>
+            <Field label="Email" required>
+              <TextInput value={newAMEmail} onChange={setNewAMEmail} placeholder="name@company.com" />
+            </Field>
+            <Field label="Password (optional)">
+              <TextInput value={newAMPassword} onChange={setNewAMPassword} placeholder="Leave blank to auto-generate one" type="password" />
+            </Field>
+            {amError && <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12, color: 'var(--amber-text)' }}>{amError}</div>}
+            <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 12, color: 'var(--text-muted)' }}>
+              They'll oversee {addAMFor.name}, including its Team Lead. Set a password yourself if you'd rather they sign in with a real one right away — otherwise a temporary one is generated for you to hand off. Either way they'll set their own on first sign-in.
+            </div>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 22 }}>
+            <Button variant="secondary" onClick={resetAddAM}>Cancel</Button>
+            <Button variant="primary" onClick={handleAddAM} disabled={amSaving}>{amSaving ? 'Adding…' : 'Add assistant manager'}</Button>
+          </div>
+        </Modal>
+      )}
+
+      {createdAM && (
+        <Modal title={`${createdAM.user.name} was added`} onClose={resetAddAM}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontSize: 13.5, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+              {createdAM.tempPassword
+                ? "Share these sign-in details with them directly — there's no email delivery configured, so this is the only place the temporary password is shown."
+                : "They can sign in with the password you set. Here's their email for reference."}
+            </div>
+            <div style={{ padding: '14px 16px', background: 'var(--field-bg)', border: '1px dashed var(--border)', borderRadius: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <CredentialRow label="Email" value={createdAM.user.email} />
+              {createdAM.tempPassword && <CredentialRow label="Temporary password" value={createdAM.tempPassword} mono />}
+            </div>
+            <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 12, color: 'var(--text-muted)' }}>
+              They'll be required to set their own password the first time they sign in.
+            </div>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 22 }}>
+            <Button variant="primary" onClick={resetAddAM}>Done</Button>
           </div>
         </Modal>
       )}

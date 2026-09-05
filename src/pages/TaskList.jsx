@@ -37,11 +37,13 @@ export default function TaskList() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.get('status'), params.get('team'), params.get('assignee')]);
 
-  const canCreate = currentUser.role === ROLES.TEAM_LEAD || currentUser.role === ROLES.MANAGER || currentUser.role === ROLES.EMPLOYEE;
+  const canCreate = [ROLES.MANAGER, ROLES.ASSISTANT_MANAGER, ROLES.TEAM_LEAD, ROLES.EMPLOYEE].includes(currentUser.role);
 
   const scopeLabel = {
+    [ROLES.SUPER_ADMIN]: 'All tasks — company-wide',
     [ROLES.ADMIN]: 'All tasks — company-wide',
     [ROLES.MANAGER]: 'Tasks across your department',
+    [ROLES.ASSISTANT_MANAGER]: "Your team's tasks",
     [ROLES.TEAM_LEAD]: "Your team's tasks",
     [ROLES.EMPLOYEE]: 'Tasks assigned to you',
   }[currentUser.role];

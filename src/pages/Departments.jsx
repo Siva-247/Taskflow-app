@@ -9,7 +9,7 @@ import { useRoleGuard } from '../hooks/useRoleGuard.js';
 export default function Departments() {
   const { users, teams, departments, tasks, statsFor, addDepartment, editDepartment, deleteDepartment, addManager, editUser, resetUserPassword } = useApp();
   const navigate = useNavigate();
-  const allowed = useRoleGuard(ROLES.ADMIN);
+  const allowed = useRoleGuard([ROLES.SUPER_ADMIN, ROLES.ADMIN]);
 
   const [showAddDept, setShowAddDept] = useState(false);
   const [newDeptName, setNewDeptName] = useState('');

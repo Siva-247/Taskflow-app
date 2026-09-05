@@ -8,7 +8,7 @@ import {
   IconSmile, IconReply, IconDotsVertical, IconCheckDouble, IconArrowRight,
 } from '../components/icons.jsx';
 
-const CAN_CREATE_GROUP = [ROLES.ADMIN, ROLES.MANAGER, ROLES.TEAM_LEAD];
+const CAN_CREATE_GROUP = [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.MANAGER, ROLES.ASSISTANT_MANAGER, ROLES.TEAM_LEAD];
 // Mirrors the server's own enforcement in backend/socket/index.js — these
 // only drive which options the UI offers; the socket handlers are what
 // actually reject an edit/delete outside the window.
@@ -1063,8 +1063,8 @@ const composerTextareaStyle = {
 function pickableMembers(currentUser, users) {
   return users.filter((u) => {
     if (u.id === currentUser.id) return false;
-    if (currentUser.role === ROLES.ADMIN || u.role === ROLES.ADMIN) return true;
-    if (currentUser.role === ROLES.MANAGER || currentUser.role === ROLES.TEAM_LEAD) return u.departmentId === currentUser.departmentId;
+    if ([ROLES.ADMIN, ROLES.SUPER_ADMIN].includes(currentUser.role) || [ROLES.ADMIN, ROLES.SUPER_ADMIN].includes(u.role)) return true;
+    if ([ROLES.MANAGER, ROLES.ASSISTANT_MANAGER, ROLES.TEAM_LEAD].includes(currentUser.role)) return u.departmentId === currentUser.departmentId;
     return false;
   });
 }

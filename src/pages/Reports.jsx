@@ -11,7 +11,7 @@ const STATUS_OPTIONS = [STATUS.PENDING_APPROVAL, STATUS.TODO, STATUS.IN_PROGRESS
 
 export default function Reports() {
   const { currentUser, users, teams, departments, scopedTasks, bucketOf, statsFor, TODAY } = useApp();
-  const allowed = useRoleGuard([ROLES.ADMIN, ROLES.MANAGER, ROLES.TEAM_LEAD]);
+  const allowed = useRoleGuard([ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.MANAGER, ROLES.ASSISTANT_MANAGER, ROLES.TEAM_LEAD]);
 
   const [statusFilter, setStatusFilter] = useState('all');
   const [teamFilter, setTeamFilter] = useState('all');
@@ -37,8 +37,10 @@ export default function Reports() {
 
   const myDepartment = departments.find((d) => d.id === currentUser.departmentId);
   const scopeLabel = {
+    [ROLES.SUPER_ADMIN]: 'Company-wide report',
     [ROLES.ADMIN]: 'Company-wide report',
     [ROLES.MANAGER]: `${myDepartment?.name || 'Department'} report`,
+    [ROLES.ASSISTANT_MANAGER]: 'Team report',
     [ROLES.TEAM_LEAD]: 'Team report',
   }[currentUser.role];
 

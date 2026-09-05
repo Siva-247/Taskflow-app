@@ -8,24 +8,37 @@ import {
   IconEye, IconCalendar, IconChat,
 } from './icons.jsx';
 
+const ADMIN_NAV = [
+  { label: 'Dashboard', icon: IconGrid, to: '/admin' },
+  { label: 'Departments', icon: IconLayers, to: '/departments' },
+  { label: 'Employees', icon: IconUser, to: '/employees' },
+  { label: 'Teams', icon: IconUsers, to: '/teams' },
+  { label: 'All Tasks', icon: IconChecklist, to: '/tasks' },
+  { label: 'Chat', icon: IconChat, to: '/chat' },
+  { label: 'Daily Updates', icon: IconCalendar, to: '/daily-updates' },
+  { label: 'Reports', icon: IconBarChart, to: '/reports' },
+  { label: 'Settings', icon: IconGear, to: '/settings' },
+];
+
 const NAV_BY_ROLE = {
-  [ROLES.ADMIN]: [
-    { label: 'Dashboard', icon: IconGrid, to: '/admin' },
-    { label: 'Departments', icon: IconLayers, to: '/departments' },
-    { label: 'Employees', icon: IconUser, to: '/employees' },
-    { label: 'Teams', icon: IconUsers, to: '/teams' },
-    { label: 'All Tasks', icon: IconChecklist, to: '/tasks' },
-    { label: 'Chat', icon: IconChat, to: '/chat' },
-    { label: 'Daily Updates', icon: IconCalendar, to: '/daily-updates' },
-    { label: 'Reports', icon: IconBarChart, to: '/reports' },
-    { label: 'Settings', icon: IconGear, to: '/settings' },
-  ],
+  [ROLES.SUPER_ADMIN]: ADMIN_NAV,
+  [ROLES.ADMIN]: ADMIN_NAV,
   [ROLES.MANAGER]: [
     { label: 'Dashboard', icon: IconGrid, to: '/manager' },
     { label: 'Teams', icon: IconUsers, to: '/teams' },
     { label: 'Employees', icon: IconUser, to: '/employees' },
     { label: 'Tasks', icon: IconChecklist, to: '/tasks' },
     { label: 'Approvals', icon: IconEye, to: '/tasks?status=Pending+Approval' },
+    { label: 'Chat', icon: IconChat, to: '/chat' },
+    { label: 'Daily Updates', icon: IconCalendar, to: '/daily-updates' },
+    { label: 'Reports', icon: IconBarChart, to: '/reports' },
+  ],
+  [ROLES.ASSISTANT_MANAGER]: [
+    { label: 'Dashboard', icon: IconGrid, to: '/assistant-manager' },
+    { label: 'My Team', icon: IconUsers, to: '/my-team' },
+    { label: 'Tasks', icon: IconChecklist, to: '/tasks' },
+    { label: 'Approvals', icon: IconEye, to: '/tasks?status=Pending+Approval' },
+    { label: 'Reviews', icon: IconEye, to: '/tasks?status=Submitted+for+Review' },
     { label: 'Chat', icon: IconChat, to: '/chat' },
     { label: 'Daily Updates', icon: IconCalendar, to: '/daily-updates' },
     { label: 'Reports', icon: IconBarChart, to: '/reports' },

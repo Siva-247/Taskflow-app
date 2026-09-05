@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useApp } from '../context/AppContext.jsx';
 import { STATUS, ROLES, teamById } from '../data/mockData.js';
+import { canAccessTeamScope, assignableTargets } from '../data/hierarchy.js';
 import { Card, Avatar, StatusBadge, PriorityBadge, Button, Select, TextArea, TextInput, Modal } from '../components/ui.jsx';
 import DatePicker from '../components/DatePicker.jsx';
 import { IconCheck } from '../components/icons.jsx';
@@ -60,33 +61,33 @@ export default function TaskDetails() {
   const team = teamById(task.teamId);
   const department = departments.find((d) => d.id === team?.departmentId) || null;
   const isAssignee = currentUser.id === task.assigneeId;
-  const canManageTask = currentUser.id === task.createdBy || currentUser.role === ROLES.ADMIN
-    || (currentUser.role === ROLES.MANAGER && team?.departmentId === currentUser.departmentId);
-  const isReviewer = currentUser.role === ROLES.ADMIN
-    || (currentUser.role === ROLES.TEAM_LEAD && task.teamId === currentUser.teamId)
-    || (currentUser.role === ROLES.MANAGER && team?.departmentId === currentUser.departmentId);
+  // Editing authority is narrower than review authority — a Team Lead can
+  // review/approve a task but never directly edit it, same distinction as
+  // before; Assistant Manager gets the same edit rights as Manager (one
+  // rung up from Team Lead), matching hierarchy.canManageTask on the backend.
+  const canManageTask = currentUser.id === task.createdBy
+    || currentUser.role === ROLES.SUPER_ADMIN || currentUser.role === ROLES.ADMIN
+    || (currentUser.role === ROLES.MANAGER && team?.departmentId === currentUser.departmentId)
+    || (currentUser.role === ROLES.ASSISTANT_MANAGER && team?.id === currentUser.teamId);
+  // Mirrors hierarchy.canReviewTask exactly — same rank+scope shape used for
+  // viewing/reviewing/approving/reassigning/moderating this task.
+  const isReviewer = canAccessTeamScope(currentUser, team);
   const canApprove = task.status === STATUS.IN_REVIEW && isReviewer;
   // Grading only makes sense once there's submitted work to look at.
   const canGiveMarks = isReviewer && (task.status === STATUS.IN_REVIEW || task.status === STATUS.COMPLETED);
   const hasPendingExtension = Boolean(task.requestedDueDate);
   const isPendingCreationApproval = task.status === STATUS.PENDING_APPROVAL;
-  // A team lead can't approve their own task creation — only the department
-  // manager (or admin) clears one of those — but can approve one of their
-  // team's employees', mirroring the backend's userCanApproveCreation exactly.
-  const canApproveCreation = isPendingCreationApproval
-    && (currentUser.role === ROLES.ADMIN
-      || (currentUser.role === ROLES.MANAGER && team?.departmentId === currentUser.departmentId)
-      || (currentUser.role === ROLES.TEAM_LEAD && task.teamId === currentUser.teamId && task.createdBy !== currentUser.id));
+  // Nobody approves their own task creation — generalized from the old
+  // team-lead-only self-check, mirroring hierarchy.canApproveCreationTask.
+  const canApproveCreation = isPendingCreationApproval && task.createdBy !== currentUser.id && isReviewer;
   const canRequestExtension = isAssignee && !hasPendingExtension && !isPendingCreationApproval && task.status !== STATUS.IN_REVIEW && task.status !== STATUS.COMPLETED;
-  // Same authority as reviewing the task (helpers.js userCanReview mirrored
+  // Same authority as reviewing the task (hierarchy.canReviewTask mirrored
   // exactly) — reassignment is a management action, never an assignee one.
   const canReassign = isReviewer && task.status !== STATUS.COMPLETED;
-  const reassignCandidates = users.filter((u) => {
-    if (u.role !== ROLES.EMPLOYEE || u.id === task.assigneeId) return false;
-    if (currentUser.role === ROLES.TEAM_LEAD) return u.teamId === currentUser.teamId;
-    if (currentUser.role === ROLES.MANAGER) return u.departmentId === currentUser.departmentId;
-    return true; // admin
-  });
+  // Anyone strictly below the viewer's rank, in their scope — mirrors the
+  // backend's broadened validateAssignee, so a Team Lead or Assistant
+  // Manager is now a valid reassignment target too, not just an Employee.
+  const reassignCandidates = assignableTargets(currentUser, users).filter((u) => u.id !== task.assigneeId);
 
   const progress = progressDraft === null ? task.progress : progressDraft;
 
@@ -172,7 +173,9 @@ export default function TaskDetails() {
               {task.comments.map((c) => {
                 const author = users.find((u) => u.id === c.authorId);
                 const isOwnComment = c.authorId === currentUser.id;
-                const canModerate = !isOwnComment && (currentUser.role === ROLES.ADMIN || currentUser.role === ROLES.MANAGER);
+                // Mirrors backend/routes/tasks.js's isModerator: anyone who
+                // can review this task can moderate its comments too.
+                const canModerate = !isOwnComment && isReviewer;
                 const isEditing = editingCommentId === c.id;
                 return (
                   <div key={c.id} style={{ display: 'flex', gap: 12, padding: '12px 0', borderTop: '1px solid var(--border)' }}>

@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useApp } from '../context/AppContext.jsx';
 import { ROLES, PRIORITY, CATEGORIES, STATUS } from '../data/mockData.js';
+import { assignableTargets } from '../data/hierarchy.js';
 import { Card, SectionLabel, Field, TextInput, TextArea, Select, Button, Modal } from '../components/ui.jsx';
 import DatePicker from '../components/DatePicker.jsx';
 import { roleHome } from '../utils.js';
@@ -16,15 +17,15 @@ export default function CreateTask() {
   const draft = draftId ? tasks.find((t) => t.id === draftId && t.status === STATUS.DRAFT && t.createdBy === currentUser.id) : null;
   const isEditingDraft = Boolean(draftId);
 
-  const canCreate = currentUser.role === ROLES.TEAM_LEAD || currentUser.role === ROLES.MANAGER || currentUser.role === ROLES.EMPLOYEE;
+  const canCreate = [ROLES.MANAGER, ROLES.ASSISTANT_MANAGER, ROLES.TEAM_LEAD, ROLES.EMPLOYEE].includes(currentUser.role);
   // A Team Lead's or Employee's own task creation needs their manager's
-  // sign-off before it becomes actionable — a Manager creating one directly
-  // doesn't, since nobody above them needs to check it.
+  // sign-off before it becomes actionable — a Manager or Assistant Manager
+  // creating one directly doesn't, since nobody above them needs to check it.
   const needsApproval = currentUser.role === ROLES.TEAM_LEAD || currentUser.role === ROLES.EMPLOYEE;
 
   useEffect(() => {
     if (!canCreate) {
-      showToast('Only Team Leads, Managers, and Employees can create tasks');
+      showToast('Only Managers, Assistant Managers, Team Leads, and Employees can create tasks');
       navigate(roleHome(currentUser.role));
     }
   }, [canCreate]);
@@ -36,17 +37,12 @@ export default function CreateTask() {
     }
   }, [isEditingDraft, draft]);
 
-  // Team Leads only ever see their own team; the Manager sees every
-  // employee/intern across the department but never another Team Lead —
-  // task assignment stays inside the reporting line. An Employee can only
-  // ever create a task for themselves.
-  const assignableUsers = users.filter((u) => {
-    if (u.role !== ROLES.EMPLOYEE) return false;
-    if (currentUser.role === ROLES.TEAM_LEAD) return u.teamId === currentUser.teamId;
-    if (currentUser.role === ROLES.MANAGER) return u.departmentId === currentUser.departmentId;
-    if (currentUser.role === ROLES.EMPLOYEE) return u.id === currentUser.id;
-    return false;
-  });
+  // Anyone strictly below the creator's rank, within their team/department
+  // scope — mirrors the backend's validateAssignee. An Employee can only
+  // ever create a task for themselves (a special case, not the general rule).
+  const assignableUsers = currentUser.role === ROLES.EMPLOYEE
+    ? users.filter((u) => u.id === currentUser.id)
+    : assignableTargets(currentUser, users);
 
   // The fixed list plus any custom category someone already typed in on a
   // past task, so a one-off "Other" entry becomes pickable again later

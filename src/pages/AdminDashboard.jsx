@@ -11,11 +11,11 @@ import { useRoleGuard } from '../hooks/useRoleGuard.js';
 export default function AdminDashboard() {
   const { currentUser, users, tasks, departments, statsFor, activity } = useApp();
   const navigate = useNavigate();
-  const allowed = useRoleGuard(ROLES.ADMIN);
+  const allowed = useRoleGuard([ROLES.SUPER_ADMIN, ROLES.ADMIN]);
   if (!allowed) return null;
 
   const stats = statsFor(tasks);
-  const totalEmployees = users.filter((u) => u.role !== ROLES.ADMIN).length;
+  const totalEmployees = users.filter((u) => u.role !== ROLES.SUPER_ADMIN && u.role !== ROLES.ADMIN).length;
 
   const deptRows = departments.map((dept) => {
     const deptTasks = tasks.filter((task) => {

@@ -26,10 +26,10 @@ export default function Employees() {
   const [pendingPasswordReset, setPendingPasswordReset] = useState(null);
   const [resettingPassword, setResettingPassword] = useState(false);
   const [passwordResetResult, setPasswordResetResult] = useState(null);
-  const allowed = useRoleGuard([ROLES.ADMIN, ROLES.MANAGER]);
+  const allowed = useRoleGuard([ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.MANAGER]);
   if (!allowed) return null;
 
-  const isAdmin_ = currentUser.role === ROLES.ADMIN;
+  const isAdmin_ = currentUser.role === ROLES.SUPER_ADMIN || currentUser.role === ROLES.ADMIN;
 
   const startEdit = (user) => { setEditingUser(user); setEditName(user.name); setEditTitle(user.title || ''); setEditEmail(user.email || ''); setEditError(''); };
   const resetEdit = () => { setEditingUser(null); setEditName(''); setEditTitle(''); setEditEmail(''); setEditError(''); };
@@ -74,7 +74,7 @@ export default function Employees() {
     }
   };
 
-  const isAdmin = currentUser.role === ROLES.ADMIN;
+  const isAdmin = currentUser.role === ROLES.SUPER_ADMIN || currentUser.role === ROLES.ADMIN;
   const scopedTeams = isAdmin ? teams : teams.filter((t) => t.departmentId === currentUser.departmentId);
   const myDepartment = departments.find((d) => d.id === currentUser.departmentId);
   const teamIds = new Set(scopedTeams.map((t) => t.id));

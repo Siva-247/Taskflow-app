@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext.jsx';
 import { ROLES, PRIORITY, CATEGORIES } from '../data/mockData.js';
+import { assignableTargets } from '../data/hierarchy.js';
 import { Modal, Field, TextInput, TextArea, Select, Button } from './ui.jsx';
 import DatePicker from './DatePicker.jsx';
 
@@ -16,13 +17,9 @@ export default function CreateTaskModal({ onClose }) {
 
   const needsApproval = currentUser.role === ROLES.TEAM_LEAD || currentUser.role === ROLES.EMPLOYEE;
 
-  const assignableUsers = users.filter((u) => {
-    if (u.role !== ROLES.EMPLOYEE) return false;
-    if (currentUser.role === ROLES.TEAM_LEAD) return u.teamId === currentUser.teamId;
-    if (currentUser.role === ROLES.MANAGER) return u.departmentId === currentUser.departmentId;
-    if (currentUser.role === ROLES.EMPLOYEE) return u.id === currentUser.id;
-    return false;
-  });
+  const assignableUsers = currentUser.role === ROLES.EMPLOYEE
+    ? users.filter((u) => u.id === currentUser.id)
+    : assignableTargets(currentUser, users);
 
   const allCategories = useMemo(
     () => [...new Set([...CATEGORIES, ...tasks.map((t) => t.category).filter(Boolean)])],

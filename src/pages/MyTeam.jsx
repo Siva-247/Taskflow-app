@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext.jsx';
 import { ROLES, teamById } from '../data/mockData.js';
+import { assignableTargets } from '../data/hierarchy.js';
 import { Card, Avatar, ProgressBar, Button, Modal, Field, TextInput, Select } from '../components/ui.jsx';
 import { IconPlusCircle } from '../components/icons.jsx';
 import { useRoleGuard } from '../hooks/useRoleGuard.js';
@@ -11,7 +12,7 @@ const TITLE_OPTIONS = ['Intern', 'Developer'];
 export default function MyTeam() {
   const { currentUser, users, departments, scopedTasks, statsFor, addTeamMember, setUserActive, deleteUser, editUser, resetUserPassword } = useApp();
   const navigate = useNavigate();
-  const allowed = useRoleGuard(ROLES.TEAM_LEAD);
+  const allowed = useRoleGuard([ROLES.TEAM_LEAD, ROLES.ASSISTANT_MANAGER]);
 
   const [showAdd, setShowAdd] = useState(false);
   const [newName, setNewName] = useState('');
@@ -43,7 +44,10 @@ export default function MyTeam() {
   const teamStats = statsFor(teamTasks);
   const completionRate = teamStats.total ? Math.round((teamStats.completed / teamStats.total) * 100) : 0;
 
-  const members = users.filter((u) => u.teamId === currentUser.teamId && u.role === ROLES.EMPLOYEE);
+  // Anyone strictly below the viewer's rank on this team — for a Team Lead
+  // that's just Employees/Interns (as before); for an Assistant Manager it
+  // also includes the team's Team Lead, mirroring assignableTargets.
+  const members = assignableTargets(currentUser, users);
   const rows = members.map((u) => {
     const assigned = teamTasks.filter((t) => t.assigneeId === u.id);
     const uStats = statsFor(assigned);

@@ -13,8 +13,12 @@ export default function EditTask() {
 
   const task = tasks.find((t) => t.id === taskId);
   const team = task && teamById(task.teamId);
-  const canManage = task && (currentUser.id === task.createdBy || currentUser.role === ROLES.ADMIN
-    || (currentUser.role === ROLES.MANAGER && team?.departmentId === currentUser.departmentId));
+  // Editing authority mirrors hierarchy.canManageTask on the backend — a
+  // Team Lead can review/approve this task but never edit it directly.
+  const canManage = task && (currentUser.id === task.createdBy
+    || currentUser.role === ROLES.SUPER_ADMIN || currentUser.role === ROLES.ADMIN
+    || (currentUser.role === ROLES.MANAGER && team?.departmentId === currentUser.departmentId)
+    || (currentUser.role === ROLES.ASSISTANT_MANAGER && team?.id === currentUser.teamId));
 
   useEffect(() => {
     if (task && !canManage) {

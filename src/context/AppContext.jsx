@@ -262,24 +262,24 @@ export function AppProvider({ children }) {
   // keeps the existing per-page filtering (e.g. "my team" vs "my tasks") working.
   const scopedTasks = useCallback((user) => {
     if (!user) return [];
-    if (user.role === ROLES.ADMIN) return tasks;
+    if (user.role === ROLES.SUPER_ADMIN || user.role === ROLES.ADMIN) return tasks;
     if (user.role === ROLES.MANAGER) return tasks.filter((task) => {
       const team = teams.find((t) => t.id === task.teamId);
       return team && team.departmentId === user.departmentId;
     });
-    if (user.role === ROLES.TEAM_LEAD) return tasks.filter((task) => task.teamId === user.teamId);
+    if (user.role === ROLES.ASSISTANT_MANAGER || user.role === ROLES.TEAM_LEAD) return tasks.filter((task) => task.teamId === user.teamId);
     if (user.role === ROLES.EMPLOYEE) return tasks.filter((task) => task.assigneeId === user.id);
     return [];
-  }, [tasks]);
+  }, [tasks, teams]);
 
   // Same scoping rule, applied to daily updates instead of tasks.
   const scopedDailyUpdates = useCallback((user) => {
     if (!user) return [];
     const authorTeam = (update) => users.find((u) => u.id === update.userId)?.teamId;
     const authorDept = (update) => users.find((u) => u.id === update.userId)?.departmentId;
-    if (user.role === ROLES.ADMIN) return dailyUpdates;
+    if (user.role === ROLES.SUPER_ADMIN || user.role === ROLES.ADMIN) return dailyUpdates;
     if (user.role === ROLES.MANAGER) return dailyUpdates.filter((u) => authorDept(u) === user.departmentId);
-    if (user.role === ROLES.TEAM_LEAD) return dailyUpdates.filter((u) => authorTeam(u) === user.teamId);
+    if (user.role === ROLES.ASSISTANT_MANAGER || user.role === ROLES.TEAM_LEAD) return dailyUpdates.filter((u) => authorTeam(u) === user.teamId);
     if (user.role === ROLES.EMPLOYEE) return dailyUpdates.filter((u) => u.userId === user.id);
     return [];
   }, [dailyUpdates, users]);
@@ -611,6 +611,23 @@ export function AppProvider({ children }) {
     }
   }, [call, showToast]);
 
+  // Admin/Manager: adds a new Assistant Manager onto an EXISTING team (data
+  // must include teamId) — unlike addTeamLead below, this never creates a
+  // new team, since Assistant Manager slots into a team that already has a
+  // lead. One per team; the backend 409s if that team already has one.
+  const addAssistantManager = useCallback(async (data) => {
+    try {
+      const result = await call('/users', { method: 'POST', body: JSON.stringify({ ...data, role: 'assistant_manager' }) });
+      setUsers((prev) => [...prev, result.user]);
+      setTeams((prev) => prev.map((t) => (t.id === data.teamId ? { ...t, assistantManagerId: result.user.id } : t)));
+      showToast(`${result.user.name} added as Assistant Manager`);
+      return result;
+    } catch (err) {
+      showToast(err.message || 'Could not add assistant manager');
+      throw err;
+    }
+  }, [call, showToast, setTeams]);
+
   // Manager-only: adds a new Team Lead along with a brand-new team for them
   // to run (see backend/routes/users.js — every existing team already has a
   // lead, so there's never an existing headless team to assign into instead).
@@ -806,7 +823,7 @@ export function AppProvider({ children }) {
     tasks, dailyUpdates, activity, notifications,
     scopedTasks, scopedDailyUpdates, statsFor, bucketOf, myDrafts,
     createTask, updateTask, deleteTask, publishDraft, refreshTask, setTaskProgress, setTaskStatus, requestChanges, submitForReview, approveTask, approveTaskCreation, rejectTaskCreation, reassignTask, requestExtension, approveExtension, rejectExtension, setTaskMarks, toggleSubtask,
-    addComment, editComment, deleteComment, addDailyUpdate, editDailyUpdate, deleteDailyUpdate, addTeamMember, addManager, addTeamLead, addTeam, editTeam, deleteTeam, addDepartment, editDepartment, deleteDepartment, editUser, deleteUser, resetUserPassword, setUserActive,
+    addComment, editComment, deleteComment, addDailyUpdate, editDailyUpdate, deleteDailyUpdate, addTeamMember, addManager, addAssistantManager, addTeamLead, addTeam, editTeam, deleteTeam, addDepartment, editDepartment, deleteDepartment, editUser, deleteUser, resetUserPassword, setUserActive,
     markNotificationRead, markAllNotificationsRead,
     toast, showToast,
   };

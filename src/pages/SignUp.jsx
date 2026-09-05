@@ -9,6 +9,7 @@ import { IconLogo } from '../components/icons.jsx';
 const ROLE_OPTIONS = [
   { value: '', label: 'Select your role' },
   { value: 'manager', label: 'Manager' },
+  { value: 'assistant-manager', label: 'Assistant Manager' },
   { value: 'lead', label: 'Team Lead' },
   { value: 'employee', label: 'Employee' },
   { value: 'intern', label: 'Intern' },

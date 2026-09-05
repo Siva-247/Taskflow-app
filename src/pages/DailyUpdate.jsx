@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext.jsx';
 import { Card, Field, TextInput, TextArea, Select, Button, StatusBadge, Modal } from '../components/ui.jsx';
 import DatePicker from '../components/DatePicker.jsx';
-import { formatDate } from '../utils.js';
+import { formatDate, roleHome } from '../utils.js';
 
 const STATUS_OPTIONS = ['Completed', 'In Progress'];
 
@@ -72,7 +72,7 @@ export default function DailyUpdate() {
       } else {
         await addDailyUpdate({ userId: currentUser.id, date, ...payload });
         resetForm();
-        navigate(currentUser.role === 'team_lead' ? '/team-lead' : '/employee');
+        navigate(roleHome(currentUser.role));
       }
     } catch {
       // context already surfaced a toast for the failure

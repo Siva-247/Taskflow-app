@@ -1,10 +1,14 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext.jsx';
-import { teamById } from '../data/mockData.js';
+import { ROLES, teamById } from '../data/mockData.js';
+import { rankIndex } from '../data/hierarchy.js';
 import { Card, Avatar, ProgressBar } from '../components/ui.jsx';
 
-const ROLE_LABEL = { admin: 'Admin', manager: 'Manager', team_lead: 'Team Lead', employee: 'Employee' };
+const ROLE_LABEL = {
+  super_admin: 'Super Admin', admin: 'Admin', manager: 'Manager',
+  assistant_manager: 'Assistant Manager', team_lead: 'Team Lead', employee: 'Employee',
+};
 
 export default function Profile() {
   const { currentUser, users, departments, scopedTasks, statsFor } = useApp();
@@ -13,7 +17,16 @@ export default function Profile() {
   const team = teamById(currentUser.teamId);
   const department = departments.find((d) => d.id === (currentUser.departmentId || team?.departmentId)) || null;
   const teamLead = team ? users.find((u) => u.id === team.leadId) : null;
-  const manager = department ? users.find((u) => u.role === 'manager' && u.departmentId === department.id) : null;
+  const assistantManager = team ? users.find((u) => u.id === team.assistantManagerId) : null;
+  const manager = department ? users.find((u) => u.role === ROLES.MANAGER && u.departmentId === department.id) : null;
+  // Show whichever of Team Lead / Assistant Manager / Manager is actually
+  // staffed above the viewer's own rank — a viewer only ever sees the rungs
+  // that outrank them, so this generalizes correctly for every role instead
+  // of hardcoding "employee sees team lead + manager".
+  const myRank = rankIndex(currentUser.role);
+  const showTeamLead = myRank > rankIndex(ROLES.TEAM_LEAD) && teamLead;
+  const showAssistantManager = myRank > rankIndex(ROLES.ASSISTANT_MANAGER) && assistantManager;
+  const showManager = myRank > rankIndex(ROLES.MANAGER) && manager;
   const myTasks = scopedTasks(currentUser);
   const stats = statsFor(myTasks);
   const completionRate = stats.total ? Math.round((stats.completed / stats.total) * 100) : 0;
@@ -39,8 +52,9 @@ export default function Profile() {
             {currentUser.email && <DetailRow label="Email" value={currentUser.email} />}
             {department && <DetailRow label="Department" value={department.name} />}
             {team && <DetailRow label="Team" value={team.name} />}
-            {currentUser.role === 'employee' && teamLead && <DetailRow label="Team Lead" value={teamLead.name} />}
-            {(currentUser.role === 'employee' || currentUser.role === 'team_lead') && manager && <DetailRow label="Manager" value={manager.name} />}
+            {showTeamLead && <DetailRow label="Team Lead" value={teamLead.name} />}
+            {showAssistantManager && <DetailRow label="Assistant Manager" value={assistantManager.name} />}
+            {showManager && <DetailRow label="Manager" value={manager.name} />}
           </div>
           <div
             onClick={() => navigate('/change-password')}

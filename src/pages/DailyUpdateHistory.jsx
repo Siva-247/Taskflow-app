@@ -40,8 +40,10 @@ export default function DailyUpdateHistory() {
   const myDepartment = departments.find((d) => d.id === currentUser.departmentId);
 
   const scopeLabel = {
+    [ROLES.SUPER_ADMIN]: 'Every daily update across the company',
     [ROLES.ADMIN]: 'Every daily update across the company',
     [ROLES.MANAGER]: `Daily updates across ${myDepartment?.name || 'your department'}`,
+    [ROLES.ASSISTANT_MANAGER]: 'Daily updates from your team',
     [ROLES.TEAM_LEAD]: 'Daily updates from your team',
     [ROLES.EMPLOYEE]: 'Your daily updates',
   }[currentUser.role];

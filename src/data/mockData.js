@@ -5,8 +5,10 @@
 // what the org chart specifies.
 
 export const ROLES = {
+  SUPER_ADMIN: 'super_admin',
   ADMIN: 'admin',
   MANAGER: 'manager',
+  ASSISTANT_MANAGER: 'assistant_manager',
   TEAM_LEAD: 'team_lead',
   EMPLOYEE: 'employee',
 };

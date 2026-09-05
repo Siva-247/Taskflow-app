@@ -2,8 +2,10 @@ import { ROLES } from './data/mockData.js';
 
 export function roleHome(role) {
   switch (role) {
+    case ROLES.SUPER_ADMIN: return '/admin';
     case ROLES.ADMIN: return '/admin';
     case ROLES.MANAGER: return '/manager';
+    case ROLES.ASSISTANT_MANAGER: return '/assistant-manager';
     case ROLES.TEAM_LEAD: return '/team-lead';
     case ROLES.EMPLOYEE: return '/employee';
     default: return '/';

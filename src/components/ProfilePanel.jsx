@@ -1,10 +1,14 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext.jsx';
-import { teamById } from '../data/mockData.js';
+import { ROLES, teamById } from '../data/mockData.js';
+import { rankIndex } from '../data/hierarchy.js';
 import { Avatar, Drawer } from './ui.jsx';
 
-const ROLE_LABEL = { admin: 'Admin', manager: 'Manager', team_lead: 'Team Lead', employee: 'Employee' };
+const ROLE_LABEL = {
+  super_admin: 'Super Admin', admin: 'Admin', manager: 'Manager',
+  assistant_manager: 'Assistant Manager', team_lead: 'Team Lead', employee: 'Employee',
+};
 
 // The Profile page's identity content, laid out for the narrow side panel
 // opened from the header avatar — single column throughout (Profile.jsx's
@@ -18,11 +22,18 @@ export default function ProfilePanel({ onClose }) {
   const team = teamById(currentUser.teamId);
   const department = departments.find((d) => d.id === (currentUser.departmentId || team?.departmentId)) || null;
   const teamLead = team ? users.find((u) => u.id === team.leadId) : null;
-  const manager = department ? users.find((u) => u.role === 'manager' && u.departmentId === department.id) : null;
+  const assistantManager = team ? users.find((u) => u.id === team.assistantManagerId) : null;
+  const manager = department ? users.find((u) => u.role === ROLES.MANAGER && u.departmentId === department.id) : null;
   // "Intern" is a job title, not its own role value (interns are role
   // 'employee' underneath) — but the Role field should still read "Intern"
   // for them rather than the generic "Employee".
   const roleLabel = currentUser.title === 'Intern' ? 'Intern' : ROLE_LABEL[currentUser.role];
+  // Show whichever of Team Lead / Assistant Manager / Manager is actually
+  // staffed above the viewer's own rank (mirrors Profile.jsx's full page).
+  const myRank = rankIndex(currentUser.role);
+  const showTeamLead = myRank > rankIndex(ROLES.TEAM_LEAD) && teamLead;
+  const showAssistantManager = myRank > rankIndex(ROLES.ASSISTANT_MANAGER) && assistantManager;
+  const showManager = myRank > rankIndex(ROLES.MANAGER) && manager;
 
   const go = (to) => { onClose(); navigate(to); };
 
@@ -41,8 +52,9 @@ export default function ProfilePanel({ onClose }) {
         {currentUser.email && <DetailRow label="Email" value={currentUser.email} />}
         {department && <DetailRow label="Department" value={department.name} />}
         {team && <DetailRow label="Team" value={team.name} />}
-        {currentUser.role === 'employee' && teamLead && <DetailRow label="Team Lead" value={teamLead.name} />}
-        {(currentUser.role === 'employee' || currentUser.role === 'team_lead') && manager && <DetailRow label="Manager" value={manager.name} />}
+        {showTeamLead && <DetailRow label="Team Lead" value={teamLead.name} />}
+        {showAssistantManager && <DetailRow label="Assistant Manager" value={assistantManager.name} />}
+        {showManager && <DetailRow label="Manager" value={manager.name} />}
       </div>
 
       <div style={{ marginTop: 'auto', paddingTop: 22, display: 'flex', flexDirection: 'column', gap: 4 }}>
