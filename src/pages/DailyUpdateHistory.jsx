@@ -23,7 +23,7 @@ const COLUMNS = [
 ];
 
 export default function DailyUpdateHistory() {
-  const { currentUser, users, departments, scopedDailyUpdates, TODAY } = useApp();
+  const { currentUser, users, departments, scopedDailyUpdates, TODAY, openBlockerRegister } = useApp();
   const navigate = useNavigate();
   const userById = (id) => users.find((u) => u.id === id) || null;
 
@@ -128,7 +128,7 @@ export default function DailyUpdateHistory() {
           )}
           {/* Visible to every role, unlike the button above — a blocker can
               come from anyone on the team, not just Employees. */}
-          <Button variant="secondary" onClick={() => navigate('/blockers')}>
+          <Button variant="secondary" onClick={openBlockerRegister}>
             <IconAlertTriangle size={14} color="var(--amber-text)" /> Blocker Register
           </Button>
           <Button onClick={handleExport} disabled={updates.length === 0}>

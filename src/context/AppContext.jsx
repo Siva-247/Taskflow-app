@@ -81,6 +81,13 @@ export function AppProvider({ children }) {
   // picker (unlike `users`, which is department-scoped for non-admins) —
   // loaded once, not polled, since it only needs to be roughly fresh.
   const [blockerDirectory, setBlockerDirectory] = useState([]);
+  // Blockers open as a popup (BlockerRegisterModal, mounted once in
+  // Layout.jsx) rather than a routed page, so opening it needs to work from
+  // anywhere — the Daily Updates button and a notification click alike —
+  // hence living here instead of as page-local state.
+  const [blockerRegisterOpen, setBlockerRegisterOpen] = useState(false);
+  const openBlockerRegister = useCallback(() => setBlockerRegisterOpen(true), []);
+  const closeBlockerRegister = useCallback(() => setBlockerRegisterOpen(false), []);
   const [dataReady, setDataReady] = useState(false);
   const [toast, setToast] = useState(null);
 
@@ -868,7 +875,7 @@ export function AppProvider({ children }) {
     users, teams, departments, TODAY, token,
     currentUser, login, signup, fetchSignupDepartments, addSignupDepartment, logout, dataReady, authPending, sessionRestoring,
     mustChangePassword, changePassword, requestPasswordReset, resetPassword,
-    tasks, dailyUpdates, activity, notifications, blockers, blockerDirectory,
+    tasks, dailyUpdates, activity, notifications, blockers, blockerDirectory, blockerRegisterOpen, openBlockerRegister, closeBlockerRegister,
     scopedTasks, scopedDailyUpdates, statsFor, bucketOf, myDrafts,
     createTask, updateTask, deleteTask, publishDraft, refreshTask, setTaskProgress, setTaskStatus, requestChanges, submitForReview, approveTask, approveTaskCreation, rejectTaskCreation, reassignTask, requestExtension, approveExtension, rejectExtension, setTaskMarks, toggleSubtask,
     addComment, editComment, deleteComment, addDailyUpdate, editDailyUpdate, deleteDailyUpdate, addBlocker, editBlocker, deleteBlocker, addTeamMember, addManager, addAssistantManager, addTeamLead, addTeam, editTeam, deleteTeam, addDepartment, editDepartment, deleteDepartment, editUser, deleteUser, resetUserPassword, setUserActive,

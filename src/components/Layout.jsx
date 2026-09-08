@@ -4,9 +4,10 @@ import { useApp } from '../context/AppContext.jsx';
 import Header from './Header.jsx';
 import Sidebar from './Sidebar.jsx';
 import { Toast } from './ui.jsx';
+import BlockerRegisterModal from './BlockerRegisterModal.jsx';
 
 export default function Layout() {
-  const { currentUser, mustChangePassword, toast, authPending } = useApp();
+  const { currentUser, mustChangePassword, toast, authPending, blockerRegisterOpen, closeBlockerRegister } = useApp();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
 
@@ -33,6 +34,7 @@ export default function Layout() {
         </div>
       </div>
       <Toast message={toast} />
+      {blockerRegisterOpen && <BlockerRegisterModal onClose={closeBlockerRegister} />}
     </div>
   );
 }

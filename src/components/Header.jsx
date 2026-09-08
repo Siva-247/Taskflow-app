@@ -17,7 +17,7 @@ const NOTIFICATION_ICON = {
 };
 
 export default function Header({ onMenuClick }) {
-  const { currentUser, notifications, markNotificationRead, markAllNotificationsRead } = useApp();
+  const { currentUser, notifications, markNotificationRead, markAllNotificationsRead, openBlockerRegister } = useApp();
   const navigate = useNavigate();
   const [profileOpen, setProfileOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
@@ -30,7 +30,7 @@ export default function Header({ onMenuClick }) {
     setNotifOpen(false);
     if (!n.read) markNotificationRead(n.id);
     if (n.taskId) navigate(`/tasks/${n.taskId}`);
-    else if (n.blockerId) navigate('/blockers');
+    else if (n.blockerId) openBlockerRegister();
   };
 
   return (
