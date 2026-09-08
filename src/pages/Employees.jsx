@@ -3,16 +3,28 @@ import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext.jsx';
 import { ROLES, teamById } from '../data/mockData.js';
 import { Card, Avatar, Select, TextInput, Button, Modal, Field } from '../components/ui.jsx';
-import { IconSearch } from '../components/icons.jsx';
+import AddEmployeeModal from '../components/AddEmployeeModal.jsx';
+import { IconSearch, IconPlusCircle } from '../components/icons.jsx';
 import { useRoleGuard } from '../hooks/useRoleGuard.js';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+const ROLE_LABELS = {
+  [ROLES.MANAGER]: 'Manager',
+  [ROLES.ASSISTANT_MANAGER]: 'Assistant Manager',
+  [ROLES.TEAM_LEAD]: 'Team Lead',
+};
+// Manager/Assistant Manager/Team Lead show their role; an Employee shows
+// their title instead (Developer/Intern/whatever a custom "Other" hire
+// typed) — same distinction Profile.jsx already draws elsewhere.
+const roleLabel = (u) => ROLE_LABELS[u.role] || u.title || 'Employee';
 
 export default function Employees() {
   const { currentUser, users, teams, departments, tasks, statsFor, setUserActive, editUser, deleteUser, resetUserPassword } = useApp();
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [teamFilter, setTeamFilter] = useState('all');
+  const [showAdd, setShowAdd] = useState(false);
   const [pendingDeactivate, setPendingDeactivate] = useState(null);
   const [editingUser, setEditingUser] = useState(null);
   const [editName, setEditName] = useState('');
@@ -75,13 +87,32 @@ export default function Employees() {
   };
 
   const isAdmin = currentUser.role === ROLES.SUPER_ADMIN || currentUser.role === ROLES.ADMIN;
-  const scopedTeams = isAdmin ? teams : teams.filter((t) => t.departmentId === currentUser.departmentId);
+
+  // ---- Admin/Super Admin: company-wide, grouped by department ----
+  const groups = useMemo(() => {
+    if (!isAdmin) return [];
+    const q = search.trim().toLowerCase();
+    return departments
+      .map((dept) => {
+        const people = users
+          .filter((u) => u.departmentId === dept.id && u.role !== ROLES.SUPER_ADMIN && u.role !== ROLES.ADMIN)
+          .filter((u) => !q || u.name.toLowerCase().includes(q))
+          .map((u) => {
+            const assigned = tasks.filter((t) => t.assigneeId === u.id);
+            const uStats = statsFor(assigned);
+            return { user: u, team: teamById(u.teamId), assigned: uStats.total, completed: uStats.completed };
+          });
+        return { dept, people };
+      })
+      .filter((g) => g.people.length > 0 || !search.trim());
+  }, [isAdmin, departments, users, search, tasks, statsFor]);
+
+  // ---- Manager: unchanged — their own department's Employees/Interns ----
+  const scopedTeams = teams.filter((t) => t.departmentId === currentUser.departmentId);
   const myDepartment = departments.find((d) => d.id === currentUser.departmentId);
   const teamIds = new Set(scopedTeams.map((t) => t.id));
-
   const employees = users.filter((u) => u.role === ROLES.EMPLOYEE && teamIds.has(u.teamId));
-
-  const rows = useMemo(() => employees
+  const managerRows = useMemo(() => employees
     .filter((u) => (teamFilter === 'all' || u.teamId === teamFilter))
     .filter((u) => !search.trim() || u.name.toLowerCase().includes(search.trim().toLowerCase()))
     .map((u) => {
@@ -90,13 +121,50 @@ export default function Employees() {
       return { user: u, team: teamById(u.teamId), assigned: uStats.total, completed: uStats.completed };
     }), [employees, teamFilter, search, tasks, statsFor]);
 
+  const actionCell = (user) => {
+    const isActive = user.isActive === undefined || !!user.isActive;
+    return (
+      <div onClick={(e) => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+        {isAdmin_ && (
+          <span onClick={() => startEdit(user)} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11.5, color: 'var(--accent-dark)', cursor: 'pointer' }}>
+            Edit
+          </span>
+        )}
+        {isAdmin_ && (
+          <span onClick={() => setPendingPasswordReset(user)} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11.5, color: 'var(--accent-dark)', cursor: 'pointer' }}>
+            Reset password
+          </span>
+        )}
+        {isActive ? (
+          <span onClick={() => setPendingDeactivate(user)} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11.5, color: 'var(--green-text, #1F7A44)', cursor: 'pointer' }}>
+            ● Active
+          </span>
+        ) : (
+          <span onClick={() => setUserActive(user.id, true)} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11.5, color: 'var(--amber-text)', cursor: 'pointer' }}>
+            ● Inactive — Reactivate
+          </span>
+        )}
+        <span onClick={() => { setPendingDelete(user); setDeleteError(''); }} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11.5, color: 'var(--text-muted)', cursor: 'pointer' }}>
+          Delete
+        </span>
+      </div>
+    );
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
-      <div>
-        <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 24, color: 'var(--heading)' }}>Employees</div>
-        <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 14, color: 'var(--text-secondary)', marginTop: 4 }}>
-          {isAdmin ? 'Every employee across the company' : `Employees across ${myDepartment?.name || 'your department'}`}
+      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+        <div>
+          <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 24, color: 'var(--heading)' }}>Employees</div>
+          <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 14, color: 'var(--text-secondary)', marginTop: 4 }}>
+            {isAdmin ? 'Every department across the company' : `Employees across ${myDepartment?.name || 'your department'}`}
+          </div>
         </div>
+        {isAdmin && (
+          <Button onClick={() => setShowAdd(true)}>
+            <IconPlusCircle size={15} color="#FFFFFF" /> Add employee
+          </Button>
+        )}
       </div>
 
       <Card padded={false} style={{ padding: '14px 18px' }}>
@@ -110,7 +178,7 @@ export default function Employees() {
               style={{ border: 'none', outline: 'none', flex: 1, fontFamily: "'Manrope',system-ui,sans-serif", fontSize: 13.5, color: 'var(--text-primary)' }}
             />
           </div>
-          {scopedTeams.length > 1 && (
+          {!isAdmin && scopedTeams.length > 1 && (
             <div className="filter-field" style={{ width: 170 }}>
               <Select value={teamFilter} onChange={setTeamFilter} options={[{ value: 'all', label: 'All teams' }, ...scopedTeams.map((t) => ({ value: t.id, label: t.name }))]} />
             </div>
@@ -118,21 +186,67 @@ export default function Employees() {
         </div>
       </Card>
 
-      <Card padded={false}>
-        <div style={{ overflowX: 'auto' }}>
-          <div style={{ minWidth: 760 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1.1fr 0.9fr 0.8fr 1fr 1fr', padding: '12px 22px', background: 'var(--field-bg)', borderBottom: '1px solid var(--border)' }}>
-              {['Employee', 'Team', 'Role', 'Assigned', 'Completed', 'Status'].map((h) => (
-                <div key={h} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11.5, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>{h}</div>
-              ))}
-            </div>
-            {rows.map((row, i) => {
-              const isActive = row.user.isActive === undefined || !!row.user.isActive;
-              return (
+      {isAdmin ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          {groups.map(({ dept, people }) => (
+            <Card key={dept.id} padded={false}>
+              <div style={{ padding: '18px 22px 4px', display: 'flex', alignItems: 'baseline', gap: 10 }}>
+                <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 16.5, color: 'var(--heading)' }}>{dept.name}</div>
+                <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12, color: 'var(--text-muted)' }}>{people.length} member{people.length === 1 ? '' : 's'}</div>
+              </div>
+              <div style={{ overflowX: 'auto' }}>
+                <div style={{ minWidth: 800 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr 1fr 0.7fr 0.9fr 1.2fr', padding: '10px 22px', marginTop: 8, background: 'var(--field-bg)' }}>
+                    {['Employee', 'Team', 'Role', 'Assigned', 'Completed', 'Status'].map((h) => (
+                      <div key={h} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>{h}</div>
+                    ))}
+                  </div>
+                  {people.map((row, i) => (
+                    <div
+                      key={row.user.id}
+                      onClick={() => navigate(`/tasks?assignee=${row.user.id}`)}
+                      style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr 1fr 0.7fr 0.9fr 1.2fr', padding: '13px 22px', alignItems: 'center', borderTop: '1px solid var(--border)', borderBottom: i === people.length - 1 ? '1px solid var(--border)' : 'none', cursor: 'pointer', opacity: (row.user.isActive === undefined || row.user.isActive) ? 1 : 0.55 }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <Avatar initial={row.user.initial} size={26} />
+                        <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 13.5, color: 'var(--text-primary)' }}>{row.user.name}</span>
+                      </div>
+                      <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13, color: 'var(--text-secondary)' }}>{row.team?.name || '—'}</div>
+                      <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13, color: 'var(--text-secondary)' }}>{roleLabel(row.user)}</div>
+                      <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 13.5, color: 'var(--heading)' }}>{row.assigned}</div>
+                      <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 13.5, color: 'var(--heading)' }}>{row.completed}</div>
+                      {actionCell(row.user)}
+                    </div>
+                  ))}
+                  {people.length === 0 && (
+                    <div style={{ padding: '22px', textAlign: 'center', fontFamily: "'Manrope',system-ui,sans-serif", fontSize: 13, color: 'var(--text-muted)' }}>
+                      No one in this department yet.
+                    </div>
+                  )}
+                </div>
+              </div>
+            </Card>
+          ))}
+          {groups.length === 0 && (
+            <Card>
+              <div style={{ textAlign: 'center', fontFamily: "'Manrope',system-ui,sans-serif", fontSize: 13.5, color: 'var(--text-muted)' }}>No departments yet.</div>
+            </Card>
+          )}
+        </div>
+      ) : (
+        <Card padded={false}>
+          <div style={{ overflowX: 'auto' }}>
+            <div style={{ minWidth: 760 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1.1fr 0.9fr 0.8fr 1fr 1fr', padding: '12px 22px', background: 'var(--field-bg)', borderBottom: '1px solid var(--border)' }}>
+                {['Employee', 'Team', 'Role', 'Assigned', 'Completed', 'Status'].map((h) => (
+                  <div key={h} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11.5, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>{h}</div>
+                ))}
+              </div>
+              {managerRows.map((row, i) => (
                 <div
                   key={row.user.id}
                   onClick={() => navigate(`/tasks?assignee=${row.user.id}`)}
-                  style={{ display: 'grid', gridTemplateColumns: '1.6fr 1.1fr 0.9fr 0.8fr 1fr 1fr', padding: '14px 22px', alignItems: 'center', borderBottom: i < rows.length - 1 ? '1px solid var(--border)' : 'none', cursor: 'pointer', opacity: isActive ? 1 : 0.55 }}
+                  style={{ display: 'grid', gridTemplateColumns: '1.6fr 1.1fr 0.9fr 0.8fr 1fr 1fr', padding: '14px 22px', alignItems: 'center', borderBottom: i < managerRows.length - 1 ? '1px solid var(--border)' : 'none', cursor: 'pointer', opacity: (row.user.isActive === undefined || row.user.isActive) ? 1 : 0.55 }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <Avatar initial={row.user.initial} size={26} />
@@ -142,53 +256,20 @@ export default function Employees() {
                   <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13, color: 'var(--text-secondary)' }}>{row.user.title}</div>
                   <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 13.5, color: 'var(--heading)' }}>{row.assigned}</div>
                   <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 13.5, color: 'var(--heading)' }}>{row.completed}</div>
-                  <div onClick={(e) => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                    {isAdmin_ && (
-                      <span
-                        onClick={() => startEdit(row.user)}
-                        style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11.5, color: 'var(--accent-dark)', cursor: 'pointer' }}
-                      >
-                        Edit
-                      </span>
-                    )}
-                    {isAdmin_ && (
-                      <span
-                        onClick={() => setPendingPasswordReset(row.user)}
-                        style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11.5, color: 'var(--accent-dark)', cursor: 'pointer' }}
-                      >
-                        Reset password
-                      </span>
-                    )}
-                    {isActive ? (
-                      <span
-                        onClick={() => setPendingDeactivate(row.user)}
-                        style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11.5, color: 'var(--green-text, #1F7A44)', cursor: 'pointer' }}
-                      >
-                        ● Active
-                      </span>
-                    ) : (
-                      <span
-                        onClick={() => setUserActive(row.user.id, true)}
-                        style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11.5, color: 'var(--amber-text)', cursor: 'pointer' }}
-                      >
-                        ● Inactive — Reactivate
-                      </span>
-                    )}
-                    <span onClick={() => { setPendingDelete(row.user); setDeleteError(''); }} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11.5, color: 'var(--text-muted)', cursor: 'pointer' }}>
-                      Delete
-                    </span>
-                  </div>
+                  {actionCell(row.user)}
                 </div>
-              );
-            })}
-            {rows.length === 0 && (
-              <div style={{ padding: '32px 22px', textAlign: 'center', fontFamily: "'Manrope',system-ui,sans-serif", fontSize: 13.5, color: 'var(--text-muted)' }}>
-                No employees match your filters.
-              </div>
-            )}
+              ))}
+              {managerRows.length === 0 && (
+                <div style={{ padding: '32px 22px', textAlign: 'center', fontFamily: "'Manrope',system-ui,sans-serif", fontSize: 13.5, color: 'var(--text-muted)' }}>
+                  No employees match your filters.
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      </Card>
+        </Card>
+      )}
+
+      {showAdd && <AddEmployeeModal onClose={() => setShowAdd(false)} />}
 
       {editingUser && (
         <Modal title={`Edit ${editingUser.name}`} onClose={resetEdit}>

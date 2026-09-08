@@ -666,43 +666,8 @@ export function AppProvider({ children }) {
     }
   }, [call, showToast]);
 
-  // Admin/Manager: adds a new Assistant Manager onto an EXISTING team (data
-  // must include teamId) — unlike addTeamLead below, this never creates a
-  // new team, since Assistant Manager slots into a team that already has a
-  // lead. One per team; the backend 409s if that team already has one.
-  const addAssistantManager = useCallback(async (data) => {
-    try {
-      const result = await call('/users', { method: 'POST', body: JSON.stringify({ ...data, role: 'assistant_manager' }) });
-      setUsers((prev) => [...prev, result.user]);
-      setTeams((prev) => prev.map((t) => (t.id === data.teamId ? { ...t, assistantManagerId: result.user.id } : t)));
-      showToast(`${result.user.name} added as Assistant Manager`);
-      return result;
-    } catch (err) {
-      showToast(err.message || 'Could not add assistant manager');
-      throw err;
-    }
-  }, [call, showToast, setTeams]);
-
-  // Manager-only: adds a new Team Lead along with a brand-new team for them
-  // to run (see backend/routes/users.js — every existing team already has a
-  // lead, so there's never an existing headless team to assign into instead).
-  const addTeamLead = useCallback(async (data) => {
-    try {
-      const result = await call('/users', { method: 'POST', body: JSON.stringify({ ...data, role: 'team_lead' }) });
-      setUsers((prev) => [...prev, result.user]);
-      setTeams((prev) => [...prev, { id: result.user.teamId, name: data.teamName, departmentId: result.user.departmentId, leadId: result.user.id }]);
-      showToast(`${result.user.name} added as Team Lead of ${data.teamName}`);
-      return result;
-    } catch (err) {
-      showToast(err.message || 'Could not add team lead');
-      throw err;
-    }
-  }, [call, showToast, setTeams]);
-
-  // Admin-only: a standalone, lead-less team — addTeamLead above already
-  // covers the normal "new team lead needs a fresh team" path; this fills
-  // the gap it leaves (a pre-staffed placeholder, or replacing one removed
-  // via deleteTeam).
+  // Admin-only: used by AddEmployeeModal's "Other" department option when
+  // the chosen team doesn't exist yet either.
   const addTeam = useCallback(async (data) => {
     try {
       const result = await call('/teams', { method: 'POST', body: JSON.stringify(data) });
@@ -711,29 +676,6 @@ export function AppProvider({ children }) {
       return result.team;
     } catch (err) {
       showToast(err.message || 'Could not add team');
-      throw err;
-    }
-  }, [call, showToast, setTeams]);
-
-  const editTeam = useCallback(async (id, data) => {
-    try {
-      const result = await call(`/teams/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
-      setTeams((prev) => prev.map((t) => (t.id === id ? result.team : t)));
-      showToast('Team updated');
-      return result.team;
-    } catch (err) {
-      showToast(err.message || 'Could not update team');
-      throw err;
-    }
-  }, [call, showToast, setTeams]);
-
-  const deleteTeam = useCallback(async (id) => {
-    try {
-      await call(`/teams/${id}`, { method: 'DELETE' });
-      setTeams((prev) => prev.filter((t) => t.id !== id));
-      showToast('Team deleted');
-    } catch (err) {
-      showToast(err.message || 'Could not delete team');
       throw err;
     }
   }, [call, showToast, setTeams]);
@@ -790,29 +732,6 @@ export function AppProvider({ children }) {
       return result.department;
     } catch (err) {
       showToast(err.message || 'Could not add department');
-      throw err;
-    }
-  }, [call, showToast]);
-
-  const editDepartment = useCallback(async (id, data) => {
-    try {
-      const result = await call(`/departments/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
-      setDepartments((prev) => prev.map((d) => (d.id === id ? result.department : d)));
-      showToast('Department updated');
-      return result.department;
-    } catch (err) {
-      showToast(err.message || 'Could not update department');
-      throw err;
-    }
-  }, [call, showToast]);
-
-  const deleteDepartment = useCallback(async (id) => {
-    try {
-      await call(`/departments/${id}`, { method: 'DELETE' });
-      setDepartments((prev) => prev.filter((d) => d.id !== id));
-      showToast('Department deleted');
-    } catch (err) {
-      showToast(err.message || 'Could not delete department');
       throw err;
     }
   }, [call, showToast]);
@@ -878,7 +797,7 @@ export function AppProvider({ children }) {
     tasks, dailyUpdates, activity, notifications, blockers, blockerDirectory, blockerRegisterOpen, openBlockerRegister, closeBlockerRegister,
     scopedTasks, scopedDailyUpdates, statsFor, bucketOf, myDrafts,
     createTask, updateTask, deleteTask, publishDraft, refreshTask, setTaskProgress, setTaskStatus, requestChanges, submitForReview, approveTask, approveTaskCreation, rejectTaskCreation, reassignTask, requestExtension, approveExtension, rejectExtension, setTaskMarks, toggleSubtask,
-    addComment, editComment, deleteComment, addDailyUpdate, editDailyUpdate, deleteDailyUpdate, addBlocker, editBlocker, deleteBlocker, addTeamMember, addManager, addAssistantManager, addTeamLead, addTeam, editTeam, deleteTeam, addDepartment, editDepartment, deleteDepartment, editUser, deleteUser, resetUserPassword, setUserActive,
+    addComment, editComment, deleteComment, addDailyUpdate, editDailyUpdate, deleteDailyUpdate, addBlocker, editBlocker, deleteBlocker, addTeamMember, addManager, addTeam, addDepartment, editUser, deleteUser, resetUserPassword, setUserActive,
     markNotificationRead, markAllNotificationsRead,
     toast, showToast,
   };

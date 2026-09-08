@@ -4,15 +4,13 @@ import { useApp } from '../context/AppContext.jsx';
 import { useChat } from '../context/ChatContext.jsx';
 import { ROLES } from '../data/mockData.js';
 import {
-  IconGrid, IconLayers, IconUser, IconUsers, IconChecklist, IconBarChart, IconGear,
+  IconGrid, IconUser, IconUsers, IconChecklist, IconBarChart, IconGear,
   IconEye, IconCalendar, IconChat,
 } from './icons.jsx';
 
 const ADMIN_NAV = [
   { label: 'Dashboard', icon: IconGrid, to: '/admin' },
-  { label: 'Departments', icon: IconLayers, to: '/departments' },
   { label: 'Employees', icon: IconUser, to: '/employees' },
-  { label: 'Teams', icon: IconUsers, to: '/teams' },
   { label: 'All Tasks', icon: IconChecklist, to: '/tasks' },
   { label: 'Chat', icon: IconChat, to: '/chat' },
   { label: 'Daily Updates', icon: IconCalendar, to: '/daily-updates' },
@@ -25,7 +23,6 @@ const NAV_BY_ROLE = {
   [ROLES.ADMIN]: ADMIN_NAV,
   [ROLES.MANAGER]: [
     { label: 'Dashboard', icon: IconGrid, to: '/manager' },
-    { label: 'Teams', icon: IconUsers, to: '/teams' },
     { label: 'Employees', icon: IconUser, to: '/employees' },
     { label: 'Tasks', icon: IconChecklist, to: '/tasks' },
     { label: 'Approvals', icon: IconEye, to: '/tasks?status=Pending+Approval' },

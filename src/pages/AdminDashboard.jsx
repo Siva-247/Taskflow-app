@@ -43,7 +43,7 @@ export default function AdminDashboard() {
         <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 15.5, color: 'var(--heading)', marginBottom: 20 }}>Department performance</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {deptRows.map((row, i) => (
-            <div key={row.name} onClick={() => navigate('/departments')} style={{ display: 'flex', alignItems: 'center', gap: 16, cursor: 'pointer' }}>
+            <div key={row.name} onClick={() => navigate('/employees')} style={{ display: 'flex', alignItems: 'center', gap: 16, cursor: 'pointer' }}>
               <div style={{ width: 130, flexShrink: 0, fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 13.5, color: 'var(--text-primary)' }}>{row.name}</div>
               <div style={{ flex: 1, height: 8, borderRadius: 999, background: 'var(--track-bg)', overflow: 'hidden' }}>
                 <div style={{ width: `${row.pct}%`, height: '100%', borderRadius: 999, background: colors[i % colors.length] }} />

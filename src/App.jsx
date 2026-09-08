@@ -22,8 +22,6 @@ import DailyUpdateHistory from './pages/DailyUpdateHistory.jsx';
 import Drafts from './pages/Drafts.jsx';
 import Profile from './pages/Profile.jsx';
 import Employees from './pages/Employees.jsx';
-import Teams from './pages/Teams.jsx';
-import Departments from './pages/Departments.jsx';
 import MyTeam from './pages/MyTeam.jsx';
 import Settings from './pages/Settings.jsx';
 import Reports from './pages/Reports.jsx';
@@ -66,8 +64,6 @@ function AppRoutes() {
           <Route path="/drafts" element={<Drafts />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/employees" element={<Employees />} />
-          <Route path="/teams" element={<Teams />} />
-          <Route path="/departments" element={<Departments />} />
           <Route path="/my-team" element={<MyTeam />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/reports" element={<Reports />} />
