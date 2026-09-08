@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext.jsx';
-import { IconLogo, IconBell, IconCheckCircle, IconPlusCircle, IconUser, IconMenu } from './icons.jsx';
+import { IconLogo, IconBell, IconCheckCircle, IconPlusCircle, IconUser, IconMenu, IconAlertTriangle } from './icons.jsx';
 import { Avatar } from './ui.jsx';
 import ProfilePanel from './ProfilePanel.jsx';
 import { roleHome, formatDate } from '../utils.js';
@@ -12,6 +12,8 @@ const NOTIFICATION_ICON = {
   approved: (color) => <IconCheckCircle size={14} color={color} />,
   changes_requested: (color) => <IconUser size={14} color={color} />,
   marked: (color) => <IconCheckCircle size={14} color={color} />,
+  blocker_assigned: (color) => <IconAlertTriangle size={14} color={color} />,
+  blocker_resolved: (color) => <IconCheckCircle size={14} color={color} />,
 };
 
 export default function Header({ onMenuClick }) {
@@ -28,6 +30,7 @@ export default function Header({ onMenuClick }) {
     setNotifOpen(false);
     if (!n.read) markNotificationRead(n.id);
     if (n.taskId) navigate(`/tasks/${n.taskId}`);
+    else if (n.blockerId) navigate('/blockers');
   };
 
   return (

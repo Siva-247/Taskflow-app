@@ -5,7 +5,7 @@ import { ROLES } from '../data/mockData.js';
 import { Card, Avatar, StatusBadge, Select, TextInput, Button } from '../components/ui.jsx';
 import DailyUpdateForm from '../components/DailyUpdateForm.jsx';
 import DatePicker from '../components/DatePicker.jsx';
-import { IconSearch, IconArrowRight, IconDownload } from '../components/icons.jsx';
+import { IconSearch, IconArrowRight, IconDownload, IconAlertTriangle } from '../components/icons.jsx';
 import { formatDate, downloadCsv } from '../utils.js';
 
 const STATUS_OPTIONS = ['Completed', 'In Progress'];
@@ -126,6 +126,11 @@ export default function DailyUpdateHistory() {
           {currentUser.role === ROLES.EMPLOYEE && (
             <Button variant="secondary" onClick={() => setShowUpdateForm(true)}>Update today's entry</Button>
           )}
+          {/* Visible to every role, unlike the button above — a blocker can
+              come from anyone on the team, not just Employees. */}
+          <Button variant="secondary" onClick={() => navigate('/blockers')}>
+            <IconAlertTriangle size={14} color="var(--amber-text)" /> Blocker Register
+          </Button>
           <Button onClick={handleExport} disabled={updates.length === 0}>
             <IconDownload size={14} color="#FFFFFF" /> Export CSV
           </Button>

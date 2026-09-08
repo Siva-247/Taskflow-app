@@ -19,6 +19,7 @@ import TaskDetails from './pages/TaskDetails.jsx';
 import EditTask from './pages/EditTask.jsx';
 import DailyUpdate from './pages/DailyUpdate.jsx';
 import DailyUpdateHistory from './pages/DailyUpdateHistory.jsx';
+import BlockerRegister from './pages/BlockerRegister.jsx';
 import Drafts from './pages/Drafts.jsx';
 import Profile from './pages/Profile.jsx';
 import Employees from './pages/Employees.jsx';
@@ -63,6 +64,7 @@ function AppRoutes() {
           <Route path="/tasks/:taskId/edit" element={<EditTask />} />
           <Route path="/daily-update" element={<DailyUpdate />} />
           <Route path="/daily-updates" element={<DailyUpdateHistory />} />
+          <Route path="/blockers" element={<BlockerRegister />} />
           <Route path="/drafts" element={<Drafts />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/employees" element={<Employees />} />

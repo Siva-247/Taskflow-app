@@ -74,6 +74,13 @@ export function AppProvider({ children }) {
   const [dailyUpdates, setDailyUpdates] = useState([]);
   const [activity, setActivity] = useState([]);
   const [notifications, setNotifications] = useState([]);
+  // Blockers are the one resource visible to everyone regardless of role —
+  // no scopedBlockers() function exists, unlike tasks/dailyUpdates above.
+  const [blockers, setBlockers] = useState([]);
+  // Company-wide directory used only to populate the "Owner to Resolve"
+  // picker (unlike `users`, which is department-scoped for non-admins) —
+  // loaded once, not polled, since it only needs to be roughly fresh.
+  const [blockerDirectory, setBlockerDirectory] = useState([]);
   const [dataReady, setDataReady] = useState(false);
   const [toast, setToast] = useState(null);
 
@@ -174,6 +181,8 @@ export function AppProvider({ children }) {
     setDailyUpdates([]);
     setActivity([]);
     setNotifications([]);
+    setBlockers([]);
+    setBlockerDirectory([]);
     setDataReady(false);
   }, []);
 
@@ -203,7 +212,7 @@ export function AppProvider({ children }) {
     (async () => {
       setDataReady(false);
       try {
-        const [userList, departmentList, teamList, taskList, updateList, activityList, notificationList] = await Promise.all([
+        const [userList, departmentList, teamList, taskList, updateList, activityList, notificationList, blockerList, blockerDirectoryList] = await Promise.all([
           apiRequest('/users', {}, token),
           apiRequest('/departments', {}, token),
           apiRequest('/teams', {}, token),
@@ -211,6 +220,8 @@ export function AppProvider({ children }) {
           apiRequest('/daily-updates', {}, token),
           apiRequest('/activity', {}, token),
           apiRequest('/notifications', {}, token),
+          apiRequest('/blockers', {}, token),
+          apiRequest('/blockers/directory', {}, token),
         ]);
         if (cancelled) return;
         setUsers(userList);
@@ -220,6 +231,8 @@ export function AppProvider({ children }) {
         setDailyUpdates(updateList);
         setActivity(activityList);
         setNotifications(notificationList);
+        setBlockers(blockerList);
+        setBlockerDirectory(blockerDirectoryList);
       } catch (err) {
         console.error('Failed to load TaskFlow data from the backend:', err);
         showToast('Could not reach the backend server — is it running on port 4000?');
@@ -252,6 +265,7 @@ export function AppProvider({ children }) {
     const interval = window.setInterval(() => {
       apiRequest('/tasks', {}, token).then(setTasks).catch(() => {});
       apiRequest('/daily-updates', {}, token).then(setDailyUpdates).catch(() => {});
+      apiRequest('/blockers', {}, token).then(setBlockers).catch(() => {});
     }, 30000);
     return () => window.clearInterval(interval);
   }, [token]);
@@ -584,6 +598,40 @@ export function AppProvider({ children }) {
     }
   }, [call, showToast]);
 
+  const addBlocker = useCallback(async (data) => {
+    try {
+      const result = await call('/blockers', { method: 'POST', body: JSON.stringify(data) });
+      setBlockers((prev) => [result.blocker, ...prev]);
+      showToast('Blocker raised');
+      return result.blocker;
+    } catch (err) {
+      showToast(err.message || 'Could not raise blocker');
+      throw err;
+    }
+  }, [call, showToast]);
+
+  const editBlocker = useCallback(async (blockerId, data) => {
+    try {
+      const result = await call(`/blockers/${blockerId}`, { method: 'PATCH', body: JSON.stringify(data) });
+      setBlockers((prev) => prev.map((b) => (b.id === blockerId ? result.blocker : b)));
+      showToast('Blocker updated');
+      return result.blocker;
+    } catch (err) {
+      showToast(err.message || 'Could not update blocker');
+      throw err;
+    }
+  }, [call, showToast]);
+
+  const deleteBlocker = useCallback(async (blockerId) => {
+    try {
+      await call(`/blockers/${blockerId}`, { method: 'DELETE' });
+      setBlockers((prev) => prev.filter((b) => b.id !== blockerId));
+      showToast('Blocker deleted');
+    } catch (err) {
+      showToast(err.message || 'Could not delete blocker');
+    }
+  }, [call, showToast]);
+
   // Returns { user, tempPassword } — there's no email delivery wired up yet,
   // so the caller (a modal on My Team / Departments) is responsible for
   // showing that temp password once so it can be handed to the new hire.
@@ -820,10 +868,10 @@ export function AppProvider({ children }) {
     users, teams, departments, TODAY, token,
     currentUser, login, signup, fetchSignupDepartments, addSignupDepartment, logout, dataReady, authPending, sessionRestoring,
     mustChangePassword, changePassword, requestPasswordReset, resetPassword,
-    tasks, dailyUpdates, activity, notifications,
+    tasks, dailyUpdates, activity, notifications, blockers, blockerDirectory,
     scopedTasks, scopedDailyUpdates, statsFor, bucketOf, myDrafts,
     createTask, updateTask, deleteTask, publishDraft, refreshTask, setTaskProgress, setTaskStatus, requestChanges, submitForReview, approveTask, approveTaskCreation, rejectTaskCreation, reassignTask, requestExtension, approveExtension, rejectExtension, setTaskMarks, toggleSubtask,
-    addComment, editComment, deleteComment, addDailyUpdate, editDailyUpdate, deleteDailyUpdate, addTeamMember, addManager, addAssistantManager, addTeamLead, addTeam, editTeam, deleteTeam, addDepartment, editDepartment, deleteDepartment, editUser, deleteUser, resetUserPassword, setUserActive,
+    addComment, editComment, deleteComment, addDailyUpdate, editDailyUpdate, deleteDailyUpdate, addBlocker, editBlocker, deleteBlocker, addTeamMember, addManager, addAssistantManager, addTeamLead, addTeam, editTeam, deleteTeam, addDepartment, editDepartment, deleteDepartment, editUser, deleteUser, resetUserPassword, setUserActive,
     markNotificationRead, markAllNotificationsRead,
     toast, showToast,
   };
