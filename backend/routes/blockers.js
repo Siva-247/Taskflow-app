@@ -4,7 +4,7 @@ import { prepare } from '../database/db.js';
 import { TODAY } from '../database/constants.js';
 import { insertGlobalActivity } from '../database/helpers.js';
 import { canManageBlocker } from '../database/hierarchy.js';
-import { requireAuth, requireRole } from '../middleware/auth.js';
+import { requireAuth } from '../middleware/auth.js';
 import { asyncRoute } from '../middleware/asyncRoute.js';
 
 const router = Router();
@@ -163,12 +163,19 @@ router.patch('/:id', asyncRoute(async (req, res) => {
   res.json({ blocker });
 }));
 
-// Blockers are meant to stay as a historical record once closed — deleting
-// one outright (rather than closing it) is reserved for genuine data
-// correction, same reasoning as daily_updates' admin-only delete override.
-router.delete('/:id', requireRole('admin', 'super_admin'), asyncRoute(async (req, res) => {
-  const existing = await prepare('SELECT id FROM blockers WHERE id = ?').get(req.params.id);
+// Same authority as editing — the raiser, the named owner, or anyone in the
+// raiser's management chain, not just admin/super_admin. The register now
+// opens as a popup with inline edit/delete rather than a routed page, so
+// delete needs to work for whoever the UI already lets manage the row.
+router.delete('/:id', asyncRoute(async (req, res) => {
+  const existing = await prepare('SELECT * FROM blockers WHERE id = ?').get(req.params.id);
   if (!existing) return res.status(404).json({ error: 'Blocker not found' });
+
+  const raiser = await prepare('SELECT * FROM users WHERE id = ?').get(existing.raised_by);
+  if (!canManageBlocker(req.user, existing, raiser)) {
+    return res.status(403).json({ error: 'You do not have permission to delete this blocker' });
+  }
+
   await prepare('DELETE FROM blockers WHERE id = ?').run(req.params.id);
   res.json({ ok: true });
 }));
