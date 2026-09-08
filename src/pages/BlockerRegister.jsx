@@ -55,6 +55,16 @@ export default function BlockerRegister() {
   const [showRaise, setShowRaise] = useState(false);
   const [editingBlocker, setEditingBlocker] = useState(null);
 
+  // Same "build filter options from what's actually there" idea as
+  // DailyUpdateHistory's employee filter — a custom "Other" category (the
+  // typed text, not the literal word) only becomes filterable this way,
+  // since the fixed list's own "Other" entry is a form sentinel, not a real
+  // stored value.
+  const categoryOptions = useMemo(
+    () => [...new Set([...BLOCKER_CATEGORIES.filter((c) => c !== 'Other'), ...blockers.map((b) => b.category).filter(Boolean)])],
+    [blockers],
+  );
+
   const daysOpen = (b) => {
     const start = new Date(`${b.raisedDate}T00:00:00`);
     const end = new Date(`${b.closedDate || TODAY}T00:00:00`);
@@ -149,7 +159,7 @@ export default function BlockerRegister() {
             <Select value={statusFilter} onChange={setStatusFilter} options={[{ value: 'all', label: 'All statuses' }, ...STATUS_OPTIONS.map((s) => ({ value: s, label: s }))]} />
           </div>
           <div className="filter-field" style={{ width: 180 }}>
-            <Select value={categoryFilter} onChange={setCategoryFilter} options={[{ value: 'all', label: 'All categories' }, ...BLOCKER_CATEGORIES.map((c) => ({ value: c, label: c }))]} />
+            <Select value={categoryFilter} onChange={setCategoryFilter} options={[{ value: 'all', label: 'All categories' }, ...categoryOptions.map((c) => ({ value: c, label: c }))]} />
           </div>
           <div className="filter-field" style={{ width: 160 }}>
             <Select value={escalationFilter} onChange={setEscalationFilter} options={[{ value: 'all', label: 'All escalation levels' }, ...ESCALATION_LEVELS.map((l) => ({ value: l, label: l }))]} />

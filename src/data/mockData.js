@@ -31,7 +31,7 @@ export const PRIORITY = {
 export const CATEGORIES = ['Development', 'AI/ML', 'Testing', 'Documentation', 'Research'];
 
 export const BLOCKER_STATUS = { OPEN: 'Open', IN_PROGRESS: 'In Progress', RESOLVED: 'Resolved', CLOSED: 'Closed' };
-export const BLOCKER_CATEGORIES = ['Technical', 'Access & Permissions', 'Dependency', 'Decision Needed', 'Resource', 'External', 'Other'];
+export const BLOCKER_CATEGORIES = ['Technical', 'Dependency', 'Stakeholder', 'Resource', 'External', 'Other'];
 export const ESCALATION_LEVELS = ['Low', 'Medium', 'High', 'Critical'];
 
 // The real current date (viewer's local time), recomputed on every page

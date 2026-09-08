@@ -5,6 +5,11 @@ import { Modal, Field, TextInput, TextArea, Select, Button } from './ui.jsx';
 import DatePicker from './DatePicker.jsx';
 
 const CLOSED_STATUSES = [BLOCKER_STATUS.RESOLVED, BLOCKER_STATUS.CLOSED];
+// 'Other' in the fixed list acts as a sentinel, same as CreateTask.jsx's
+// OTHER_CATEGORY handling for a task's milestone — picking it reveals a text
+// box, and whatever's typed there becomes the actual stored category, not
+// the literal word "Other".
+const isKnownCategory = (c) => BLOCKER_CATEGORIES.includes(c);
 
 // One component, two modes: raising a brand-new blocker (no `blocker` prop)
 // or editing/resolving an existing one (`blocker` passed in) — mirrors
@@ -21,7 +26,15 @@ export default function RaiseBlockerModal({ onClose, blocker }) {
   const [linkedTaskId, setLinkedTaskId] = useState(blocker?.linkedTaskId || '');
   const [project, setProject] = useState(blocker?.project || myDepartment?.name || '');
   const [raisedDate, setRaisedDate] = useState(blocker?.raisedDate || TODAY);
-  const [category, setCategory] = useState(blocker?.category || BLOCKER_CATEGORIES[0]);
+  // A stored category outside the fixed list (an earlier custom "Other"
+  // entry) reopens as "Other" with that text pre-filled, so it stays visible
+  // and editable rather than silently falling back to the first option.
+  const blockerHasCustomCategory = blocker && !isKnownCategory(blocker.category);
+  const [categorySelection, setCategorySelection] = useState(
+    blockerHasCustomCategory ? 'Other' : (blocker?.category || BLOCKER_CATEGORIES[0]),
+  );
+  const [customCategory, setCustomCategory] = useState(blockerHasCustomCategory ? blocker.category : '');
+  const category = categorySelection === 'Other' ? customCategory.trim() : categorySelection;
   const [description, setDescription] = useState(blocker?.description || '');
   const [blockingWhat, setBlockingWhat] = useState(blocker?.blockingWhat || '');
   const [ownerToResolveId, setOwnerToResolveId] = useState(blocker?.ownerToResolveId || '');
@@ -96,12 +109,21 @@ export default function RaiseBlockerModal({ onClose, blocker }) {
       <div style={{ height: 16 }} />
       <div className="responsive-grid" style={{ display: 'grid', '--cols': '1fr 1fr', gap: 16 }}>
         <Field label="Category" required>
-          <Select value={category} onChange={setCategory} options={BLOCKER_CATEGORIES.map((c) => ({ value: c, label: c }))} />
+          <Select value={categorySelection} onChange={setCategorySelection} options={BLOCKER_CATEGORIES.map((c) => ({ value: c, label: c }))} />
         </Field>
         <Field label="Escalation level" required>
           <Select value={escalationLevel} onChange={setEscalationLevel} options={ESCALATION_LEVELS.map((l) => ({ value: l, label: l }))} />
         </Field>
       </div>
+      {categorySelection === 'Other' && (
+        <>
+          <div style={{ height: 12 }} />
+          <Field label="Describe the category" required>
+            <TextInput value={customCategory} onChange={setCustomCategory} placeholder="e.g. Vendor delay" />
+          </Field>
+        </>
+      )}
+      {errors.category && <ErrorText>Category is required.</ErrorText>}
 
       <div style={{ height: 16 }} />
       <div className="responsive-grid" style={{ display: 'grid', '--cols': '1fr 1fr', gap: 16 }}>
