@@ -6,7 +6,7 @@ import { asyncRoute } from '../middleware/asyncRoute.js';
 const router = Router();
 router.use(requireAuth);
 
-const SELECT_COLUMNS = `id, user_id as "userId", type, text, task_id as "taskId", read, created_at as "createdAt"`;
+const SELECT_COLUMNS = `id, user_id as "userId", type, text, task_id as "taskId", blocker_id as "blockerId", read, created_at as "createdAt"`;
 
 router.get('/', asyncRoute(async (req, res) => {
   const rows = await prepare(`SELECT ${SELECT_COLUMNS} FROM notifications WHERE user_id = ? ORDER BY seq DESC LIMIT 50`).all(req.user.id);

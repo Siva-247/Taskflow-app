@@ -123,6 +123,35 @@ CREATE TABLE IF NOT EXISTS daily_updates (
   seq BIGSERIAL
 );
 
+-- Anyone can raise a blocker; it's visible to the WHOLE company regardless of
+-- role/department/team (see routes/blockers.js — deliberately unscoped, the
+-- one resource in this app where that's true), since resolving one often
+-- needs someone outside the raiser's own chain.
+CREATE TABLE IF NOT EXISTS blockers (
+  id TEXT PRIMARY KEY,
+  linked_task_id TEXT REFERENCES tasks(id),
+  -- Denormalized snapshot, same reasoning as daily_updates.task_title: the
+  -- blocker itself is visible company-wide, but the linked task's own
+  -- visibility stays scoped — without this, a viewer outside that task's
+  -- scope would see a blocker pointing at a task they can't look up.
+  linked_task_title TEXT NOT NULL DEFAULT '',
+  raised_by TEXT NOT NULL REFERENCES users(id),
+  project TEXT NOT NULL DEFAULT '',
+  raised_date TEXT NOT NULL,
+  category TEXT NOT NULL,
+  description TEXT NOT NULL,
+  blocking_what TEXT NOT NULL DEFAULT '',
+  owner_to_resolve_id TEXT REFERENCES users(id),
+  target_resolution TEXT,
+  escalation_level TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'Open',
+  closed_date TEXT,
+  resolution_note TEXT NOT NULL DEFAULT '',
+  seq BIGSERIAL
+);
+CREATE INDEX IF NOT EXISTS idx_blockers_raised_by ON blockers(raised_by);
+CREATE INDEX IF NOT EXISTS idx_blockers_owner ON blockers(owner_to_resolve_id);
+
 -- Serves both the per-task activity timeline (task_id set, type NULL) and the
 -- global recent-activity feed (task_id NULL, type set) — one table, two views.
 CREATE TABLE IF NOT EXISTS activity_logs (
@@ -145,6 +174,11 @@ CREATE TABLE IF NOT EXISTS notifications (
   created_at TEXT NOT NULL,
   seq BIGSERIAL
 );
+
+-- Blockers aren't tasks, so the existing insertNotification() helper
+-- (hardwired to notifications.task_id) can't target one — added after
+-- `blockers` exists, since this column references it.
+ALTER TABLE notifications ADD COLUMN IF NOT EXISTS blocker_id TEXT REFERENCES blockers(id) ON DELETE CASCADE;
 
 -- 'group' (name set, members added explicitly by whoever's allowed to
 -- create one) or 'dm' (name NULL, always exactly two members, reused

@@ -104,6 +104,18 @@ export async function canApproveCreationTask(approver, task) {
   return canReviewTask(approver, task);
 }
 
+// Blockers are readable by everyone (see routes/blockers.js — no scopeX
+// function for the list, deliberately), but editing/closing one is still
+// gated: the raiser, the named owner, or anyone who could manage the raiser
+// as a person (reuses canManage's cascading rank+scope authority).
+export function canManageBlocker(actor, blocker, raiser) {
+  if (actor.role === 'super_admin' || actor.role === 'admin') return true;
+  if (actor.id === blocker.raised_by) return true;
+  if (blocker.owner_to_resolve_id && actor.id === blocker.owner_to_resolve_id) return true;
+  if (raiser) return canManage(actor, raiser);
+  return false;
+}
+
 // Narrow, notification-only: walks the team's REAL staffing to find the
 // single nearest present reviewer above the submitter, falling back up the
 // chain (team_lead -> assistant_manager -> department manager -> any admin
