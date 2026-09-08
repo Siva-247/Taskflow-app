@@ -137,8 +137,11 @@ router.post('/', requireRole('team_lead', 'assistant_manager', 'manager', 'admin
     return res.status(201).json({ user, tempPassword });
   }
 
-  const title = req.body.title;
-  if (!TITLE_OPTIONS.includes(title)) return res.status(400).json({ error: 'Title must be Intern or Developer' });
+  // Intern/Developer are the two fixed titles; anything else typed via the
+  // "Other" option in the Add Employee form is accepted as a free-text
+  // title as-is — only role stays a closed enum everything else depends on.
+  const title = TITLE_OPTIONS.includes(req.body.title) ? req.body.title : (req.body.title || '').trim();
+  if (!title) return res.status(400).json({ error: 'Title is required' });
 
   let teamId;
   if (['team_lead', 'assistant_manager'].includes(req.user.role)) {
