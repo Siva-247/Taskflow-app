@@ -25,7 +25,7 @@ export default function RaiseBlockerModal({ onClose, blocker }) {
 
   const [linkedTaskId, setLinkedTaskId] = useState(blocker?.linkedTaskId || '');
   const [project, setProject] = useState(blocker?.project || myDepartment?.name || '');
-  const [raisedDate, setRaisedDate] = useState(blocker?.raisedDate || TODAY);
+  const [raisedDate] = useState(blocker?.raisedDate || TODAY);
   // A stored category outside the fixed list (an earlier custom "Other"
   // entry) reopens as "Other" with that text pre-filled, so it stays visible
   // and editable rather than silently falling back to the first option.
@@ -51,6 +51,7 @@ export default function RaiseBlockerModal({ onClose, blocker }) {
   const validate = () => {
     const e = {};
     if (!description.trim()) e.description = true;
+    if (!blockingWhat.trim()) e.blockingWhat = true;
     if (!category) e.category = true;
     if (!escalationLevel) e.escalationLevel = true;
     return e;
@@ -102,9 +103,10 @@ export default function RaiseBlockerModal({ onClose, blocker }) {
       {errors.description && <ErrorText>Description is required.</ErrorText>}
 
       <div style={{ height: 16 }} />
-      <Field label="Blocking what">
+      <Field label="Blocking what" required>
         <TextArea value={blockingWhat} onChange={setBlockingWhat} placeholder="What work can't move forward until this is resolved?" minHeight={44} />
       </Field>
+      {errors.blockingWhat && <ErrorText>Blocking what is required.</ErrorText>}
 
       <div style={{ height: 16 }} />
       <div className="responsive-grid" style={{ display: 'grid', '--cols': '1fr 1fr', gap: 16 }}>
@@ -152,11 +154,6 @@ export default function RaiseBlockerModal({ onClose, blocker }) {
           <DatePicker value={targetResolution} onChange={setTargetResolution} min={raisedDate} />
         </Field>
       </div>
-
-      <div style={{ height: 16 }} />
-      <Field label="Raised date" required>
-        <DatePicker value={raisedDate} onChange={setRaisedDate} />
-      </Field>
 
       {isEdit && (
         <>

@@ -94,6 +94,7 @@ input:focus, select:focus, textarea:focus {
     overflow-y: auto !important;
   }
   .sidebar.open { transform: translateX(0); }
+  .sidebar-resize-handle { display: none !important; }
   .sidebar-backdrop.open {
     display: block !important; position: fixed !important; inset: 0 !important;
     background: rgba(20,10,40,0.42) !important; z-index: 1000 !important;

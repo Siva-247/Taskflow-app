@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext.jsx';
 import { useChat } from '../context/ChatContext.jsx';
@@ -61,16 +61,61 @@ const NAV_BY_ROLE = {
 const WIDTH_BY_ROLE = {
   [ROLES.EMPLOYEE]: 212,
 };
+const MIN_WIDTH = 180;
+const MAX_WIDTH = 380;
+const STORAGE_KEY = 'sidebarWidth';
+
+function loadStoredWidth(defaultWidth) {
+  try {
+    const raw = Number(localStorage.getItem(STORAGE_KEY));
+    if (raw >= MIN_WIDTH && raw <= MAX_WIDTH) return raw;
+  } catch {
+    // localStorage unavailable (private mode etc) — fall back silently
+  }
+  return defaultWidth;
+}
 
 export default function Sidebar({ open = false, onNavigate }) {
   const { currentUser, showToast } = useApp();
   const { conversations } = useChat();
   const navigate = useNavigate();
   const location = useLocation();
+  const defaultWidth = WIDTH_BY_ROLE[currentUser?.role] || 232;
+  const [width, setWidth] = useState(() => loadStoredWidth(defaultWidth));
+  const [dragging, setDragging] = useState(false);
+  const [handleHover, setHandleHover] = useState(false);
+  const widthRef = useRef(width);
+  widthRef.current = width;
+
+  useEffect(() => {
+    if (!dragging) return undefined;
+    const handleMouseMove = (e) => {
+      const next = Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, e.clientX));
+      setWidth(next);
+    };
+    const stopDragging = () => {
+      setDragging(false);
+      try {
+        localStorage.setItem(STORAGE_KEY, String(widthRef.current));
+      } catch {
+        // localStorage unavailable — width just won't persist across reloads
+      }
+    };
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', stopDragging);
+    return () => {
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', stopDragging);
+    };
+  }, [dragging]);
+
   if (!currentUser) return null;
 
   const items = NAV_BY_ROLE[currentUser.role] || [];
-  const width = WIDTH_BY_ROLE[currentUser.role] || 232;
   const currentPath = location.pathname + location.search;
   // Same "unread" rule as the Chat page's conversation list — one badge
   // count per conversation currently carrying an unread message from
@@ -126,6 +171,24 @@ export default function Sidebar({ open = false, onNavigate }) {
           </div>
         );
       })}
+      <div
+        className="sidebar-resize-handle"
+        onMouseDown={(e) => { e.preventDefault(); setDragging(true); }}
+        onMouseEnter={() => setHandleHover(true)}
+        onMouseLeave={() => setHandleHover(false)}
+        title="Drag to resize"
+        style={{
+          position: 'absolute', top: 0, bottom: 0, right: -4, width: 8,
+          cursor: 'col-resize', zIndex: 2,
+        }}
+      >
+        <div style={{
+          width: 3, height: '100%', margin: '0 auto',
+          background: (handleHover || dragging) ? 'var(--accent)' : 'transparent',
+          opacity: (handleHover || dragging) ? 0.55 : 0,
+          borderRadius: 999, transition: dragging ? 'none' : 'opacity 150ms ease, background 150ms ease',
+        }} />
+      </div>
     </div>
   );
 }
