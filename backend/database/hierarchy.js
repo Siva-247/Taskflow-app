@@ -202,6 +202,16 @@ export async function validateAssignee(creator, assigneeId) {
       : { ok: false, error: 'You can only create tasks for yourself' };
   }
 
+  // A Team Lead may also create a task for themselves, same self-assignment
+  // allowance an Employee gets, layered on top of (not replacing) their
+  // normal below-rank assignment authority over their team's Employees.
+  // Still routes through needsCreationApproval/resolveReviewer exactly like
+  // any other team-lead-created task — reviewed by the team's Assistant
+  // Manager if staffed, else the department Manager.
+  if (creator.role === 'team_lead' && assigneeId === creator.id) {
+    return { ok: true, teamId: creator.team_id };
+  }
+
   if (!['super_admin', 'admin', 'manager', 'assistant_manager', 'team_lead'].includes(creator.role)) {
     return { ok: false, error: 'You do not have permission to assign tasks' };
   }

@@ -39,10 +39,15 @@ export default function CreateTask() {
 
   // Anyone strictly below the creator's rank, within their team/department
   // scope — mirrors the backend's validateAssignee. An Employee can only
-  // ever create a task for themselves (a special case, not the general rule).
+  // ever create a task for themselves (a special case, not the general
+  // rule). A Team Lead gets the same self-assignment option layered on top
+  // of their normal team, rather than in place of it — they can create a
+  // task for themselves or for one of their Employees.
   const assignableUsers = currentUser.role === ROLES.EMPLOYEE
     ? users.filter((u) => u.id === currentUser.id)
-    : assignableTargets(currentUser, users);
+    : currentUser.role === ROLES.TEAM_LEAD
+      ? [currentUser, ...assignableTargets(currentUser, users)]
+      : assignableTargets(currentUser, users);
 
   // The fixed list plus any custom category someone already typed in on a
   // past task, so a one-off "Other" entry becomes pickable again later
@@ -180,7 +185,11 @@ export default function CreateTask() {
         <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 14, color: 'var(--text-secondary)', marginTop: 4 }}>
           {isEditingDraft
             ? 'Continue where you left off, then assign it or save it again.'
-            : (currentUser.role === ROLES.EMPLOYEE ? 'Create a task for yourself — your team lead or manager will need to approve it first' : 'Assign a task to a member of your team')}
+            : currentUser.role === ROLES.EMPLOYEE
+              ? 'Create a task for yourself — your team lead or manager will need to approve it first'
+              : currentUser.role === ROLES.TEAM_LEAD
+                ? "Assign a task to yourself or a member of your team — self-assigned tasks still need your assistant manager's or manager's approval"
+                : 'Assign a task to a member of your team'}
         </div>
       </div>
 
@@ -218,7 +227,11 @@ export default function CreateTask() {
           {currentUser.role !== ROLES.EMPLOYEE && (
             <Field label="Assign to" required>
               <div style={{ ...(errors.assigneeId ? { borderRadius: 9, border: '1px solid var(--amber-fill)' } : {}) }}>
-                <Select value={assigneeId} onChange={setAssigneeId} options={assignableUsers.map((u) => ({ value: u.id, label: `${u.name} · ${u.title}` }))} />
+                <Select
+                  value={assigneeId}
+                  onChange={setAssigneeId}
+                  options={assignableUsers.map((u) => ({ value: u.id, label: u.id === currentUser.id ? `${u.name} (You)` : `${u.name} · ${u.title}` }))}
+                />
               </div>
             </Field>
           )}
