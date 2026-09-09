@@ -151,9 +151,9 @@ function AutoField({ label, value, tag }) {
         display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
         padding: '12px 15px', border: '1px dashed var(--border)', borderRadius: 9, background: 'var(--neutral-bg)',
       }}>
-        <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 13.5, color: 'var(--text-secondary)' }}>{value}</span>
+        <span style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 13.5, color: 'var(--text-secondary)' }}>{value}</span>
         {tag && (
-          <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>{tag}</span>
+          <span style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>{tag}</span>
         )}
       </div>
     </Field>
@@ -161,5 +161,5 @@ function AutoField({ label, value, tag }) {
 }
 
 function ErrorText({ children }) {
-  return <div style={{ marginTop: 6, fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12, color: 'var(--amber-text)' }}>{children}</div>;
+  return <div style={{ marginTop: 6, fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 12, color: 'var(--amber-text)' }}>{children}</div>;
 }

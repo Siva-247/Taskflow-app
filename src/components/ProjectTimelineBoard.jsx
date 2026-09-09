@@ -113,7 +113,7 @@ function withGroupHeaders(rows, groupByDepartment) {
 function FilterField({ label, children }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 160 }}>
-      <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 10.5, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>{label}</span>
+      <span style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 10.5, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>{label}</span>
       {children}
     </div>
   );
@@ -195,9 +195,9 @@ export default function ProjectTimelineBoard({ title, today, groupByDepartment =
       <div style={{ padding: '22px 26px 0' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <IconLayers size={17} color="var(--accent)" />
-          <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 15.5, color: 'var(--heading)' }}>{title}</div>
+          <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 15.5, color: 'var(--heading)' }}>{title}</div>
         </div>
-        <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 12.5, color: 'var(--text-muted)', marginTop: 3 }}>
+        <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 500, fontSize: 12.5, color: 'var(--text-muted)', marginTop: 3 }}>
           Built from each person's Daily Update "Project" entry — a bar breaks and recolors wherever the logged project changes.
         </div>
 
@@ -225,7 +225,7 @@ export default function ProjectTimelineBoard({ title, today, groupByDepartment =
           )}
           {gridFrom && gridTo && (
             <div style={{
-              fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 12, color: 'var(--accent-dark)',
+              fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 12, color: 'var(--accent-dark)',
               background: 'var(--accent-soft)', padding: '7px 13px', borderRadius: 999, marginBottom: 1,
             }}>
               {formatDate(gridFrom)} – {formatDate(gridTo)}
@@ -238,7 +238,7 @@ export default function ProjectTimelineBoard({ title, today, groupByDepartment =
             {[...colorByProject.entries()].map(([project, color]) => (
               <div key={project} style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
                 <span style={{ width: 8, height: 8, borderRadius: 2.5, background: color, flexShrink: 0, display: 'inline-block' }} />
-                <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12, color: 'var(--text-secondary)' }}>{project}</span>
+                <span style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 12, color: 'var(--text-secondary)' }}>{project}</span>
               </div>
             ))}
           </div>
@@ -261,7 +261,7 @@ export default function ProjectTimelineBoard({ title, today, groupByDepartment =
                   height: GROUP_HEADER_HEIGHT, display: 'flex', alignItems: 'center', padding: '0 16px',
                   background: 'var(--field-bg)', borderBottom: '1px solid var(--border)',
                 }}>
-                  <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11, letterSpacing: '0.03em', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>
+                  <span style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 11, letterSpacing: '0.03em', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>
                     {item.label}
                   </span>
                 </div>
@@ -269,7 +269,7 @@ export default function ProjectTimelineBoard({ title, today, groupByDepartment =
                 <div key={item.row.id} style={{ height: ROW_HEIGHT, display: 'flex', alignItems: 'center', gap: 9, padding: '0 14px 0 20px', borderBottom: '1px solid var(--border)' }}>
                   <Avatar initial={item.row.name[0]} size={23} />
                   <span style={{
-                    fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12.5, color: 'var(--text-primary)',
+                    fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 12.5, color: 'var(--text-primary)',
                     whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                   }}>
                     {item.row.name}
@@ -287,8 +287,8 @@ export default function ProjectTimelineBoard({ title, today, groupByDepartment =
                       width: DAY_WIDTH, flexShrink: 0, textAlign: 'center', paddingTop: 5, borderLeft: i > 0 ? '1px solid var(--border)' : 'none',
                       background: i === todayIndex ? 'var(--accent-soft)' : 'transparent',
                     }}>
-                      <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 10, color: 'var(--text-muted)' }}>{weekday}</div>
-                      <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 12, color: i === todayIndex ? 'var(--accent-dark)' : 'var(--text-primary)' }}>{num}</div>
+                      <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 10, color: 'var(--text-muted)' }}>{weekday}</div>
+                      <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 12, color: i === todayIndex ? 'var(--accent-dark)' : 'var(--text-primary)' }}>{num}</div>
                     </div>
                   );
                 })}
@@ -322,7 +322,7 @@ export default function ProjectTimelineBoard({ title, today, groupByDepartment =
                         }}
                       >
                         <span style={{
-                          fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11.5, color: '#FFFFFF',
+                          fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 11.5, color: '#FFFFFF',
                           whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                         }}>
                           {seg.project}
@@ -332,12 +332,12 @@ export default function ProjectTimelineBoard({ title, today, groupByDepartment =
                             position: 'absolute', bottom: '100%', left: 0, marginBottom: 8, background: 'var(--heading)', color: '#FFFFFF',
                             borderRadius: 9, padding: '9px 13px', whiteSpace: 'nowrap', zIndex: 3, boxShadow: '0 10px 24px -8px rgba(0,0,0,0.45)',
                           }}>
-                            <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11.5, marginBottom: 4 }}>{seg.project}</div>
-                            <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 11 }}>{item.row.name}</div>
-                            <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 11 }}>
+                            <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 11.5, marginBottom: 4 }}>{seg.project}</div>
+                            <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 500, fontSize: 11 }}>{item.row.name}</div>
+                            <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 500, fontSize: 11 }}>
                               {span === 1 ? formatDate(days[seg.startIndex]) : `${formatDate(days[seg.startIndex])} – ${formatDate(days[seg.endIndex])}`}
                             </div>
-                            <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11, marginTop: 2, color: '#D9CBFB' }}>{seg.lastStatus}</div>
+                            <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 11, marginTop: 2, color: '#D9CBFB' }}>{seg.lastStatus}</div>
                           </div>
                         )}
                       </div>
@@ -356,7 +356,7 @@ export default function ProjectTimelineBoard({ title, today, groupByDepartment =
 function EmptyState({ children }) {
   return (
     <div style={{
-      fontFamily: "'Manrope',system-ui,sans-serif", fontSize: 13.5, color: 'var(--text-muted)',
+      fontFamily: "'Outfit',system-ui,sans-serif", fontSize: 13.5, color: 'var(--text-muted)',
       padding: '30px 26px', textAlign: 'center', borderTop: '1px solid var(--border)', marginTop: 18,
     }}>
       {children}

@@ -34,8 +34,8 @@ export default function Profile() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
       <div>
-        <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 24, color: 'var(--heading)' }}>Profile</div>
-        <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 14, color: 'var(--text-secondary)', marginTop: 4 }}>Your account and activity summary</div>
+        <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 24, color: 'var(--heading)' }}>Profile</div>
+        <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 500, fontSize: 14, color: 'var(--text-secondary)', marginTop: 4 }}>Your account and activity summary</div>
       </div>
 
       <div className="responsive-grid" style={{ display: 'grid', '--cols': '1fr 1.4fr', gap: 20, alignItems: 'start' }}>
@@ -43,8 +43,8 @@ export default function Profile() {
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 10 }}>
             <Avatar initial={currentUser.initial} size={64} gradient />
             <div>
-              <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 18, color: 'var(--heading)' }}>{currentUser.name}</div>
-              <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 13, color: 'var(--accent-dark)', marginTop: 2 }}>{currentUser.title || ROLE_LABEL[currentUser.role]}</div>
+              <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 18, color: 'var(--heading)' }}>{currentUser.name}</div>
+              <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 13, color: 'var(--accent-dark)', marginTop: 2 }}>{currentUser.title || ROLE_LABEL[currentUser.role]}</div>
             </div>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 22, paddingTop: 18, borderTop: '1px solid var(--border)' }}>
@@ -58,14 +58,14 @@ export default function Profile() {
           </div>
           <div
             onClick={() => navigate('/change-password')}
-            style={{ marginTop: 18, paddingTop: 16, borderTop: '1px solid var(--border)', fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 13, color: 'var(--accent-dark)', cursor: 'pointer', textAlign: 'center' }}
+            style={{ marginTop: 18, paddingTop: 16, borderTop: '1px solid var(--border)', fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 13, color: 'var(--accent-dark)', cursor: 'pointer', textAlign: 'center' }}
           >
             Change password
           </div>
         </Card>
 
         <Card>
-          <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 15.5, color: 'var(--heading)' }}>Your task activity</div>
+          <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 15.5, color: 'var(--heading)' }}>Your task activity</div>
           <div className="responsive-grid" style={{ display: 'grid', '--cols': 'repeat(4,1fr)', gap: 14, marginTop: 16 }}>
             <MiniStat value={stats.total} label="Total" />
             <MiniStat value={stats.completed} label="Completed" color="var(--accent-dark)" />
@@ -74,14 +74,14 @@ export default function Profile() {
           </div>
           <div style={{ marginTop: 20 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-              <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12.5, color: 'var(--text-muted)' }}>Completion rate</span>
-              <span style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 13, color: 'var(--heading)' }}>{completionRate}%</span>
+              <span style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 12.5, color: 'var(--text-muted)' }}>Completion rate</span>
+              <span style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 13, color: 'var(--heading)' }}>{completionRate}%</span>
             </div>
             <ProgressBar value={completionRate} height={8} />
           </div>
           <div
             onClick={() => navigate('/tasks')}
-            style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--border)', fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 13, color: 'var(--accent-dark)', cursor: 'pointer' }}
+            style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--border)', fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 13, color: 'var(--accent-dark)', cursor: 'pointer' }}
           >
             View all your tasks →
           </div>
@@ -94,8 +94,8 @@ export default function Profile() {
 function DetailRow({ label, value }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-      <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12.5, color: 'var(--text-muted)' }}>{label}</span>
-      <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 13.5, color: 'var(--text-primary)' }}>{value}</span>
+      <span style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 12.5, color: 'var(--text-muted)' }}>{label}</span>
+      <span style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 13.5, color: 'var(--text-primary)' }}>{value}</span>
     </div>
   );
 }
@@ -103,8 +103,8 @@ function DetailRow({ label, value }) {
 function MiniStat({ value, label, color = 'var(--heading)' }) {
   return (
     <div style={{ padding: '14px 12px', border: '1px solid var(--border)', borderRadius: 10, textAlign: 'center' }}>
-      <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 20, color }}>{value}</div>
-      <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 11.5, color: 'var(--text-muted)', marginTop: 2 }}>{label}</div>
+      <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 20, color }}>{value}</div>
+      <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 11.5, color: 'var(--text-muted)', marginTop: 2 }}>{label}</div>
     </div>
   );
 }

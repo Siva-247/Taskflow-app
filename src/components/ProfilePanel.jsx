@@ -42,8 +42,8 @@ export default function ProfilePanel({ onClose }) {
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 10 }}>
         <Avatar initial={currentUser.initial} size={56} gradient />
         <div>
-          <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 17, color: 'var(--heading)' }}>{currentUser.name}</div>
-          <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12.5, color: 'var(--accent-dark)', marginTop: 2 }}>{currentUser.title || roleLabel}</div>
+          <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 17, color: 'var(--heading)' }}>{currentUser.name}</div>
+          <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 12.5, color: 'var(--accent-dark)', marginTop: 2 }}>{currentUser.title || roleLabel}</div>
         </div>
       </div>
 
@@ -68,8 +68,8 @@ export default function ProfilePanel({ onClose }) {
 function DetailRow({ label, value }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-      <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12, color: 'var(--text-muted)' }}>{label}</span>
-      <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 13, color: 'var(--text-primary)', textAlign: 'right' }}>{value}</span>
+      <span style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 12, color: 'var(--text-muted)' }}>{label}</span>
+      <span style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 13, color: 'var(--text-primary)', textAlign: 'right' }}>{value}</span>
     </div>
   );
 }
@@ -79,7 +79,7 @@ function PanelLink({ children, onClick, amber }) {
     <div
       onClick={onClick}
       style={{
-        padding: '10px 4px', fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 13,
+        padding: '10px 4px', fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 13,
         color: amber ? 'var(--amber-text)' : 'var(--accent-dark)', cursor: 'pointer',
       }}
     >

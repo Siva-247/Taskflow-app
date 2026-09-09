@@ -5,7 +5,7 @@ import { useChat } from '../context/ChatContext.jsx';
 import { ROLES } from '../data/mockData.js';
 import {
   IconGrid, IconUser, IconUsers, IconChecklist, IconBarChart, IconGear,
-  IconEye, IconCalendar, IconChat,
+  IconEye, IconCalendar, IconChat, IconChevronDown,
 } from './icons.jsx';
 import { Avatar } from './ui.jsx';
 
@@ -82,7 +82,13 @@ function loadStoredWidth(defaultWidth) {
   return defaultWidth;
 }
 
-export default function Sidebar({ open = false, onNavigate }) {
+// `collapsed`/`onToggleCollapse` are owned by Layout (the `.is-collapsed`
+// class has to land on an ancestor of `.sidebar-shell` for the hover-expand
+// CSS in global.css to apply) — this component just reflects that state and
+// renders the toggle control itself. While collapsed the rail's width is
+// fully CSS-driven (`!important`), so the drag-resize handle below is hidden
+// rather than fighting it.
+export default function Sidebar({ open = false, onNavigate, collapsed = false, onToggleCollapse }) {
   const { currentUser, showToast } = useApp();
   const { conversations } = useChat();
   const navigate = useNavigate();
@@ -136,44 +142,43 @@ export default function Sidebar({ open = false, onNavigate }) {
   };
 
   return (
-    <div className={`sidebar${open ? ' open' : ''}`} style={{
-      width, flexShrink: 0, background: '#FFFFFF', border: '1px solid var(--border)',
-      borderRadius: 20, margin: '16px 0 16px 16px',
-      boxShadow: '0 4px 16px -6px rgba(59,30,112,0.12), 0 14px 34px -14px rgba(124,58,237,0.25)',
+    <div className={`sidebar-shell card-glass${open ? ' open' : ''}`} style={{
+      width, flexShrink: 0, borderRadius: 20, margin: '16px 0 16px 16px',
       position: 'relative', zIndex: 1,
-      padding: '22px 16px', display: 'flex', flexDirection: 'column', gap: 4,
-      transition: 'box-shadow 200ms ease',
+      padding: '18px 14px', display: 'flex', flexDirection: 'column', gap: 4,
     }}>
+      <div
+        onClick={onToggleCollapse}
+        title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        className="btn-glass"
+        style={{
+          width: 26, height: 26, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          cursor: 'pointer', alignSelf: collapsed ? 'center' : 'flex-end', marginBottom: 8, flexShrink: 0,
+        }}
+      >
+        <span style={{ display: 'flex', transform: collapsed ? 'rotate(-90deg)' : 'rotate(90deg)', transition: 'transform .2s ease' }}>
+          <IconChevronDown size={11} color="var(--brand)" />
+        </span>
+      </div>
+
       {items.map((item) => {
         const isActive = item.to && (item.to === location.pathname || item.to === currentPath);
         const Icon = item.icon;
         return (
           <div
             key={item.label}
+            className={`sidebar-nav-item${isActive ? ' active' : ''}`}
             onClick={() => (item.to ? go(item.to) : showToast(`${item.label} is planned for Phase 2`))}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 11, padding: '9px 12px 9px 9px', borderRadius: 12,
-              borderLeft: isActive ? '3px solid var(--accent)' : '3px solid transparent',
-              background: isActive ? 'var(--accent-soft)' : 'transparent',
-              cursor: 'pointer', userSelect: 'none', transition: 'background 150ms ease, border-color 150ms ease',
-            }}
-            onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = 'var(--field-bg)'; }}
-            onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = 'transparent'; }}
           >
-            <Icon size={17} color={isActive ? 'var(--accent-dark)' : 'var(--text-muted)'} />
-            <span style={{
-              flex: 1,
-              fontFamily: "'Manrope',system-ui,sans-serif", fontSize: 13.5,
-              fontWeight: isActive ? 700 : 500,
-              color: isActive ? 'var(--accent-dark)' : 'var(--text-secondary)',
-            }}>
+            <Icon size={17} color={isActive ? 'var(--brand)' : 'var(--muted-strong)'} style={{ flexShrink: 0 }} />
+            <span className="label" style={{ flex: 1, fontSize: 13.5 }}>
               {item.label}
             </span>
             {item.to === '/chat' && unreadChatCount > 0 && (
-              <span style={{
+              <span className="label anim-badge-pop" style={{
                 minWidth: 18, height: 18, padding: '0 5px', borderRadius: 999, background: 'var(--amber-fill)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 10.5, color: '#FFFFFF',
+                fontWeight: 700, fontSize: 10.5, color: '#FFFFFF', flexShrink: 0,
               }}>
                 {unreadChatCount > 9 ? '9+' : unreadChatCount}
               </span>
@@ -182,20 +187,20 @@ export default function Sidebar({ open = false, onNavigate }) {
         );
       })}
 
-      <div style={{
+      <div className="sidebar-user-block" style={{
         marginTop: 'auto', paddingTop: 14, display: 'flex', alignItems: 'center', gap: 10,
-        borderTop: '1px solid var(--border)',
+        borderTop: '1px solid var(--line)',
       }}>
         <Avatar initial={currentUser.initial} size={34} gradient />
-        <div style={{ minWidth: 0 }}>
+        <div className="sidebar-user-text" style={{ minWidth: 0 }}>
           <div style={{
-            fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 13.5, color: 'var(--heading)',
+            fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 13.5, color: 'var(--heading)',
             whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
           }}>
             {currentUser.name}
           </div>
           <div style={{
-            fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 11.5, color: 'var(--text-muted)',
+            fontWeight: 600, fontSize: 11.5, color: 'var(--muted)',
             whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
           }}>
             {currentUser.title || ROLE_LABEL[currentUser.role]}
@@ -203,24 +208,26 @@ export default function Sidebar({ open = false, onNavigate }) {
         </div>
       </div>
 
-      <div
-        className="sidebar-resize-handle"
-        onMouseDown={(e) => { e.preventDefault(); setDragging(true); }}
-        onMouseEnter={() => setHandleHover(true)}
-        onMouseLeave={() => setHandleHover(false)}
-        title="Drag to resize"
-        style={{
-          position: 'absolute', top: 0, bottom: 0, right: -4, width: 8,
-          cursor: 'col-resize', zIndex: 2,
-        }}
-      >
-        <div style={{
-          width: 3, height: '100%', margin: '0 auto',
-          background: (handleHover || dragging) ? 'var(--accent)' : 'transparent',
-          opacity: (handleHover || dragging) ? 0.55 : 0,
-          borderRadius: 999, transition: dragging ? 'none' : 'opacity 150ms ease, background 150ms ease',
-        }} />
-      </div>
+      {!collapsed && (
+        <div
+          className="sidebar-resize-handle"
+          onMouseDown={(e) => { e.preventDefault(); setDragging(true); }}
+          onMouseEnter={() => setHandleHover(true)}
+          onMouseLeave={() => setHandleHover(false)}
+          title="Drag to resize"
+          style={{
+            position: 'absolute', top: 0, bottom: 0, right: -4, width: 8,
+            cursor: 'col-resize', zIndex: 2,
+          }}
+        >
+          <div style={{
+            width: 3, height: '100%', margin: '0 auto',
+            background: (handleHover || dragging) ? 'var(--accent)' : 'transparent',
+            opacity: (handleHover || dragging) ? 0.55 : 0,
+            borderRadius: 999, transition: dragging ? 'none' : 'opacity 150ms ease, background 150ms ease',
+          }} />
+        </div>
+      )}
     </div>
   );
 }

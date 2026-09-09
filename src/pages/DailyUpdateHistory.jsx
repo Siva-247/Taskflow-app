@@ -20,7 +20,7 @@ const MILESTONE_COLOR = {
 function MilestoneBadge({ milestone }) {
   const s = MILESTONE_COLOR[milestone] || { bg: 'var(--accent-soft)', color: 'var(--accent-dark)' };
   return (
-    <span style={{ display: 'inline-block', padding: '3px 10px', borderRadius: 999, background: s.bg, color: s.color, fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 10.5 }}>
+    <span style={{ display: 'inline-block', padding: '3px 10px', borderRadius: 999, background: s.bg, color: s.color, fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 10.5 }}>
       {milestone}
     </span>
   );
@@ -295,8 +295,8 @@ export default function DailyUpdateHistory() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
         <div>
-          <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 24, color: 'var(--heading)' }}>Daily work update history</div>
-          <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 14, color: 'var(--text-secondary)', marginTop: 4 }}>{scopeLabel}</div>
+          <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 24, color: 'var(--heading)' }}>Daily work update history</div>
+          <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 500, fontSize: 14, color: 'var(--text-secondary)', marginTop: 4 }}>{scopeLabel}</div>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
           {currentUser.role === ROLES.EMPLOYEE && (
@@ -330,7 +330,7 @@ export default function DailyUpdateHistory() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search updates, projects, employees..."
-              style={{ border: 'none', outline: 'none', flex: 1, fontFamily: "'Manrope',system-ui,sans-serif", fontSize: 13.5, color: 'var(--text-primary)' }}
+              style={{ border: 'none', outline: 'none', flex: 1, fontFamily: "'Outfit',system-ui,sans-serif", fontSize: 13.5, color: 'var(--text-primary)' }}
             />
           </div>
           <div className="filter-field" style={{ width: 150 }}>
@@ -345,15 +345,15 @@ export default function DailyUpdateHistory() {
             </div>
           )}
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-            <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12, color: 'var(--text-muted)' }}>From</span>
+            <span style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 12, color: 'var(--text-muted)' }}>From</span>
             <div className="filter-field" style={{ width: 145 }}><DatePicker value={dateFrom} onChange={setDateFrom} /></div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-            <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12, color: 'var(--text-muted)' }}>To</span>
+            <span style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 12, color: 'var(--text-muted)' }}>To</span>
             <div className="filter-field" style={{ width: 145 }}><DatePicker value={dateTo} onChange={setDateTo} /></div>
           </div>
           {hasActiveFilters && (
-            <span onClick={clearFilters} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12.5, color: 'var(--accent-dark)', cursor: 'pointer' }}>
+            <span onClick={clearFilters} style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 12.5, color: 'var(--accent-dark)', cursor: 'pointer' }}>
               Clear filters
             </span>
           )}
@@ -362,11 +362,11 @@ export default function DailyUpdateHistory() {
 
       <Card padded={false} style={{ overflow: 'hidden' }}>
         <div style={{ padding: '10px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border)' }}>
-          <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 11.5, color: 'var(--text-muted)' }}>
+          <span style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 500, fontSize: 11.5, color: 'var(--text-muted)' }}>
             Drag a column edge to resize it, or a row edge to resize row height — your layout is remembered.
           </span>
           {layoutIsCustom && (
-            <span onClick={resetLayout} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 12, color: 'var(--accent-dark)', cursor: 'pointer', flexShrink: 0 }}>
+            <span onClick={resetLayout} style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 12, color: 'var(--accent-dark)', cursor: 'pointer', flexShrink: 0 }}>
               Reset layout
             </span>
           )}
@@ -379,7 +379,7 @@ export default function DailyUpdateHistory() {
                   key={col.key}
                   style={{
                     position: 'relative', padding: '11px 14px', borderRight: '1px solid var(--border)',
-                    fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11, letterSpacing: '0.04em',
+                    fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 11, letterSpacing: '0.04em',
                     textTransform: 'uppercase', color: 'var(--text-muted)',
                   }}
                 >
@@ -404,7 +404,7 @@ export default function DailyUpdateHistory() {
                   }}
                 >
                   <RowResizeHandle onMouseDown={startRowDrag} active={draggingRow} />
-                  <Cell><span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 12, color: 'var(--text-muted)' }}>{friendlyDuId(u)}</span></Cell>
+                  <Cell><span style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 12, color: 'var(--text-muted)' }}>{friendlyDuId(u)}</span></Cell>
                   <Cell><CellText>{departmentById(u.departmentId)?.name}</CellText></Cell>
                   <Cell><CellText>{u.project}</CellText></Cell>
                   <Cell>{u.milestone ? <MilestoneBadge milestone={u.milestone} /> : <Dash />}</Cell>
@@ -413,26 +413,26 @@ export default function DailyUpdateHistory() {
                   <Cell>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
                       <Avatar initial={author?.initial} size={20} />
-                      <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12.5, color: 'var(--text-primary)' }}>{author?.name}</span>
+                      <span style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 12.5, color: 'var(--text-primary)' }}>{author?.name}</span>
                     </div>
                   </Cell>
                   <Cell>
                     {u.priority ? (
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                         <PriorityDot priority={u.priority} />
-                        <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 12.5, color: 'var(--text-secondary)' }}>{u.priority}</span>
+                        <span style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 500, fontSize: 12.5, color: 'var(--text-secondary)' }}>{u.priority}</span>
                       </div>
                     ) : <Dash />}
                   </Cell>
-                  <Cell>{u.taskStartDate ? <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12.5, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>{formatDate(u.taskStartDate)}</span> : <Dash />}</Cell>
-                  <Cell>{u.dueDate ? <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 12.5, color: 'var(--text-secondary)', fontVariantNumeric: 'tabular-nums' }}>{formatDate(u.dueDate)}</span> : <Dash />}</Cell>
+                  <Cell>{u.taskStartDate ? <span style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 12.5, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>{formatDate(u.taskStartDate)}</span> : <Dash />}</Cell>
+                  <Cell>{u.dueDate ? <span style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 500, fontSize: 12.5, color: 'var(--text-secondary)', fontVariantNumeric: 'tabular-nums' }}>{formatDate(u.dueDate)}</span> : <Dash />}</Cell>
                   <Cell><DailyStatusBadge status={u.status} /></Cell>
-                  <Cell>{u.actualCloseDate ? <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 12.5, color: 'var(--text-secondary)', fontVariantNumeric: 'tabular-nums' }}>{formatDate(u.actualCloseDate)}</span> : <Dash />}</Cell>
+                  <Cell>{u.actualCloseDate ? <span style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 500, fontSize: 12.5, color: 'var(--text-secondary)', fontVariantNumeric: 'tabular-nums' }}>{formatDate(u.actualCloseDate)}</span> : <Dash />}</Cell>
                   <Cell>
                     {blocker ? (
                       <span style={{
                         display: 'inline-block', padding: '3px 9px', borderRadius: 999, background: 'var(--amber-bg)', color: 'var(--amber-text)',
-                        fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11,
+                        fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 11,
                       }}>
                         {friendlyBlockerId(blocker)}
                       </span>
@@ -440,7 +440,7 @@ export default function DailyUpdateHistory() {
                   </Cell>
                   <Cell>
                     {link ? (
-                      <a href={link} target="_blank" rel="noreferrer" style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12, color: 'var(--accent-dark)' }}>
+                      <a href={link} target="_blank" rel="noreferrer" style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 12, color: 'var(--accent-dark)' }}>
                         Link
                       </a>
                     ) : <Dash />}
@@ -448,12 +448,12 @@ export default function DailyUpdateHistory() {
                   <Cell>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 4, width: '100%' }}>
                       {u.bdmRemarks ? (
-                        <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 12.5, color: 'var(--text-secondary)' }}>{u.bdmRemarks}</span>
+                        <span style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 500, fontSize: 12.5, color: 'var(--text-secondary)' }}>{u.bdmRemarks}</span>
                       ) : <Dash />}
                       {canReview && (
                         <span
                           onClick={() => setReviewingUpdate(u)}
-                          style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11.5, color: 'var(--accent-dark)', cursor: 'pointer' }}
+                          style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 11.5, color: 'var(--accent-dark)', cursor: 'pointer' }}
                         >
                           {u.bdmRemarks ? 'Edit review' : 'Add review'}
                         </span>
@@ -466,7 +466,7 @@ export default function DailyUpdateHistory() {
                         type="button"
                         onClick={() => navigate(`/tasks/${u.taskId}`)}
                         style={{
-                          display: 'flex', alignItems: 'center', gap: 4, fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12,
+                          display: 'flex', alignItems: 'center', gap: 4, fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 12,
                           color: 'var(--accent-dark)', background: 'transparent', border: 'none', padding: '4px 2px', cursor: 'pointer',
                         }}
                       >
@@ -478,7 +478,7 @@ export default function DailyUpdateHistory() {
               );
             })}
             {updates.length === 0 && (
-              <div style={{ padding: '32px 22px', textAlign: 'center', fontFamily: "'Manrope',system-ui,sans-serif", fontSize: 13.5, color: 'var(--text-muted)' }}>
+              <div style={{ padding: '32px 22px', textAlign: 'center', fontFamily: "'Outfit',system-ui,sans-serif", fontSize: 13.5, color: 'var(--text-muted)' }}>
                 {allUpdates.length === 0 ? 'No daily updates submitted yet.' : 'No updates match your filters.'}
               </div>
             )}
@@ -499,8 +499,8 @@ export default function DailyUpdateHistory() {
 function Stat({ value, label, color = 'var(--heading)' }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 92 }}>
-      <span style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 21, color, fontVariantNumeric: 'tabular-nums' }}>{value}</span>
-      <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 10.5, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>{label}</span>
+      <span style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 21, color, fontVariantNumeric: 'tabular-nums' }}>{value}</span>
+      <span style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 10.5, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>{label}</span>
     </div>
   );
 }
@@ -545,7 +545,7 @@ function RowResizeHandle({ onMouseDown, active }) {
 
 function CellText({ children }) {
   if (!children) return <Dash />;
-  return <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.5, whiteSpace: 'pre-line' }}>{children}</span>;
+  return <span style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 500, fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.5, whiteSpace: 'pre-line' }}>{children}</span>;
 }
 
 function Dash() {
@@ -576,7 +576,7 @@ function ReviewModal({ update, onClose, onSave }) {
 
   return (
     <Modal title="BDM review" onClose={onClose} maxWidth={440}>
-      <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13, color: 'var(--text-secondary)', marginBottom: 16 }}>
+      <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 500, fontSize: 13, color: 'var(--text-secondary)', marginBottom: 16 }}>
         {update.employeeName}'s entry from {formatDate(update.date)}
       </div>
       <Field label="Remarks">

@@ -19,7 +19,7 @@ const ESCALATION_COLOR = {
 function EscalationBadge({ level }) {
   const s = ESCALATION_COLOR[level] || ESCALATION_COLOR.Medium;
   return (
-    <span style={{ display: 'inline-block', padding: '3px 10px', borderRadius: 999, background: s.bg, color: s.color, fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11 }}>
+    <span style={{ display: 'inline-block', padding: '3px 10px', borderRadius: 999, background: s.bg, color: s.color, fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 11 }}>
       {level}
     </span>
   );
@@ -34,7 +34,7 @@ const BLOCKER_STATUS_COLOR = {
 function BlockerStatusBadge({ status }) {
   const s = BLOCKER_STATUS_COLOR[status] || BLOCKER_STATUS_COLOR[BLOCKER_STATUS.OPEN];
   return (
-    <span style={{ display: 'inline-block', padding: '4px 11px', borderRadius: 999, background: s.bg, color: s.color, fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11.5 }}>
+    <span style={{ display: 'inline-block', padding: '4px 11px', borderRadius: 999, background: s.bg, color: s.color, fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 11.5 }}>
       {status}
     </span>
   );
@@ -152,7 +152,7 @@ export default function BlockerRegisterModal({ onClose }) {
     <Modal title="Blocker Register" onClose={onClose} maxWidth={1200}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
         <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginTop: -4 }}>
-          <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13.5, color: 'var(--text-secondary)' }}>
+          <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 500, fontSize: 13.5, color: 'var(--text-secondary)' }}>
             Company-wide — anyone can raise or view a blocker, regardless of team
           </div>
           <div style={{ display: 'flex', gap: 10 }}>
@@ -173,7 +173,7 @@ export default function BlockerRegisterModal({ onClose }) {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search blockers, projects, people..."
-                style={{ border: 'none', outline: 'none', flex: 1, fontFamily: "'Manrope',system-ui,sans-serif", fontSize: 13.5, color: 'var(--text-primary)' }}
+                style={{ border: 'none', outline: 'none', flex: 1, fontFamily: "'Outfit',system-ui,sans-serif", fontSize: 13.5, color: 'var(--text-primary)' }}
               />
             </div>
             <div className="filter-field" style={{ width: 150 }}>
@@ -186,15 +186,15 @@ export default function BlockerRegisterModal({ onClose }) {
               <Select value={escalationFilter} onChange={setEscalationFilter} options={[{ value: 'all', label: 'All escalation levels' }, ...ESCALATION_LEVELS.map((l) => ({ value: l, label: l }))]} />
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-              <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12, color: 'var(--text-muted)' }}>From</span>
+              <span style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 12, color: 'var(--text-muted)' }}>From</span>
               <div className="filter-field" style={{ width: 145 }}><DatePicker value={dateFrom} onChange={setDateFrom} /></div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-              <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12, color: 'var(--text-muted)' }}>To</span>
+              <span style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 12, color: 'var(--text-muted)' }}>To</span>
               <div className="filter-field" style={{ width: 145 }}><DatePicker value={dateTo} onChange={setDateTo} /></div>
             </div>
             {hasActiveFilters && (
-              <span onClick={clearFilters} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12.5, color: 'var(--accent-dark)', cursor: 'pointer' }}>
+              <span onClick={clearFilters} style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 12.5, color: 'var(--accent-dark)', cursor: 'pointer' }}>
                 Clear filters
               </span>
             )}
@@ -206,7 +206,7 @@ export default function BlockerRegisterModal({ onClose }) {
             <div style={{ minWidth: 1360 }}>
               <div style={{ display: 'grid', gridTemplateColumns: gridTemplate, background: 'var(--field-bg)', borderBottom: '2px solid var(--border)' }}>
                 {['ID', 'Raised By', 'Project', 'Category', 'Description', 'Owner To Resolve', 'Target Resolution', 'Days', 'Escalation', 'Status', 'Closed Date', ''].map((h) => (
-                  <div key={h} style={{ padding: '11px 14px', borderRight: '1px solid var(--border)', fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>
+                  <div key={h} style={{ padding: '11px 14px', borderRight: '1px solid var(--border)', fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 11, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>
                     {h}
                   </div>
                 ))}
@@ -225,17 +225,17 @@ export default function BlockerRegisterModal({ onClose }) {
                       borderBottom: '1px solid var(--border)',
                     }}
                   >
-                    <Cell><span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 12, color: 'var(--text-muted)' }}>{friendlyId(b)}</span></Cell>
-                    <Cell><span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12.5, color: 'var(--text-primary)' }}>{raiser?.name || '—'}</span></Cell>
-                    <Cell><span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 12.5, color: 'var(--text-secondary)' }}>{b.project || '—'}</span></Cell>
-                    <Cell><span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 12.5, color: 'var(--text-secondary)' }}>{b.category}</span></Cell>
-                    <Cell><span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 12.5, color: 'var(--text-secondary)' }}>{b.description}</span></Cell>
-                    <Cell><span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 12.5, color: 'var(--text-secondary)' }}>{owner?.name || '— Not assigned —'}</span></Cell>
-                    <Cell><span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 12.5, color: 'var(--text-secondary)' }}>{b.targetResolution ? formatDate(b.targetResolution) : '—'}</span></Cell>
-                    <Cell><span style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 12.5, color: 'var(--heading)', fontVariantNumeric: 'tabular-nums' }}>{daysOpen(b)}</span></Cell>
+                    <Cell><span style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 12, color: 'var(--text-muted)' }}>{friendlyId(b)}</span></Cell>
+                    <Cell><span style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 12.5, color: 'var(--text-primary)' }}>{raiser?.name || '—'}</span></Cell>
+                    <Cell><span style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 500, fontSize: 12.5, color: 'var(--text-secondary)' }}>{b.project || '—'}</span></Cell>
+                    <Cell><span style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 500, fontSize: 12.5, color: 'var(--text-secondary)' }}>{b.category}</span></Cell>
+                    <Cell><span style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 500, fontSize: 12.5, color: 'var(--text-secondary)' }}>{b.description}</span></Cell>
+                    <Cell><span style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 500, fontSize: 12.5, color: 'var(--text-secondary)' }}>{owner?.name || '— Not assigned —'}</span></Cell>
+                    <Cell><span style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 500, fontSize: 12.5, color: 'var(--text-secondary)' }}>{b.targetResolution ? formatDate(b.targetResolution) : '—'}</span></Cell>
+                    <Cell><span style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 12.5, color: 'var(--heading)', fontVariantNumeric: 'tabular-nums' }}>{daysOpen(b)}</span></Cell>
                     <Cell><EscalationBadge level={b.escalationLevel} /></Cell>
                     <Cell><BlockerStatusBadge status={b.status} /></Cell>
-                    <Cell><span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 12.5, color: 'var(--text-secondary)' }}>{b.closedDate ? formatDate(b.closedDate) : '—'}</span></Cell>
+                    <Cell><span style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 500, fontSize: 12.5, color: 'var(--text-secondary)' }}>{b.closedDate ? formatDate(b.closedDate) : '—'}</span></Cell>
                     <Cell>
                       {manageable ? (
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -243,7 +243,7 @@ export default function BlockerRegisterModal({ onClose }) {
                             type="button"
                             onClick={() => setEditingBlocker(b)}
                             style={{
-                              fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 12,
+                              fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 12,
                               color: 'var(--accent-dark)', background: 'transparent', border: 'none', padding: '4px 2px', cursor: 'pointer',
                             }}
                           >
@@ -253,7 +253,7 @@ export default function BlockerRegisterModal({ onClose }) {
                             type="button"
                             onClick={() => setPendingDelete(b)}
                             style={{
-                              fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 12,
+                              fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 12,
                               color: 'var(--amber-text)', background: 'transparent', border: 'none', padding: '4px 2px', cursor: 'pointer',
                             }}
                           >
@@ -266,7 +266,7 @@ export default function BlockerRegisterModal({ onClose }) {
                 );
               })}
               {sorted.length === 0 && (
-                <div style={{ padding: '32px 22px', textAlign: 'center', fontFamily: "'Manrope',system-ui,sans-serif", fontSize: 13.5, color: 'var(--text-muted)' }}>
+                <div style={{ padding: '32px 22px', textAlign: 'center', fontFamily: "'Outfit',system-ui,sans-serif", fontSize: 13.5, color: 'var(--text-muted)' }}>
                   {blockers.length === 0 ? 'No blockers raised yet.' : 'No blockers match your filters.'}
                 </div>
               )}
@@ -282,7 +282,7 @@ export default function BlockerRegisterModal({ onClose }) {
 
       {pendingDelete && (
         <Modal title="Delete this blocker?" onClose={() => setPendingDelete(null)}>
-          <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13.5, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+          <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 500, fontSize: 13.5, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
             This can't be undone. "{pendingDelete.description}" will be permanently removed from the register.
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 22 }}>

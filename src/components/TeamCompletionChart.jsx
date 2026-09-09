@@ -48,7 +48,7 @@ function rateColor(pct) {
 function FilterField({ label, children }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 170 }}>
-      <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 10.5, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>{label}</span>
+      <span style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 10.5, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>{label}</span>
       {children}
     </div>
   );
@@ -57,8 +57,8 @@ function FilterField({ label, children }) {
 function StatChip({ label, value, accent }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-      <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 19, color: accent || 'var(--heading)' }}>{value}</div>
-      <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 11, letterSpacing: '0.02em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>{label}</div>
+      <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 19, color: accent || 'var(--heading)' }}>{value}</div>
+      <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 11, letterSpacing: '0.02em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>{label}</div>
     </div>
   );
 }
@@ -80,15 +80,15 @@ function MemberColumn({ member, max, hovered, onHover }) {
           background: 'var(--heading)', color: '#FFFFFF', borderRadius: 8, padding: '9px 13px',
           whiteSpace: 'nowrap', zIndex: 3, boxShadow: '0 8px 20px -8px rgba(0,0,0,0.4)',
         }}>
-          <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11.5, marginBottom: 5 }}>{member.name}</div>
-          <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 11 }}>Total entries: {member.total}</div>
-          <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 11 }}>Completed: {member.completed}</div>
-          <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11, marginTop: 2, color: '#D9CBFB' }}>{pct}% completion rate</div>
+          <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 11.5, marginBottom: 5 }}>{member.name}</div>
+          <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 500, fontSize: 11 }}>Total entries: {member.total}</div>
+          <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 500, fontSize: 11 }}>Completed: {member.completed}</div>
+          <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 11, marginTop: 2, color: '#D9CBFB' }}>{pct}% completion rate</div>
         </div>
       )}
 
       <div style={{ height: 18, display: 'flex', alignItems: 'flex-end', gap: 5 }}>
-        <span style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 11, color: 'var(--text-muted)' }}>{member.total || ''}</span>
+        <span style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 11, color: 'var(--text-muted)' }}>{member.total || ''}</span>
       </div>
       <div style={{ display: 'flex', gap: 5, height: CHART_HEIGHT, alignItems: 'flex-end' }}>
         <div style={{ width: 16, height: '100%', display: 'flex', alignItems: 'flex-end' }}>
@@ -100,13 +100,13 @@ function MemberColumn({ member, max, hovered, onHover }) {
       </div>
       <Avatar initial={member.name?.[0] || '?'} size={22} />
       <div style={{
-        fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 11, color: 'var(--text-secondary)',
+        fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 11, color: 'var(--text-secondary)',
         textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '100%',
       }}>
         {member.name}
       </div>
       <div style={{
-        fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 10.5, color: rateColor(pct),
+        fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 10.5, color: rateColor(pct),
         background: 'var(--neutral-bg)', padding: '2px 8px', borderRadius: 999,
       }}>
         {pct}%
@@ -192,9 +192,9 @@ export default function TeamCompletionChart({ title, members, today, groupByDepa
     <Card>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <IconBarChart size={17} color="var(--accent)" />
-        <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 15.5, color: 'var(--heading)' }}>{title}</div>
+        <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 15.5, color: 'var(--heading)' }}>{title}</div>
       </div>
-      <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 12.5, color: 'var(--text-muted)', marginTop: 3 }}>
+      <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 500, fontSize: 12.5, color: 'var(--text-muted)', marginTop: 3 }}>
         Every daily update entry counts as one, completed entries counted separately.
       </div>
 
@@ -234,7 +234,7 @@ export default function TeamCompletionChart({ title, members, today, groupByDepa
 
         {activeRange?.from && activeRange?.to && (
           <div style={{
-            fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 12, color: 'var(--accent-dark)',
+            fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 12, color: 'var(--accent-dark)',
             background: 'var(--accent-soft)', padding: '7px 13px', borderRadius: 999, marginBottom: 1,
           }}>
             {formatDate(activeRange.from)} – {formatDate(activeRange.to)}
@@ -248,13 +248,13 @@ export default function TeamCompletionChart({ title, members, today, groupByDepa
       </div>
 
       {waitingOnCustomRange ? (
-        <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontSize: 13.5, color: 'var(--text-muted)', padding: '30px 0 6px', textAlign: 'center' }}>
+        <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontSize: 13.5, color: 'var(--text-muted)', padding: '30px 0 6px', textAlign: 'center' }}>
           Pick a from and to date to see that range.
         </div>
       ) : loading ? (
-        <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontSize: 13.5, color: 'var(--text-muted)', padding: '30px 0 6px', textAlign: 'center' }}>Loading…</div>
+        <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontSize: 13.5, color: 'var(--text-muted)', padding: '30px 0 6px', textAlign: 'center' }}>Loading…</div>
       ) : visible.length === 0 ? (
-        <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontSize: 13.5, color: 'var(--text-muted)', padding: '30px 0 6px', textAlign: 'center' }}>
+        <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontSize: 13.5, color: 'var(--text-muted)', padding: '30px 0 6px', textAlign: 'center' }}>
           Nobody in scope matches these filters.
         </div>
       ) : (
@@ -263,7 +263,7 @@ export default function TeamCompletionChart({ title, members, today, groupByDepa
             <div style={{ position: 'absolute', left: 0, top: 26, width: '100%', height: CHART_HEIGHT, pointerEvents: 'none' }}>
               {GRID_FRACTIONS.map((f) => (
                 <div key={f} style={{ position: 'absolute', left: 38, right: 0, bottom: `${f * CHART_HEIGHT}px`, borderTop: '1px dashed var(--border)' }}>
-                  <span style={{ position: 'absolute', left: -38, bottom: -6, width: 32, textAlign: 'right', fontFamily: "'Manrope',system-ui,sans-serif", fontSize: 10, color: 'var(--text-muted)' }}>
+                  <span style={{ position: 'absolute', left: -38, bottom: -6, width: 32, textAlign: 'right', fontFamily: "'Outfit',system-ui,sans-serif", fontSize: 10, color: 'var(--text-muted)' }}>
                     {Math.round(max * f)}
                   </span>
                 </div>
@@ -291,7 +291,7 @@ export default function TeamCompletionChart({ title, members, today, groupByDepa
                       borderTop: '2px solid var(--accent)', marginLeft: si > 0 ? 6 : 0,
                     }}
                   >
-                    <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 10.5, letterSpacing: '0.03em', textTransform: 'uppercase', color: 'var(--accent-dark)' }}>
+                    <span style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 10.5, letterSpacing: '0.03em', textTransform: 'uppercase', color: 'var(--accent-dark)' }}>
                       {section.name}
                     </span>
                   </div>
@@ -309,7 +309,7 @@ function Legend({ color, label }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
       <span style={{ width: 9, height: 9, borderRadius: 3, background: color, flexShrink: 0, display: 'inline-block' }} />
-      <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12, color: 'var(--text-secondary)' }}>{label}</span>
+      <span style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 12, color: 'var(--text-secondary)' }}>{label}</span>
     </div>
   );
 }

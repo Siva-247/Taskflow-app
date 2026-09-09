@@ -98,7 +98,7 @@ export default function AddEmployeeModal({ onClose }) {
     return (
       <Modal title={`${created.user.name} was added`} onClose={onClose}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontSize: 13.5, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+          <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontSize: 13.5, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
             {created.tempPassword
               ? "Share these sign-in details with them directly — there's no email delivery configured, so this is the only place the temporary password is shown."
               : "They can sign in with the password you set. Here's their email for reference."}
@@ -107,7 +107,7 @@ export default function AddEmployeeModal({ onClose }) {
             <CredentialRow label="Email" value={created.user.email} />
             {created.tempPassword && <CredentialRow label="Temporary password" value={created.tempPassword} mono />}
           </div>
-          <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 12, color: 'var(--text-muted)' }}>
+          <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 500, fontSize: 12, color: 'var(--text-muted)' }}>
             They'll be required to set their own password the first time they sign in.
           </div>
         </div>
@@ -176,7 +176,7 @@ export default function AddEmployeeModal({ onClose }) {
         )}
         {errors.customTeam && <ErrorText>Enter the new team's name.</ErrorText>}
 
-        <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 12, color: 'var(--text-muted)' }}>
+        <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 500, fontSize: 12, color: 'var(--text-muted)' }}>
           Set a password yourself if you'd rather they sign in with a real one right away — otherwise a temporary one is generated for you to hand off. Either way they'll set their own on first sign-in.
         </div>
       </div>
@@ -189,14 +189,14 @@ export default function AddEmployeeModal({ onClose }) {
 }
 
 function ErrorText({ children }) {
-  return <div style={{ marginTop: -8, fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12, color: 'var(--amber-text)' }}>{children}</div>;
+  return <div style={{ marginTop: -8, fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 12, color: 'var(--amber-text)' }}>{children}</div>;
 }
 
 function CredentialRow({ label, value, mono }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-      <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12, color: 'var(--text-muted)' }}>{label}</span>
-      <span style={{ fontFamily: mono ? 'monospace' : "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 13, color: 'var(--text-primary)' }}>{value}</span>
+      <span style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 12, color: 'var(--text-muted)' }}>{label}</span>
+      <span style={{ fontFamily: mono ? 'monospace' : "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 13, color: 'var(--text-primary)' }}>{value}</span>
     </div>
   );
 }

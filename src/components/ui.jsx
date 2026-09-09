@@ -6,9 +6,9 @@ export function Avatar({ initial, size = 32, gradient = false }) {
   return (
     <div style={{
       width: size, height: size, borderRadius: 999, flexShrink: 0,
-      background: gradient ? 'linear-gradient(135deg,var(--accent-dark),var(--accent))' : 'var(--accent-dark)',
+      background: gradient ? 'var(--brand-grad)' : 'var(--accent-dark)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: Math.round(size * 0.4), color: '#FFFFFF',
+      fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: Math.round(size * 0.4), color: '#FFFFFF',
     }}>
       {initial}
     </div>
@@ -27,10 +27,10 @@ const statusStyles = {
 export function StatusBadge({ status }) {
   const s = statusStyles[status] || statusStyles[STATUS.TODO];
   return (
-    <span style={{
+    <span className="anim-badge-pop" style={{
       display: 'inline-block', padding: '4px 11px', borderRadius: 999,
       background: s.bg, color: s.color,
-      fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11.5,
+      fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: 11.5,
     }}>
       {status}
     </span>
@@ -57,7 +57,7 @@ export function DailyStatusBadge({ status }) {
   return (
     <span style={{
       display: 'inline-block', padding: '4px 11px', borderRadius: 999, background: s.bg, color: s.color,
-      fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11.5,
+      fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: 11.5,
     }}>
       {status}
     </span>
@@ -75,7 +75,7 @@ export function PriorityBadge({ priority }) {
   return (
     <span style={{
       padding: '3px 10px', borderRadius: 999, background: s.bg, color: s.color,
-      fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11,
+      fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: 11,
     }}>
       {priority} priority
     </span>
@@ -90,35 +90,37 @@ export function PriorityDot({ priority }) {
 export function ProgressBar({ value, height = 8, color = 'var(--accent)' }) {
   return (
     <div style={{ flex: 1, height, borderRadius: 999, background: 'var(--track-bg)', overflow: 'hidden' }}>
-      <div style={{ width: `${value}%`, height: '100%', borderRadius: 999, background: color, transition: 'width .2s ease' }} />
+      <div style={{ width: `${value}%`, height: '100%', borderRadius: 999, background: color, transition: 'width .25s ease' }} />
     </div>
   );
 }
 
+const BUTTON_VARIANT_CLASS = {
+  primary: 'btn-3d btn-3d-primary',
+  secondary: 'btn-3d btn-glass',
+  accentOutline: 'btn-3d btn-glass',
+  danger: 'btn-3d btn-3d-danger',
+};
+
 export function Button({ variant = 'primary', children, onClick, style, type = 'button', disabled, className }) {
   const base = {
-    padding: '10px 22px', borderRadius: 9, fontFamily: "'Manrope',system-ui,sans-serif",
-    fontWeight: 700, fontSize: 13.5, border: '1px solid transparent', display: 'inline-flex',
+    padding: '10px 22px', fontFamily: 'var(--font-body)',
+    fontWeight: 700, fontSize: 13.5, border: 0, display: 'inline-flex',
     alignItems: 'center', gap: 7, opacity: disabled ? 0.5 : 1, cursor: disabled ? 'not-allowed' : 'pointer',
   };
-  const variants = {
-    primary: { background: 'var(--accent)', color: '#FFFFFF' },
-    secondary: { background: '#FFFFFF', border: '1px solid var(--border)', color: 'var(--text-secondary)' },
-    accentOutline: { background: '#FFFFFF', border: '1px solid var(--border)', color: 'var(--accent-dark)' },
-    danger: { background: 'var(--amber-fill)', color: '#FFFFFF' },
-  };
+  const classes = [BUTTON_VARIANT_CLASS[variant] || BUTTON_VARIANT_CLASS.primary, className].filter(Boolean).join(' ');
   return (
-    <button type={type} disabled={disabled} onClick={onClick} className={className} style={{ ...base, ...variants[variant], ...style }}>
+    <button type={type} disabled={disabled} onClick={onClick} className={classes} style={{ ...base, ...style }}>
       {children}
     </button>
   );
 }
 
-export function Card({ children, style, padded = true, className }) {
+export function Card({ children, style, padded = true, className, animate = true }) {
+  const classes = ['card-glass', animate ? 'anim-scale-in' : '', className].filter(Boolean).join(' ');
   return (
-    <div className={className} style={{
-      background: '#FFFFFF', border: '1px solid var(--border)', borderRadius: 14,
-      boxShadow: 'var(--card-shadow)', padding: padded ? '24px 26px' : 0, ...style,
+    <div className={classes} style={{
+      borderRadius: 18, padding: padded ? '24px 26px' : 0, ...style,
     }}>
       {children}
     </div>
@@ -130,9 +132,9 @@ export function SectionLabel({ children, first, icon }) {
     <div style={{ padding: first ? '20px 0 10px' : '26px 0 10px' }}>
       <div style={{
         display: 'flex', alignItems: 'center', gap: 7,
-        fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11.5,
-        letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--accent-dark)',
-        borderTop: first ? 'none' : '1px solid var(--border)', paddingTop: first ? 0 : 20,
+        fontFamily: 'var(--font-body)', fontWeight: 800, fontSize: 11.5,
+        letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--muted-strong)',
+        borderTop: first ? 'none' : '1px solid var(--line)', paddingTop: first ? 0 : 20,
       }}>
         {icon}{children}
       </div>
@@ -143,7 +145,7 @@ export function SectionLabel({ children, first, icon }) {
 export function Field({ label, required, children }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      <label style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 13, color: 'var(--text-primary)' }}>
+      <label style={{ fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: 13, color: 'var(--text-primary)' }}>
         {label} {required && <span style={{ color: 'var(--amber-text)' }}>*</span>}
       </label>
       {children}
@@ -152,8 +154,9 @@ export function Field({ label, required, children }) {
 }
 
 const inputStyle = {
-  padding: '12px 15px', border: '1px solid var(--border)', borderRadius: 9, background: 'var(--neutral-bg)',
-  fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13.5, color: 'var(--text-primary)', width: '100%',
+  padding: '12px 15px', border: '1px solid var(--line)', borderRadius: 14, background: 'var(--surface)',
+  fontFamily: 'var(--font-body)', fontWeight: 500, fontSize: 13.5, color: 'var(--text-primary)', width: '100%',
+  transition: 'border-color .15s ease, box-shadow .15s ease, background .15s ease',
 };
 
 export function TextInput({ value, onChange, placeholder, type = 'text', disabled = false, min, onKeyDown }) {
@@ -171,7 +174,7 @@ export function TextArea({ value, onChange, placeholder, minHeight = 64 }) {
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
-      style={{ ...inputStyle, minHeight, lineHeight: 1.6, resize: 'vertical', fontFamily: "'Manrope',system-ui,sans-serif" }}
+      style={{ ...inputStyle, minHeight, lineHeight: 1.6, resize: 'vertical' }}
     />
   );
 }
@@ -190,19 +193,20 @@ export function Modal({ title, children, onClose, maxWidth = 400 }) {
   return (
     <div
       onClick={onClose}
+      className="anim-fade"
       style={{
-        position: 'fixed', inset: 0, background: 'rgba(23,18,38,0.45)',
+        position: 'fixed', inset: 0, background: 'rgba(15,0,40,.5)', backdropFilter: 'blur(5px)', WebkitBackdropFilter: 'blur(5px)',
         display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: 20,
       }}
     >
       <div
         onClick={(e) => e.stopPropagation()}
+        className="card-glass anim-pop"
         style={{
-          background: '#FFFFFF', borderRadius: 14, padding: '26px 28px', maxWidth, width: '100%', maxHeight: '90vh', overflowY: 'auto',
-          boxShadow: '0 0 0 1px rgba(124,58,237,0.08), 0 28px 64px -20px rgba(20,10,40,0.4), 0 0 46px -10px rgba(124,58,237,0.35)',
+          borderRadius: 20, padding: '26px 28px', maxWidth, width: '100%', maxHeight: '90vh', overflowY: 'auto',
         }}
       >
-        {title && <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 17, color: 'var(--heading)', marginBottom: 10 }}>{title}</div>}
+        {title && <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 17, color: 'var(--heading)', marginBottom: 10 }}>{title}</div>}
         {children}
       </div>
     </div>
@@ -223,21 +227,23 @@ export function Drawer({ title, children, onClose, width = 'clamp(300px, 25vw, 4
   return createPortal(
     <div
       onClick={onClose}
+      className="anim-fade"
       style={{
-        position: 'fixed', inset: 0, background: 'rgba(23,18,38,0.45)',
+        position: 'fixed', inset: 0, background: 'rgba(15,0,40,.5)',
         zIndex: 2000, display: 'flex', justifyContent: 'flex-end',
       }}
     >
       <div
         onClick={(e) => e.stopPropagation()}
+        className="anim-slide-in"
         style={{
-          background: 'rgba(255,255,255,0.78)', backdropFilter: 'blur(20px) saturate(160%)', WebkitBackdropFilter: 'blur(20px) saturate(160%)',
-          borderLeft: '1px solid rgba(255,255,255,0.4)', width, height: '100%',
+          background: 'var(--glass)', backdropFilter: 'blur(20px) saturate(160%)', WebkitBackdropFilter: 'blur(20px) saturate(160%)',
+          borderLeft: '1px solid var(--glass-border)', width, height: '100%',
           boxShadow: '-28px 0 64px -20px rgba(20,10,40,0.35), -10px 0 40px -14px rgba(124,58,237,0.4)',
           padding: '26px 24px', overflowY: 'auto', display: 'flex', flexDirection: 'column',
         }}
       >
-        {title && <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 17, color: 'var(--heading)', marginBottom: 18 }}>{title}</div>}
+        {title && <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 17, color: 'var(--heading)', marginBottom: 18 }}>{title}</div>}
         {children}
       </div>
     </div>,
@@ -260,22 +266,21 @@ export function Pagination({ page, totalItems, pageSize = PAGE_SIZE, onChange })
   const start = totalItems === 0 ? 0 : (page - 1) * pageSize + 1;
   const end = Math.min(totalItems, page * pageSize);
   const btnStyle = (disabled) => ({
-    padding: '7px 14px', borderRadius: 9, border: '1px solid var(--border)', background: '#FFFFFF',
-    fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 12.5,
-    color: disabled ? 'var(--text-muted)' : 'var(--accent-dark)',
+    padding: '7px 14px', fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: 12.5,
+    color: disabled ? 'var(--text-muted)' : 'var(--brand)',
     cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.55 : 1,
   });
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-      <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 12.5, color: 'var(--text-muted)' }}>
+      <span style={{ fontFamily: 'var(--font-body)', fontWeight: 500, fontSize: 12.5, color: 'var(--muted)' }}>
         Showing {start}–{end} of {totalItems}
       </span>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-        <button type="button" disabled={page <= 1} onClick={() => onChange(page - 1)} style={btnStyle(page <= 1)}>← Prev</button>
-        <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 12.5, color: 'var(--text-primary)', padding: '0 4px' }}>
+        <button type="button" className="btn-3d btn-glass" disabled={page <= 1} onClick={() => onChange(page - 1)} style={btnStyle(page <= 1)}>← Prev</button>
+        <span style={{ fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: 12.5, color: 'var(--text-primary)', padding: '0 4px' }}>
           Page {page} of {pageCount}
         </span>
-        <button type="button" disabled={page >= pageCount} onClick={() => onChange(page + 1)} style={btnStyle(page >= pageCount)}>Next →</button>
+        <button type="button" className="btn-3d btn-glass" disabled={page >= pageCount} onClick={() => onChange(page + 1)} style={btnStyle(page >= pageCount)}>Next →</button>
       </div>
     </div>
   );
@@ -284,10 +289,10 @@ export function Pagination({ page, totalItems, pageSize = PAGE_SIZE, onChange })
 export function Toast({ message }) {
   if (!message) return null;
   return (
-    <div style={{
+    <div className="anim-drop-in" style={{
       position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)',
-      background: 'var(--heading)', color: '#FFFFFF', padding: '12px 22px', borderRadius: 10,
-      fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 13.5,
+      background: 'var(--heading)', color: '#FFFFFF', padding: '12px 22px', borderRadius: 999,
+      fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: 13.5,
       boxShadow: '0 10px 28px -10px rgba(0,0,0,0.35)', zIndex: 1000,
     }}>
       {message}

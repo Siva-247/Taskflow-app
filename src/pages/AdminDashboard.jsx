@@ -35,8 +35,8 @@ export default function AdminDashboard() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
       <div>
-        <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 24, color: 'var(--heading)' }}>Welcome to today's update, {currentUser.name}</div>
-        <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 14, color: 'var(--text-secondary)', marginTop: 4 }}>Company-wide task overview</div>
+        <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 24, color: 'var(--heading)' }}>Welcome to today's update, {currentUser.name}</div>
+        <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 500, fontSize: 14, color: 'var(--text-secondary)', marginTop: 4 }}>Company-wide task overview</div>
       </div>
 
       <StatBar items={orgStatItems({ totalEmployees, totalDepartments: departments.length })} />
@@ -49,15 +49,15 @@ export default function AdminDashboard() {
       <TeamCompletionChart title="Daily update completion by department" members={memberStats} today={TODAY} groupByDepartment />
 
       <Card>
-        <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 15.5, color: 'var(--heading)', marginBottom: 20 }}>Department performance</div>
+        <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 15.5, color: 'var(--heading)', marginBottom: 20 }}>Department performance</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {deptRows.map((row, i) => (
             <div key={row.name} onClick={() => navigate('/employees')} style={{ display: 'flex', alignItems: 'center', gap: 16, cursor: 'pointer' }}>
-              <div style={{ width: 130, flexShrink: 0, fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 13.5, color: 'var(--text-primary)' }}>{row.name}</div>
+              <div style={{ width: 130, flexShrink: 0, fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 13.5, color: 'var(--text-primary)' }}>{row.name}</div>
               <div style={{ flex: 1, height: 8, borderRadius: 999, background: 'var(--track-bg)', overflow: 'hidden' }}>
                 <div style={{ width: `${row.pct}%`, height: '100%', borderRadius: 999, background: colors[i % colors.length] }} />
               </div>
-              <div style={{ width: 38, textAlign: 'right', fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 13, color: 'var(--heading)' }}>{row.pct}%</div>
+              <div style={{ width: 38, textAlign: 'right', fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 13, color: 'var(--heading)' }}>{row.pct}%</div>
             </div>
           ))}
         </div>
@@ -65,12 +65,12 @@ export default function AdminDashboard() {
 
       <div className="responsive-grid" style={{ display: 'grid', '--cols': '1fr 1.2fr', gap: 20 }}>
         <Card>
-          <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 15.5, color: 'var(--heading)' }}>Task status</div>
+          <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 15.5, color: 'var(--heading)' }}>Task status</div>
           <Donut stats={stats} />
         </Card>
 
         <Card>
-          <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 15.5, color: 'var(--heading)' }}>Recent activity</div>
+          <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 15.5, color: 'var(--heading)' }}>Recent activity</div>
           <div style={{ display: 'flex', flexDirection: 'column', marginTop: 16 }}>
             {activity.slice(0, 5).map((item) => (
               <div key={item.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '11px 0', borderTop: '1px solid var(--border)' }}>
@@ -79,11 +79,11 @@ export default function AdminDashboard() {
                   : item.type === 'update'
                     ? <IconUser size={16} color="var(--amber-text)" />
                     : <IconPlusCircle size={16} color="var(--accent)" />}
-                <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13.5, color: 'var(--text-primary)' }}>{item.text}</div>
+                <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 500, fontSize: 13.5, color: 'var(--text-primary)' }}>{item.text}</div>
               </div>
             ))}
             {activity.length === 0 && (
-              <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontSize: 13.5, color: 'var(--text-muted)', padding: '11px 0' }}>No activity yet.</div>
+              <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontSize: 13.5, color: 'var(--text-muted)', padding: '11px 0' }}>No activity yet.</div>
             )}
           </div>
         </Card>

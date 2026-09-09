@@ -33,18 +33,18 @@ function ProjectCard({ project, today, showDepartment }) {
     }}>
       <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 4, background: stripe }} />
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
-        <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 14.5, color: 'var(--heading)', lineHeight: 1.3 }}>{project.project}</div>
+        <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 14.5, color: 'var(--heading)', lineHeight: 1.3 }}>{project.project}</div>
         <DailyStatusBadge status={project.latestStatus} />
       </div>
 
       {showDepartment && project.departmentName && (
-        <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 11, letterSpacing: '0.03em', textTransform: 'uppercase', color: 'var(--text-muted)', marginTop: 6 }}>
+        <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 11, letterSpacing: '0.03em', textTransform: 'uppercase', color: 'var(--text-muted)', marginTop: 6 }}>
           {project.departmentName}
         </div>
       )}
 
       {project.latestMilestone && (
-        <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 12.5, color: 'var(--text-secondary)', marginTop: 10 }}>
+        <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 500, fontSize: 12.5, color: 'var(--text-secondary)', marginTop: 10 }}>
           On {project.latestMilestone}
         </div>
       )}
@@ -60,13 +60,13 @@ function ProjectCard({ project, today, showDepartment }) {
             <div style={{
               marginLeft: -8, width: 24, height: 24, borderRadius: 999, border: '2px solid #FFFFFF', background: 'var(--neutral-bg)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 10, color: 'var(--text-muted)',
+              fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 10, color: 'var(--text-muted)',
             }}>
               +{project.contributors.length - 4}
             </div>
           )}
         </div>
-        <div style={{ textAlign: 'right', fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 11.5, color: 'var(--text-muted)' }}>
+        <div style={{ textAlign: 'right', fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 500, fontSize: 11.5, color: 'var(--text-muted)' }}>
           {project.updateCount} update{project.updateCount === 1 ? '' : 's'}
           <div>{relativeDate(project.latestDate, today)}</div>
         </div>
@@ -84,7 +84,7 @@ function ProjectGrid({ projects, today, showDepartment }) {
         {visible.map((p) => <ProjectCard key={`${p.departmentId}::${p.project}`} project={p} today={today} showDepartment={showDepartment} />)}
       </div>
       {hidden > 0 && (
-        <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12, color: 'var(--text-muted)', marginTop: 10 }}>
+        <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 12, color: 'var(--text-muted)', marginTop: 10 }}>
           +{hidden} more active project{hidden === 1 ? '' : 's'} not shown here
         </div>
       )}
@@ -113,7 +113,7 @@ export default function CurrentProjectsBoard({ title, projects, today, groupByDe
         <div style={{ display: 'flex', flexDirection: 'column', gap: 22, marginTop: sections.length ? 18 : 0 }}>
           {sections.map((section) => (
             <div key={section.name}>
-              <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 12.5, color: 'var(--text-primary)', marginBottom: 10 }}>
+              <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 12.5, color: 'var(--text-primary)', marginBottom: 10 }}>
                 {section.name} · {section.items.length}
               </div>
               <ProjectGrid projects={section.items} today={today} showDepartment={false} />
@@ -136,9 +136,9 @@ function Header({ title, count }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
       <IconLayers size={17} color="var(--accent)" />
-      <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 15.5, color: 'var(--heading)' }}>{title}</div>
+      <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 15.5, color: 'var(--heading)' }}>{title}</div>
       <div style={{
-        marginLeft: 'auto', fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11.5, color: 'var(--accent-dark)',
+        marginLeft: 'auto', fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 11.5, color: 'var(--accent-dark)',
         background: 'var(--accent-soft)', padding: '3px 10px', borderRadius: 999,
       }}>
         {count} active
@@ -149,7 +149,7 @@ function Header({ title, count }) {
 
 function EmptyState() {
   return (
-    <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontSize: 13.5, color: 'var(--text-muted)', padding: '18px 0 4px' }}>
+    <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontSize: 13.5, color: 'var(--text-muted)', padding: '18px 0 4px' }}>
       No projects currently in progress.
     </div>
   );

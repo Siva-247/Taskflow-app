@@ -51,8 +51,8 @@ export default function TaskDetails() {
   if (!task || !hasAccess) {
     return (
       <Card>
-        <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 16, color: 'var(--heading)' }}>Task not found</div>
-        <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontSize: 13.5, color: 'var(--text-secondary)', marginTop: 8 }}>
+        <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 16, color: 'var(--heading)' }}>Task not found</div>
+        <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontSize: 13.5, color: 'var(--text-secondary)', marginTop: 8 }}>
           It may not exist, or it's outside what your role can see.
         </div>
         <Button variant="secondary" onClick={() => navigate(-1)} style={{ marginTop: 16 }}>Go back</Button>
@@ -101,10 +101,10 @@ export default function TaskDetails() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       <Card className="td-card" style={{ position: 'relative', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 4, background: 'linear-gradient(90deg, var(--accent-mid), var(--accent), var(--accent-dark))' }} />
-        <span onClick={() => navigate(-1)} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12.5, color: 'var(--accent-dark)', cursor: 'pointer' }}>← Back</span>
+        <span onClick={() => navigate(-1)} style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 12.5, color: 'var(--accent-dark)', cursor: 'pointer' }}>← Back</span>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginTop: 10, flexWrap: 'wrap', gap: 14 }}>
           <div>
-            <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 24, color: 'var(--heading)' }}>{task.title}</div>
+            <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 24, color: 'var(--heading)' }}>{task.title}</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 10, flexWrap: 'wrap' }}>
               <StatusBadge status={task.status} />
               <PriorityBadge priority={task.priority} />
@@ -128,10 +128,10 @@ export default function TaskDetails() {
 
         <div style={{ marginTop: 20 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 7 }}>
-            <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11.5, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>
+            <span style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 11.5, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>
               Overall progress
             </span>
-            <span style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 14, color: 'var(--heading)' }}>{progress}%</span>
+            <span style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 14, color: 'var(--heading)' }}>{progress}%</span>
           </div>
           <ProgressBar value={progress} height={9} />
         </div>
@@ -149,23 +149,23 @@ export default function TaskDetails() {
       <div className="responsive-grid" style={{ display: 'grid', '--cols': '1.5fr 1fr', gap: 20, alignItems: 'start' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           <Card className="td-card">
-            <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 15.5, color: 'var(--heading)' }}>Description</div>
-            <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13.5, color: 'var(--text-primary)', lineHeight: 1.6, marginTop: 10 }}>
+            <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 15.5, color: 'var(--heading)' }}>Description</div>
+            <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 500, fontSize: 13.5, color: 'var(--text-primary)', lineHeight: 1.6, marginTop: 10 }}>
               {task.description || 'No description provided.'}
             </div>
             {task.instructions && (
               <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
-                <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 12, letterSpacing: '0.03em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Instructions</div>
-                <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13.5, color: 'var(--text-primary)', lineHeight: 1.6, marginTop: 6 }}>{task.instructions}</div>
+                <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 12, letterSpacing: '0.03em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Instructions</div>
+                <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 500, fontSize: 13.5, color: 'var(--text-primary)', lineHeight: 1.6, marginTop: 6 }}>{task.instructions}</div>
               </div>
             )}
           </Card>
 
           {task.subtasks.length > 0 && (
             <Card className="td-card">
-              <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 15.5, color: 'var(--heading)', marginBottom: 12 }}>Subtasks</div>
+              <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 15.5, color: 'var(--heading)', marginBottom: 12 }}>Subtasks</div>
               {!isAssignee && (
-                <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 12, color: 'var(--text-muted)', marginBottom: 6 }}>View only — only {assignee?.name} can check these off.</div>
+                <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 500, fontSize: 12, color: 'var(--text-muted)', marginBottom: 6 }}>View only — only {assignee?.name} can check these off.</div>
               )}
               {task.subtasks.map((s) => (
                 <label key={s.id} className="td-chip" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 8px', borderRadius: 9, cursor: isAssignee ? 'pointer' : 'default' }}>
@@ -176,14 +176,14 @@ export default function TaskDetails() {
                     onChange={() => toggleSubtask(task.id, s.id)}
                     style={{ width: 16, height: 16, accentColor: 'var(--accent)', cursor: isAssignee ? 'pointer' : 'not-allowed' }}
                   />
-                  <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13.5, color: s.done ? 'var(--text-secondary)' : 'var(--text-primary)', textDecoration: s.done ? 'line-through' : 'none' }}>{s.title}</span>
+                  <span style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 500, fontSize: 13.5, color: s.done ? 'var(--text-secondary)' : 'var(--text-primary)', textDecoration: s.done ? 'line-through' : 'none' }}>{s.title}</span>
                 </label>
               ))}
             </Card>
           )}
 
           <Card className="td-card">
-            <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 15.5, color: 'var(--heading)', marginBottom: 14 }}>Activity timeline</div>
+            <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 15.5, color: 'var(--heading)', marginBottom: 14 }}>Activity timeline</div>
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               {task.activityLog.slice().reverse().map((ev, i, arr) => {
                 const { Icon, color } = activityIcon(ev.text);
@@ -200,20 +200,20 @@ export default function TaskDetails() {
                       {!isLast && <div style={{ width: 2, flex: 1, background: 'var(--border)', marginTop: 2 }} />}
                     </div>
                     <div style={{ flex: 1, paddingTop: 5, paddingBottom: 4 }}>
-                      <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 13, color: 'var(--text-primary)' }}>{ev.text}</div>
-                      <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 11.5, color: 'var(--text-muted)', marginTop: 2 }}>{formatDate(ev.at)}</div>
+                      <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 13, color: 'var(--text-primary)' }}>{ev.text}</div>
+                      <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 500, fontSize: 11.5, color: 'var(--text-muted)', marginTop: 2 }}>{formatDate(ev.at)}</div>
                     </div>
                   </div>
                 );
               })}
               {task.activityLog.length === 0 && (
-                <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontSize: 13.5, color: 'var(--text-muted)', padding: '9px 0' }}>No activity yet.</div>
+                <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontSize: 13.5, color: 'var(--text-muted)', padding: '9px 0' }}>No activity yet.</div>
               )}
             </div>
           </Card>
 
           <Card className="td-card">
-            <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 15.5, color: 'var(--heading)' }}>Comments</div>
+            <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 15.5, color: 'var(--heading)' }}>Comments</div>
             <div style={{ display: 'flex', flexDirection: 'column', marginTop: 10 }}>
               {task.comments.map((c) => {
                 const author = users.find((u) => u.id === c.authorId);
@@ -227,20 +227,20 @@ export default function TaskDetails() {
                     <Avatar initial={author?.initial} size={28} gradient />
                     <div style={{ flex: 1 }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-                        <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 13, color: 'var(--text-primary)' }}>{author?.name} <span style={{ fontWeight: 500, color: 'var(--text-muted)', marginLeft: 6, fontSize: 12 }}>{formatDate(c.createdAt)}</span></div>
+                        <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 13, color: 'var(--text-primary)' }}>{author?.name} <span style={{ fontWeight: 500, color: 'var(--text-muted)', marginLeft: 6, fontSize: 12 }}>{formatDate(c.createdAt)}</span></div>
                         {(isOwnComment || canModerate) && !isEditing && (
                           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                             {isOwnComment && (
                               <span
                                 onClick={() => { setEditingCommentId(c.id); setEditCommentDraft(c.text); }}
-                                style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 11.5, color: 'var(--accent-dark)', cursor: 'pointer' }}
+                                style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 11.5, color: 'var(--accent-dark)', cursor: 'pointer' }}
                               >
                                 Edit
                               </span>
                             )}
                             <span
                               onClick={() => setPendingDeleteCommentId(c.id)}
-                              style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 11.5, color: 'var(--amber-text)', cursor: 'pointer' }}
+                              style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 11.5, color: 'var(--amber-text)', cursor: 'pointer' }}
                             >
                               Delete
                             </span>
@@ -262,14 +262,14 @@ export default function TaskDetails() {
                           </div>
                         </div>
                       ) : (
-                        <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13.5, color: 'var(--text-primary)', marginTop: 3 }}>{c.text}</div>
+                        <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 500, fontSize: 13.5, color: 'var(--text-primary)', marginTop: 3 }}>{c.text}</div>
                       )}
                     </div>
                   </div>
                 );
               })}
               {task.comments.length === 0 && (
-                <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontSize: 13.5, color: 'var(--text-muted)', padding: '10px 0' }}>No comments yet.</div>
+                <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontSize: 13.5, color: 'var(--text-muted)', padding: '10px 0' }}>No comments yet.</div>
               )}
             </div>
             <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -290,7 +290,7 @@ export default function TaskDetails() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           {health && (
             <Card className="td-card">
-              <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 15.5, color: 'var(--heading)' }}>Task health</div>
+              <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 15.5, color: 'var(--heading)' }}>Task health</div>
               <div style={{
                 display: 'flex', alignItems: 'center', gap: 14, marginTop: 14,
                 padding: '14px 16px', borderRadius: 12, background: health.tone.bg,
@@ -302,27 +302,27 @@ export default function TaskDetails() {
                   <health.Icon size={19} color={health.tone.fg} />
                 </div>
                 <div>
-                  <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 14.5, color: health.tone.fg }}>{health.label}</div>
-                  <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 12, color: health.tone.fg, opacity: 0.85, marginTop: 2 }}>{health.detail}</div>
+                  <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 14.5, color: health.tone.fg }}>{health.label}</div>
+                  <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 500, fontSize: 12, color: health.tone.fg, opacity: 0.85, marginTop: 2 }}>{health.detail}</div>
                 </div>
               </div>
             </Card>
           )}
 
           <Card className="td-card">
-            <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 15.5, color: 'var(--heading)' }}>Details</div>
+            <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 15.5, color: 'var(--heading)' }}>Details</div>
 
             <SectionLabel first icon={<IconUser size={12} color="var(--accent-dark)" />}>Assignment</SectionLabel>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <DetailRow label="Assigned to">
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <Avatar initial={assignee?.initial} size={22} gradient />
-                  <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 13.5, color: 'var(--text-primary)' }}>{assignee?.name}</span>
+                  <span style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 13.5, color: 'var(--text-primary)' }}>{assignee?.name}</span>
                 </div>
               </DetailRow>
               {canReassign && !showReassignForm && (
                 <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                  <span onClick={() => setShowReassignForm(true)} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12, color: 'var(--accent-dark)', cursor: 'pointer' }}>
+                  <span onClick={() => setShowReassignForm(true)} style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 12, color: 'var(--accent-dark)', cursor: 'pointer' }}>
                     Reassign
                   </span>
                 </div>
@@ -367,11 +367,11 @@ export default function TaskDetails() {
           </Card>
 
           <Card className="td-card">
-            <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 15.5, color: 'var(--heading)' }}>Progress</div>
+            <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 15.5, color: 'var(--heading)' }}>Progress</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginTop: 14 }}>
               <ProgressRing value={progress} />
               <div style={{ flex: 1 }}>
-                <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 13.5, color: 'var(--heading)' }}>
+                <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 13.5, color: 'var(--heading)' }}>
                   {completionLabel(task.status, progress)}
                 </div>
                 <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 5 }}>
@@ -400,10 +400,10 @@ export default function TaskDetails() {
           </Card>
 
           <Card className="td-card">
-            <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 15.5, color: 'var(--heading)', marginBottom: 12 }}>Status &amp; Review</div>
+            <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 15.5, color: 'var(--heading)', marginBottom: 12 }}>Status &amp; Review</div>
             {isPendingCreationApproval && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontSize: 13.5, color: 'var(--text-secondary)' }}>
+                <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontSize: 13.5, color: 'var(--text-secondary)' }}>
                   {canApproveCreation ? `${assignedBy?.name} created this for ${assignee?.name} — review and approve it to make it active.` : "Waiting on your team lead's or manager's approval before work can start."}
                 </div>
                 {canApproveCreation && (
@@ -422,7 +422,7 @@ export default function TaskDetails() {
                   options={[STATUS.TODO, STATUS.IN_PROGRESS].map((s) => ({ value: s, label: s }))}
                 />
                 <div>
-                  <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12, color: 'var(--text-muted)', marginBottom: 6 }}>
+                  <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 12, color: 'var(--text-muted)', marginBottom: 6 }}>
                     Notes for your reviewer (optional)
                   </div>
                   <TextArea
@@ -436,20 +436,20 @@ export default function TaskDetails() {
               </div>
             )}
             {isAssignee && task.status === STATUS.IN_REVIEW && (
-              <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontSize: 13.5, color: 'var(--text-secondary)' }}>Waiting on your reviewer's approval.</div>
+              <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontSize: 13.5, color: 'var(--text-secondary)' }}>Waiting on your reviewer's approval.</div>
             )}
             {task.status === STATUS.COMPLETED && (
-              <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontSize: 13.5, color: 'var(--text-secondary)' }}>This task is complete.</div>
+              <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontSize: 13.5, color: 'var(--text-secondary)' }}>This task is complete.</div>
             )}
             {!isAssignee && !canApprove && !canGiveMarks && !isPendingCreationApproval && !(isReviewer && hasPendingExtension) && (
-              <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontSize: 13.5, color: 'var(--text-muted)' }}>Only the assignee can update this task.</div>
+              <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontSize: 13.5, color: 'var(--text-muted)' }}>Only the assignee can update this task.</div>
             )}
             {task.submissionNote && (task.status === STATUS.IN_REVIEW || task.status === STATUS.COMPLETED) && (
               <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
-                <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 12, letterSpacing: '0.03em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>
+                <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 12, letterSpacing: '0.03em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>
                   Notes from {assignee?.name}
                 </div>
-                <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13.5, color: 'var(--text-primary)', lineHeight: 1.6, marginTop: 6, whiteSpace: 'pre-wrap' }}>
+                <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 500, fontSize: 13.5, color: 'var(--text-primary)', lineHeight: 1.6, marginTop: 6, whiteSpace: 'pre-wrap' }}>
                   <Linkified text={task.submissionNote} />
                 </div>
               </div>
@@ -457,11 +457,11 @@ export default function TaskDetails() {
 
             {hasPendingExtension && (
               <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
-                <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 12, letterSpacing: '0.03em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Extension requested</div>
-                <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 13.5, color: 'var(--text-primary)', marginTop: 6 }}>
+                <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 12, letterSpacing: '0.03em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Extension requested</div>
+                <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 13.5, color: 'var(--text-primary)', marginTop: 6 }}>
                   New due date: {formatDate(task.requestedDueDate)}
                 </div>
-                <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13, color: 'var(--text-secondary)', marginTop: 4, lineHeight: 1.5 }}>
+                <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 500, fontSize: 13, color: 'var(--text-secondary)', marginTop: 4, lineHeight: 1.5 }}>
                   {task.extensionReason}
                 </div>
                 {isReviewer ? (
@@ -470,7 +470,7 @@ export default function TaskDetails() {
                     <Button className="td-btn" variant="secondary" style={{ flex: 1, justifyContent: 'center' }} onClick={() => rejectExtension(task.id)}>Decline</Button>
                   </div>
                 ) : (
-                  <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontSize: 12.5, color: 'var(--text-muted)', marginTop: 8 }}>Awaiting your reviewer's decision.</div>
+                  <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontSize: 12.5, color: 'var(--text-muted)', marginTop: 8 }}>Awaiting your reviewer's decision.</div>
                 )}
               </div>
             )}
@@ -480,17 +480,17 @@ export default function TaskDetails() {
                 {!showExtensionForm ? (
                   <span
                     onClick={() => setShowExtensionForm(true)}
-                    style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12.5, color: 'var(--accent-dark)', cursor: 'pointer' }}
+                    style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 12.5, color: 'var(--accent-dark)', cursor: 'pointer' }}
                   >
                     Request a due date extension
                   </span>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12, color: 'var(--text-muted)' }}>New due date</div>
+                    <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 12, color: 'var(--text-muted)' }}>New due date</div>
                     <DatePicker value={extensionDate} onChange={setExtensionDate} />
                     <TextArea value={extensionReason} onChange={setExtensionReason} placeholder="Why do you need more time?" minHeight={44} />
                     {extensionDate && task.dueDate && extensionDate <= task.dueDate && (
-                      <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12, color: 'var(--amber-text)' }}>
+                      <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 12, color: 'var(--amber-text)' }}>
                         The new date must be after the current due date ({formatDate(task.dueDate)}).
                       </div>
                     )}
@@ -518,12 +518,12 @@ export default function TaskDetails() {
             {(canGiveMarks || task.marks != null) && (
               <div style={{ marginTop: (isAssignee || canApprove || canGiveMarks) ? 14 : 0, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12.5, color: 'var(--text-muted)' }}>Marks</span>
+                  <span style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 12.5, color: 'var(--text-muted)' }}>Marks</span>
                   {task.marks != null && (
-                    <span style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 18, color: 'var(--accent-dark)' }}>{task.marks}%</span>
+                    <span style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 18, color: 'var(--accent-dark)' }}>{task.marks}%</span>
                   )}
                 </div>
-                {task.marks == null && <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontSize: 13, color: 'var(--text-muted)', marginTop: 4 }}>Not graded yet.</div>}
+                {task.marks == null && <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontSize: 13, color: 'var(--text-muted)', marginTop: 4 }}>Not graded yet.</div>}
 
                 {canGiveMarks && !editingMarks && (
                   <Button
@@ -540,7 +540,7 @@ export default function TaskDetails() {
                       type="number" min="0" max="100" value={marksDraft}
                       onChange={(e) => setMarksDraft(e.target.value)}
                       placeholder="0 - 100"
-                      style={{ padding: '10px 14px', border: '1px solid var(--border)', borderRadius: 9, fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 14, color: 'var(--text-primary)' }}
+                      style={{ padding: '10px 14px', border: '1px solid var(--border)', borderRadius: 9, fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 14, color: 'var(--text-primary)' }}
                     />
                     <div style={{ display: 'flex', gap: 8 }}>
                       <Button
@@ -570,7 +570,7 @@ export default function TaskDetails() {
 
       {showDeleteTask && (
         <Modal title="Delete this task?" onClose={() => setShowDeleteTask(false)}>
-          <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13.5, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+          <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 500, fontSize: 13.5, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
             This can't be undone. The task, its subtasks, comments, and activity history will be permanently removed.
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 22 }}>
@@ -582,7 +582,7 @@ export default function TaskDetails() {
 
       {pendingDeleteCommentId && (
         <Modal title="Delete this comment?" onClose={() => setPendingDeleteCommentId(null)}>
-          <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13.5, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+          <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 500, fontSize: 13.5, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
             This can't be undone.
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 22 }}>
@@ -598,21 +598,21 @@ export default function TaskDetails() {
 function DetailRow({ label, children }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-      <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12.5, color: 'var(--text-muted)' }}>{label}</span>
+      <span style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 12.5, color: 'var(--text-muted)' }}>{label}</span>
       {children}
     </div>
   );
 }
 
 function Value({ children }) {
-  return <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 13.5, color: 'var(--text-primary)' }}>{children}</span>;
+  return <span style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 13.5, color: 'var(--text-primary)' }}>{children}</span>;
 }
 
 function MiniRow({ label, value }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-      <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 11.5, color: 'var(--text-muted)' }}>{label}</span>
-      <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 12, color: 'var(--text-primary)' }}>{value || '—'}</span>
+      <span style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 11.5, color: 'var(--text-muted)' }}>{label}</span>
+      <span style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 12, color: 'var(--text-primary)' }}>{value || '—'}</span>
     </div>
   );
 }
@@ -621,7 +621,7 @@ function MetaItem({ icon, children, warn }) {
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center', gap: 6,
-      fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12.5,
+      fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 12.5,
       color: warn ? 'var(--amber-text)' : 'var(--text-secondary)',
     }}>
       {icon}{children}
@@ -637,8 +637,8 @@ function SummaryChip({ icon, label, value }) {
         {icon}
       </div>
       <div>
-        <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 10.5, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</div>
-        <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 13.5, color: 'var(--text-primary)', marginTop: 1 }}>{value}</div>
+        <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 10.5, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</div>
+        <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 13.5, color: 'var(--text-primary)', marginTop: 1 }}>{value}</div>
       </div>
     </div>
   );
@@ -664,7 +664,7 @@ function ProgressRing({ value, size = 92 }) {
         />
       </svg>
       <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <span style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 19, color: 'var(--heading)' }}>{value}%</span>
+        <span style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 19, color: 'var(--heading)' }}>{value}%</span>
       </div>
     </div>
   );
