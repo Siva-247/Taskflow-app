@@ -2,13 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext.jsx';
 import { ROLES } from '../data/mockData.js';
-import { Card, Button, Modal, PriorityBadge } from '../components/ui.jsx';
+import { Card, Button, Modal, PriorityBadge, Pagination, PAGE_SIZE } from '../components/ui.jsx';
 import { roleHome } from '../utils.js';
 
 export default function Drafts() {
   const { currentUser, users, myDrafts, deleteTask, publishDraft, showToast } = useApp();
   const navigate = useNavigate();
   const [pendingDeleteId, setPendingDeleteId] = useState(null);
+  const [page, setPage] = useState(1);
 
   const canCreate = [ROLES.MANAGER, ROLES.ASSISTANT_MANAGER, ROLES.TEAM_LEAD, ROLES.EMPLOYEE].includes(currentUser.role);
   const needsApproval = currentUser.role === ROLES.TEAM_LEAD || currentUser.role === ROLES.EMPLOYEE;
@@ -23,6 +24,9 @@ export default function Drafts() {
   if (!canCreate) return null;
 
   const drafts = myDrafts(currentUser.id);
+  const pageCount = Math.max(1, Math.ceil(drafts.length / PAGE_SIZE));
+  useEffect(() => { if (page > pageCount) setPage(pageCount); }, [page, pageCount]);
+  const pageItems = drafts.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const handleDeleteConfirm = () => {
     deleteTask(pendingDeleteId, { isDraft: true });
@@ -47,14 +51,14 @@ export default function Drafts() {
             No drafts saved. Start a task and choose "Save draft" to come back to it later.
           </div>
         )}
-        {drafts.map((task, i) => {
+        {pageItems.map((task, i) => {
           const assignee = users.find((u) => u.id === task.assigneeId);
           return (
             <div
               key={task.id}
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: '18px 22px',
-                borderBottom: i < drafts.length - 1 ? '1px solid var(--border)' : 'none', flexWrap: 'wrap',
+                borderBottom: i < pageItems.length - 1 ? '1px solid var(--border)' : 'none', flexWrap: 'wrap',
               }}
             >
               <div style={{ minWidth: 220 }}>
@@ -87,6 +91,8 @@ export default function Drafts() {
           );
         })}
       </Card>
+
+      <Pagination page={page} totalItems={drafts.length} onChange={setPage} />
 
       {pendingDeleteId && (
         <Modal title="Delete this draft?" onClose={() => setPendingDeleteId(null)}>

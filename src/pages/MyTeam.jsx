@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext.jsx';
 import { ROLES, teamById } from '../data/mockData.js';
 import { assignableTargets } from '../data/hierarchy.js';
-import { Card, Avatar, ProgressBar, Button, Modal, Field, TextInput, Select } from '../components/ui.jsx';
+import { Card, Avatar, ProgressBar, Button, Modal, Field, TextInput, Select, Pagination, PAGE_SIZE } from '../components/ui.jsx';
 import { IconPlusCircle } from '../components/icons.jsx';
 import { useRoleGuard } from '../hooks/useRoleGuard.js';
 
@@ -35,6 +35,7 @@ export default function MyTeam() {
   const [pendingPasswordReset, setPendingPasswordReset] = useState(null);
   const [resettingPassword, setResettingPassword] = useState(false);
   const [passwordResetResult, setPasswordResetResult] = useState(null);
+  const [page, setPage] = useState(1);
 
   if (!allowed) return null;
 
@@ -53,6 +54,9 @@ export default function MyTeam() {
     const uStats = statsFor(assigned);
     return { user: u, assigned: uStats.total, completed: uStats.completed };
   });
+  const pageCount = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+  useEffect(() => { if (page > pageCount) setPage(pageCount); }, [page, pageCount]);
+  const pageRows = rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const resetAddForm = () => {
     setShowAdd(false); setNewName(''); setNewEmail(''); setNewPassword(''); setNewTitle('Intern'); setError(''); setCreated(null);
@@ -150,13 +154,13 @@ export default function MyTeam() {
                 <div key={h} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11.5, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>{h}</div>
               ))}
             </div>
-            {rows.map((row, i) => {
+            {pageRows.map((row, i) => {
               const isActive = row.user.isActive === undefined || !!row.user.isActive;
               return (
                 <div
                   key={row.user.id}
                   onClick={() => navigate(`/tasks?assignee=${row.user.id}`)}
-                  style={{ display: 'grid', gridTemplateColumns: '1.6fr 0.9fr 0.8fr 1fr 1fr', padding: '13px 26px', alignItems: 'center', borderTop: '1px solid var(--border)', borderBottom: i === rows.length - 1 ? '1px solid var(--border)' : 'none', cursor: 'pointer', opacity: isActive ? 1 : 0.55 }}
+                  style={{ display: 'grid', gridTemplateColumns: '1.6fr 0.9fr 0.8fr 1fr 1fr', padding: '13px 26px', alignItems: 'center', borderTop: '1px solid var(--border)', borderBottom: i === pageRows.length - 1 ? '1px solid var(--border)' : 'none', cursor: 'pointer', opacity: isActive ? 1 : 0.55 }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <Avatar initial={row.user.initial} size={24} />
@@ -191,6 +195,8 @@ export default function MyTeam() {
           </div>
         </div>
       </Card>
+
+      <Pagination page={page} totalItems={rows.length} onChange={setPage} />
 
       {showAdd && !created && (
         <Modal title="Add team member" onClose={resetAddForm}>

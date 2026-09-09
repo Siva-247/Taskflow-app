@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useApp } from '../context/AppContext.jsx';
 import { STATUS, PRIORITY, ROLES, teamById } from '../data/mockData.js';
-import { Card, Avatar, StatusBadge, PriorityDot, Button, Select, TextInput } from '../components/ui.jsx';
+import { Card, Avatar, StatusBadge, PriorityDot, Button, Select, TextInput, Pagination, PAGE_SIZE } from '../components/ui.jsx';
 import CreateTaskModal from '../components/CreateTaskModal.jsx';
 import DatePicker from '../components/DatePicker.jsx';
 import { IconSearch, IconPlusCircle, IconArrowRight } from '../components/icons.jsx';
@@ -22,6 +22,7 @@ export default function TaskList() {
   const [assigneeFilter, setAssigneeFilter] = useState(params.get('assignee') || 'all');
   const [dueBefore, setDueBefore] = useState('');
   const [showCreate, setShowCreate] = useState(false);
+  const [page, setPage] = useState(1);
 
   // This page is one route (/tasks) reused by several nav links that only
   // differ by query string (Approvals, Reviews, Overdue, "View all" from a
@@ -100,6 +101,17 @@ export default function TaskList() {
     return true;
   }), [visible, status, priority, teamFilter, assigneeFilter, dueBefore, search, bucketOf, users]);
 
+  // A filter change makes "page 3" mean something completely different than
+  // it did a moment ago — always land back on page 1 when the filters
+  // themselves change. Deliberately NOT keyed on `filtered` itself, so a
+  // background poll refresh (same filters, just newer data) doesn't yank
+  // someone back to page 1 mid-browse.
+  useEffect(() => setPage(1), [status, priority, teamFilter, assigneeFilter, dueBefore, search]);
+
+  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  useEffect(() => { if (page > pageCount) setPage(pageCount); }, [page, pageCount]);
+  const pageItems = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
   const showTeamColumn = availableTeams.length > 1;
 
   return (
@@ -157,7 +169,7 @@ export default function TaskList() {
                 <div key={h} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11.5, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>{h}</div>
               ))}
             </div>
-            {filtered.map((task, i) => {
+            {pageItems.map((task, i) => {
               const assignee = users.find((u) => u.id === task.assigneeId);
               const assignedBy = users.find((u) => u.id === task.createdBy);
               const team = teamById(task.teamId);
@@ -167,7 +179,7 @@ export default function TaskList() {
                   onClick={() => navigate(`/tasks/${task.id}`)}
                   style={{
                     display: 'grid', gridTemplateColumns: showTeamColumn ? '2fr 1.1fr 1.1fr 0.9fr 0.8fr 1.1fr 1.2fr 0.8fr 0.7fr' : '2fr 1.1fr 1.1fr 0.8fr 1.1fr 1.2fr 0.8fr 0.7fr', padding: '15px 22px', alignItems: 'center',
-                    borderBottom: i < filtered.length - 1 ? '1px solid var(--border)' : 'none', cursor: 'pointer',
+                    borderBottom: i < pageItems.length - 1 ? '1px solid var(--border)' : 'none', cursor: 'pointer',
                   }}
                 >
                   <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 13.5, color: 'var(--text-primary)' }}>{task.title}</div>
@@ -218,6 +230,8 @@ export default function TaskList() {
           </div>
         </div>
       </Card>
+
+      <Pagination page={page} totalItems={filtered.length} onChange={setPage} />
 
       {showCreate && <CreateTaskModal onClose={() => setShowCreate(false)} />}
     </div>

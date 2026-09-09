@@ -1,8 +1,8 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext.jsx';
 import { ROLES, teamById } from '../data/mockData.js';
-import { Card, Avatar, Select, TextInput, Button, Modal, Field } from '../components/ui.jsx';
+import { Card, Avatar, Select, TextInput, Button, Modal, Field, Pagination, PAGE_SIZE } from '../components/ui.jsx';
 import AddEmployeeModal from '../components/AddEmployeeModal.jsx';
 import { IconSearch, IconPlusCircle } from '../components/icons.jsx';
 import { useRoleGuard } from '../hooks/useRoleGuard.js';
@@ -38,6 +38,7 @@ export default function Employees() {
   const [pendingPasswordReset, setPendingPasswordReset] = useState(null);
   const [resettingPassword, setResettingPassword] = useState(false);
   const [passwordResetResult, setPasswordResetResult] = useState(null);
+  const [page, setPage] = useState(1);
   const allowed = useRoleGuard([ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.MANAGER]);
   if (!allowed) return null;
 
@@ -120,6 +121,13 @@ export default function Employees() {
       const uStats = statsFor(assigned);
       return { user: u, team: teamById(u.teamId), assigned: uStats.total, completed: uStats.completed };
     }), [employees, teamFilter, search, tasks, statsFor]);
+
+  // Only the Manager's flat table paginates — the Admin/Super Admin view is
+  // already grouped/chunked by department, not one long list.
+  useEffect(() => setPage(1), [teamFilter, search]);
+  const managerPageCount = Math.max(1, Math.ceil(managerRows.length / PAGE_SIZE));
+  useEffect(() => { if (page > managerPageCount) setPage(managerPageCount); }, [page, managerPageCount]);
+  const managerPageRows = managerRows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const actionCell = (user) => {
     const isActive = user.isActive === undefined || !!user.isActive;
@@ -242,11 +250,11 @@ export default function Employees() {
                   <div key={h} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11.5, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>{h}</div>
                 ))}
               </div>
-              {managerRows.map((row, i) => (
+              {managerPageRows.map((row, i) => (
                 <div
                   key={row.user.id}
                   onClick={() => navigate(`/tasks?assignee=${row.user.id}`)}
-                  style={{ display: 'grid', gridTemplateColumns: '1.6fr 1.1fr 0.9fr 0.8fr 1fr 1fr', padding: '14px 22px', alignItems: 'center', borderBottom: i < managerRows.length - 1 ? '1px solid var(--border)' : 'none', cursor: 'pointer', opacity: (row.user.isActive === undefined || row.user.isActive) ? 1 : 0.55 }}
+                  style={{ display: 'grid', gridTemplateColumns: '1.6fr 1.1fr 0.9fr 0.8fr 1fr 1fr', padding: '14px 22px', alignItems: 'center', borderBottom: i < managerPageRows.length - 1 ? '1px solid var(--border)' : 'none', cursor: 'pointer', opacity: (row.user.isActive === undefined || row.user.isActive) ? 1 : 0.55 }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <Avatar initial={row.user.initial} size={26} />
@@ -268,6 +276,8 @@ export default function Employees() {
           </div>
         </Card>
       )}
+
+      {!isAdmin && <Pagination page={page} totalItems={managerRows.length} onChange={setPage} />}
 
       {showAdd && <AddEmployeeModal onClose={() => setShowAdd(false)} />}
 

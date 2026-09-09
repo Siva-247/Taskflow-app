@@ -89,6 +89,8 @@ input:focus, select:focus, textarea:focus {
   .sidebar {
     position: fixed !important; top: 0 !important; left: 0 !important; bottom: 0 !important;
     height: 100vh !important; width: 240px !important; max-width: 82vw !important;
+    margin: 0 !important; border-radius: 0 !important; border: none !important;
+    border-right: 1px solid var(--border) !important; background: #FFFFFF !important;
     transform: translateX(-100%); transition: transform 0.25s ease;
     z-index: 1001 !important; box-shadow: 16px 0 40px -16px rgba(20,10,40,0.35);
     overflow-y: auto !important;
@@ -106,8 +108,28 @@ input:focus, select:focus, textarea:focus {
 
 @media (max-width: 480px) {
   .layout-content { padding: 16px 14px !important; }
-  .notif-panel { width: calc(100vw - 24px) !important; right: -8px !important; }
+  .notif-panel {
+    position: fixed !important;
+    top: 62px !important;
+    left: 12px !important;
+    right: 12px !important;
+    width: auto !important;
+    max-width: none !important;
+    max-height: calc(100vh - 90px) !important;
+  }
 }
+
+/* ==========================================================================
+   Task Details page
+   ========================================================================== */
+.td-card { transition: box-shadow 180ms ease, transform 180ms ease; }
+.td-card:hover { box-shadow: 0 14px 32px -16px rgba(59, 30, 112, 0.28); transform: translateY(-2px); }
+.td-btn { transition: transform 130ms ease, box-shadow 130ms ease; }
+.td-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 8px 20px -10px rgba(124, 58, 237, 0.38); }
+.td-timeline-node { transition: transform 150ms ease; }
+.td-timeline-row:hover .td-timeline-node { transform: scale(1.1); }
+.td-chip { transition: background 150ms ease; }
+.td-chip:hover { background: var(--accent-soft); }
 
 /* Recording indicator dot on the Chat page's voice-message composer. */
 @keyframes pulse {
@@ -155,6 +177,14 @@ input:focus, select:focus, textarea:focus {
 /* ---- Data tables: keep the table intact and scroll it horizontally inside
    its own box, so the page body itself never scrolls sideways ---- */
 .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+/* ---- Drag-to-resize handles for a spreadsheet-style table (see
+   DailyUpdateHistory.jsx) — the hit area is wider than the visible line so
+   it's easy to grab, and the line itself only shows on hover/while active
+   so the table doesn't look seamed the rest of the time ---- */
+.col-resize-handle .resize-line, .row-resize-handle .resize-line { opacity: 0; }
+.col-resize-handle:hover .resize-line, .row-resize-handle:hover .resize-line,
+.col-resize-handle.active .resize-line, .row-resize-handle.active .resize-line { opacity: 1; }
 
 /* ---- Tighten a card's padding on small screens ---- */
 @media (max-width: 480px) {

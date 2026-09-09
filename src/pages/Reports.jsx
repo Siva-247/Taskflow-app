@@ -1,7 +1,7 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useApp } from '../context/AppContext.jsx';
 import { STATUS, PRIORITY, ROLES, teamById } from '../data/mockData.js';
-import { Card, Select, TextInput, Button, StatusBadge } from '../components/ui.jsx';
+import { Card, Select, TextInput, Button, StatusBadge, Pagination, PAGE_SIZE } from '../components/ui.jsx';
 import DatePicker from '../components/DatePicker.jsx';
 import { IconDownload } from '../components/icons.jsx';
 import { useRoleGuard } from '../hooks/useRoleGuard.js';
@@ -17,6 +17,7 @@ export default function Reports() {
   const [teamFilter, setTeamFilter] = useState('all');
   const [dueFrom, setDueFrom] = useState('');
   const [dueTo, setDueTo] = useState('');
+  const [page, setPage] = useState(1);
 
   if (!allowed) return null;
 
@@ -31,6 +32,11 @@ export default function Reports() {
     if (dueTo && task.dueDate > dueTo) return false;
     return true;
   }), [scoped, statusFilter, teamFilter, dueFrom, dueTo, bucketOf]);
+
+  useEffect(() => setPage(1), [statusFilter, teamFilter, dueFrom, dueTo]);
+  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  useEffect(() => { if (page > pageCount) setPage(pageCount); }, [page, pageCount]);
+  const pageItems = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const stats = statsFor(filtered);
   const completionRate = stats.total ? Math.round((stats.completed / stats.total) * 100) : 0;
@@ -106,11 +112,11 @@ export default function Reports() {
                 <div key={h} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11.5, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>{h}</div>
               ))}
             </div>
-            {filtered.map((task, i) => {
+            {pageItems.map((task, i) => {
               const assignee = users.find((u) => u.id === task.assigneeId);
               const team = teamById(task.teamId);
               return (
-                <div key={task.id} style={{ display: 'grid', gridTemplateColumns: '1.8fr 1.1fr 1fr 0.8fr 1.1fr 0.8fr 0.8fr', padding: '13px 22px', alignItems: 'center', borderBottom: i < filtered.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                <div key={task.id} style={{ display: 'grid', gridTemplateColumns: '1.8fr 1.1fr 1fr 0.8fr 1.1fr 0.8fr 0.8fr', padding: '13px 22px', alignItems: 'center', borderBottom: i < pageItems.length - 1 ? '1px solid var(--border)' : 'none' }}>
                   <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 13, color: 'var(--text-primary)' }}>{task.title}</div>
                   <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13, color: 'var(--text-secondary)' }}>{assignee?.name}</div>
                   <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13, color: 'var(--text-secondary)' }}>{team?.name.replace("'s Team", '')}</div>
@@ -129,6 +135,8 @@ export default function Reports() {
           </div>
         </div>
       </Card>
+
+      <Pagination page={page} totalItems={filtered.length} onChange={setPage} />
     </div>
   );
 }

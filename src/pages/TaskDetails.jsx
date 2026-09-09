@@ -1,18 +1,22 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useApp } from '../context/AppContext.jsx';
-import { STATUS, ROLES, teamById } from '../data/mockData.js';
+import { STATUS, BLOCKER_STATUS, ROLES, teamById } from '../data/mockData.js';
 import { canAccessTeamScope, assignableTargets } from '../data/hierarchy.js';
-import { Card, Avatar, StatusBadge, PriorityBadge, Button, Select, TextArea, TextInput, Modal } from '../components/ui.jsx';
+import { Card, Avatar, StatusBadge, PriorityBadge, ProgressBar, SectionLabel, Button, Select, TextArea, TextInput, Modal } from '../components/ui.jsx';
 import DatePicker from '../components/DatePicker.jsx';
-import { IconCheck } from '../components/icons.jsx';
-import { formatDate } from '../utils.js';
+import {
+  IconCheck, IconUser, IconUsersGroup, IconBuilding, IconClipboard, IconCalendar,
+  IconClock, IconAlertTriangle, IconCheckCircle, IconBlock, IconEye, IconPlusCircle,
+  IconArrowRight, IconBarChart, IconEdit, IconTrash,
+} from '../components/icons.jsx';
+import { formatDate, isOverdue } from '../utils.js';
 
 export default function TaskDetails() {
   const { taskId } = useParams();
   const navigate = useNavigate();
   const {
-    currentUser, users, departments, tasks, scopedTasks, refreshTask,
+    currentUser, users, departments, tasks, blockers, scopedTasks, refreshTask, TODAY,
     setTaskProgress, setTaskStatus, requestChanges, submitForReview, approveTask,
     approveTaskCreation, rejectTaskCreation, reassignTask,
     requestExtension, approveExtension, rejectExtension, setTaskMarks, toggleSubtask,
@@ -90,32 +94,61 @@ export default function TaskDetails() {
   const reassignCandidates = assignableTargets(currentUser, users).filter((u) => u.id !== task.assigneeId);
 
   const progress = progressDraft === null ? task.progress : progressDraft;
+  const overdue = isOverdue(task.dueDate, TODAY, task.status);
+  const health = taskHealth(task, blockers, TODAY);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
-      <div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <Card className="td-card" style={{ position: 'relative', overflow: 'hidden' }}>
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 4, background: 'linear-gradient(90deg, var(--accent-mid), var(--accent), var(--accent-dark))' }} />
         <span onClick={() => navigate(-1)} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12.5, color: 'var(--accent-dark)', cursor: 'pointer' }}>← Back</span>
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginTop: 8, flexWrap: 'wrap', gap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginTop: 10, flexWrap: 'wrap', gap: 14 }}>
           <div>
             <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 24, color: 'var(--heading)' }}>{task.title}</div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 8, flexWrap: 'wrap' }}>
-              <PriorityBadge priority={task.priority} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 10, flexWrap: 'wrap' }}>
               <StatusBadge status={task.status} />
-              <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 12.5, color: 'var(--text-muted)' }}>{team?.name} · Due {formatDate(task.dueDate)}</span>
+              <PriorityBadge priority={task.priority} />
+              <MetaItem icon={<IconUsersGroup size={13} color="var(--text-muted)" />}>{team?.name}</MetaItem>
+              <MetaItem icon={<IconCalendar size={13} color={overdue ? 'var(--amber-text)' : 'var(--text-muted)'} />} warn={overdue}>
+                {overdue ? 'Overdue — ' : 'Due '}{formatDate(task.dueDate)}
+              </MetaItem>
             </div>
           </div>
           {canManageTask && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Button variant="secondary" style={{ padding: '8px 16px', fontSize: 12.5 }} onClick={() => navigate(`/tasks/${task.id}/edit`)}>Edit</Button>
-              <Button variant="danger" style={{ padding: '8px 16px', fontSize: 12.5 }} onClick={() => setShowDeleteTask(true)}>Delete</Button>
+              <Button className="td-btn" variant="secondary" style={{ padding: '8px 16px', fontSize: 12.5 }} onClick={() => navigate(`/tasks/${task.id}/edit`)}>
+                <IconEdit size={13} color="var(--text-secondary)" /> Edit
+              </Button>
+              <Button className="td-btn" variant="danger" style={{ padding: '8px 16px', fontSize: 12.5 }} onClick={() => setShowDeleteTask(true)}>
+                <IconTrash size={13} color="#FFFFFF" /> Delete
+              </Button>
             </div>
           )}
         </div>
-      </div>
+
+        <div style={{ marginTop: 20 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 7 }}>
+            <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11.5, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>
+              Overall progress
+            </span>
+            <span style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 14, color: 'var(--heading)' }}>{progress}%</span>
+          </div>
+          <ProgressBar value={progress} height={9} />
+        </div>
+      </Card>
+
+      <Card className="td-card" style={{ padding: '18px 24px' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 24 }}>
+          <SummaryChip icon={<IconUser size={16} color="var(--accent-dark)" />} label="Assignee" value={assignee?.name} />
+          <SummaryChip icon={<IconBuilding size={16} color="var(--accent-dark)" />} label="Department" value={department?.name} />
+          <SummaryChip icon={<IconUsersGroup size={16} color="var(--accent-dark)" />} label="Team" value={team?.name} />
+          <SummaryChip icon={<IconClipboard size={16} color="var(--accent-dark)" />} label="Milestone" value={task.category} />
+        </div>
+      </Card>
 
       <div className="responsive-grid" style={{ display: 'grid', '--cols': '1.5fr 1fr', gap: 20, alignItems: 'start' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-          <Card>
+          <Card className="td-card">
             <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 15.5, color: 'var(--heading)' }}>Description</div>
             <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13.5, color: 'var(--text-primary)', lineHeight: 1.6, marginTop: 10 }}>
               {task.description || 'No description provided.'}
@@ -129,13 +162,13 @@ export default function TaskDetails() {
           </Card>
 
           {task.subtasks.length > 0 && (
-            <Card>
+            <Card className="td-card">
               <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 15.5, color: 'var(--heading)', marginBottom: 12 }}>Subtasks</div>
               {!isAssignee && (
                 <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 12, color: 'var(--text-muted)', marginBottom: 6 }}>View only — only {assignee?.name} can check these off.</div>
               )}
               {task.subtasks.map((s) => (
-                <label key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 0', cursor: isAssignee ? 'pointer' : 'default' }}>
+                <label key={s.id} className="td-chip" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 8px', borderRadius: 9, cursor: isAssignee ? 'pointer' : 'default' }}>
                   <input
                     type="checkbox"
                     checked={s.done}
@@ -149,25 +182,37 @@ export default function TaskDetails() {
             </Card>
           )}
 
-          <Card>
-            <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 15.5, color: 'var(--heading)', marginBottom: 12 }}>Activity timeline</div>
+          <Card className="td-card">
+            <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 15.5, color: 'var(--heading)', marginBottom: 14 }}>Activity timeline</div>
             <div style={{ display: 'flex', flexDirection: 'column' }}>
-              {task.activityLog.slice().reverse().map((ev) => (
-                <div key={ev.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '9px 0', borderTop: '1px solid var(--border)' }}>
-                  <IconCheck size={13} color="var(--accent-dark)" />
-                  <div>
-                    <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13, color: 'var(--text-primary)' }}>{ev.text}</div>
-                    <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 11.5, color: 'var(--text-muted)', marginTop: 1 }}>{formatDate(ev.at)}</div>
+              {task.activityLog.slice().reverse().map((ev, i, arr) => {
+                const { Icon, color } = activityIcon(ev.text);
+                const isLast = i === arr.length - 1;
+                return (
+                  <div key={ev.id} className="td-timeline-row" style={{ display: 'flex', gap: 14, paddingBottom: isLast ? 0 : 18 }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                      <div className="td-timeline-node" style={{
+                        width: 30, height: 30, borderRadius: 999, background: '#FFFFFF', border: `1.5px solid ${color}`,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, zIndex: 1,
+                      }}>
+                        <Icon size={14} color={color} />
+                      </div>
+                      {!isLast && <div style={{ width: 2, flex: 1, background: 'var(--border)', marginTop: 2 }} />}
+                    </div>
+                    <div style={{ flex: 1, paddingTop: 5, paddingBottom: 4 }}>
+                      <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 13, color: 'var(--text-primary)' }}>{ev.text}</div>
+                      <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 11.5, color: 'var(--text-muted)', marginTop: 2 }}>{formatDate(ev.at)}</div>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
               {task.activityLog.length === 0 && (
                 <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontSize: 13.5, color: 'var(--text-muted)', padding: '9px 0' }}>No activity yet.</div>
               )}
             </div>
           </Card>
 
-          <Card>
+          <Card className="td-card">
             <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 15.5, color: 'var(--heading)' }}>Comments</div>
             <div style={{ display: 'flex', flexDirection: 'column', marginTop: 10 }}>
               {task.comments.map((c) => {
@@ -179,7 +224,7 @@ export default function TaskDetails() {
                 const isEditing = editingCommentId === c.id;
                 return (
                   <div key={c.id} style={{ display: 'flex', gap: 12, padding: '12px 0', borderTop: '1px solid var(--border)' }}>
-                    <Avatar initial={author?.initial} size={28} />
+                    <Avatar initial={author?.initial} size={28} gradient />
                     <div style={{ flex: 1 }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
                         <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 13, color: 'var(--text-primary)' }}>{author?.name} <span style={{ fontWeight: 500, color: 'var(--text-muted)', marginLeft: 6, fontSize: 12 }}>{formatDate(c.createdAt)}</span></div>
@@ -243,12 +288,35 @@ export default function TaskDetails() {
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-          <Card>
+          {health && (
+            <Card className="td-card">
+              <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 15.5, color: 'var(--heading)' }}>Task health</div>
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 14, marginTop: 14,
+                padding: '14px 16px', borderRadius: 12, background: health.tone.bg,
+              }}>
+                <div style={{
+                  width: 40, height: 40, borderRadius: 11, background: 'rgba(255,255,255,0.6)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                }}>
+                  <health.Icon size={19} color={health.tone.fg} />
+                </div>
+                <div>
+                  <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 14.5, color: health.tone.fg }}>{health.label}</div>
+                  <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 12, color: health.tone.fg, opacity: 0.85, marginTop: 2 }}>{health.detail}</div>
+                </div>
+              </div>
+            </Card>
+          )}
+
+          <Card className="td-card">
             <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 15.5, color: 'var(--heading)' }}>Details</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 12 }}>
+
+            <SectionLabel first icon={<IconUser size={12} color="var(--accent-dark)" />}>Assignment</SectionLabel>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <DetailRow label="Assigned to">
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <Avatar initial={assignee?.initial} size={22} />
+                  <Avatar initial={assignee?.initial} size={22} gradient />
                   <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 13.5, color: 'var(--text-primary)' }}>{assignee?.name}</span>
                 </div>
               </DetailRow>
@@ -281,28 +349,46 @@ export default function TaskDetails() {
                 </div>
               )}
               <DetailRow label="Assigned by"><Value>{assignedBy?.name || '—'}</Value></DetailRow>
+            </div>
+
+            <SectionLabel icon={<IconBuilding size={12} color="var(--accent-dark)" />}>Organization</SectionLabel>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <DetailRow label="Department"><Value>{department?.name}</Value></DetailRow>
               <DetailRow label="Team"><Value>{team?.name}</Value></DetailRow>
               <DetailRow label="Milestone"><Value>{task.category}</Value></DetailRow>
+            </div>
+
+            <SectionLabel icon={<IconCalendar size={12} color="var(--accent-dark)" />}>Schedule</SectionLabel>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <DetailRow label="Start date"><Value>{formatDate(task.startDate)}</Value></DetailRow>
               <DetailRow label="Due date"><Value>{formatDate(task.dueDate)}</Value></DetailRow>
               {task.estimatedEffort && <DetailRow label="Estimated effort"><Value>{task.estimatedEffort}</Value></DetailRow>}
             </div>
           </Card>
 
-          <Card>
+          <Card className="td-card">
             <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 15.5, color: 'var(--heading)' }}>Progress</div>
-            <div style={{ marginTop: 10 }}>
-              <span style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 28, color: 'var(--heading)' }}>{progress}%</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginTop: 14 }}>
+              <ProgressRing value={progress} />
+              <div style={{ flex: 1 }}>
+                <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 13.5, color: 'var(--heading)' }}>
+                  {completionLabel(task.status, progress)}
+                </div>
+                <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 5 }}>
+                  <MiniRow label="Start" value={formatDate(task.startDate)} />
+                  <MiniRow label="Due" value={formatDate(task.dueDate)} />
+                </div>
+              </div>
             </div>
             {isAssignee && !isPendingCreationApproval && task.status !== STATUS.COMPLETED && task.status !== STATUS.IN_REVIEW && (
               <>
                 <input
                   type="range" min="0" max="100" step="5" value={progress}
                   onChange={(e) => setProgressDraft(Number(e.target.value))}
-                  style={{ width: '100%', marginTop: 12, accentColor: 'var(--accent)' }}
+                  style={{ width: '100%', marginTop: 16, accentColor: 'var(--accent)' }}
                 />
                 <Button
+                  className="td-btn"
                   variant="secondary" style={{ marginTop: 10, width: '100%', justifyContent: 'center' }}
                   disabled={progressDraft === null || progressDraft === task.progress}
                   onClick={() => { setTaskProgress(task.id, progressDraft); setProgressDraft(null); }}
@@ -313,7 +399,7 @@ export default function TaskDetails() {
             )}
           </Card>
 
-          <Card>
+          <Card className="td-card">
             <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 15.5, color: 'var(--heading)', marginBottom: 12 }}>Status &amp; Review</div>
             {isPendingCreationApproval && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -322,8 +408,8 @@ export default function TaskDetails() {
                 </div>
                 {canApproveCreation && (
                   <div style={{ display: 'flex', gap: 8 }}>
-                    <Button variant="primary" style={{ flex: 1, justifyContent: 'center' }} onClick={() => approveTaskCreation(task.id)}>Approve</Button>
-                    <Button variant="secondary" style={{ flex: 1, justifyContent: 'center' }} onClick={() => rejectTaskCreation(task.id)}>Send back</Button>
+                    <Button className="td-btn" variant="primary" style={{ flex: 1, justifyContent: 'center' }} onClick={() => approveTaskCreation(task.id)}>Approve</Button>
+                    <Button className="td-btn" variant="secondary" style={{ flex: 1, justifyContent: 'center' }} onClick={() => rejectTaskCreation(task.id)}>Send back</Button>
                   </div>
                 )}
               </div>
@@ -346,7 +432,7 @@ export default function TaskDetails() {
                     minHeight={60}
                   />
                 </div>
-                <Button variant="primary" style={{ justifyContent: 'center' }} onClick={() => submitForReview(task.id, submissionNoteDraft)}>Submit for review</Button>
+                <Button className="td-btn" variant="primary" style={{ justifyContent: 'center' }} onClick={() => submitForReview(task.id, submissionNoteDraft)}>Submit for review</Button>
               </div>
             )}
             {isAssignee && task.status === STATUS.IN_REVIEW && (
@@ -380,8 +466,8 @@ export default function TaskDetails() {
                 </div>
                 {isReviewer ? (
                   <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-                    <Button variant="primary" style={{ flex: 1, justifyContent: 'center' }} onClick={() => approveExtension(task.id)}>Approve extension</Button>
-                    <Button variant="secondary" style={{ flex: 1, justifyContent: 'center' }} onClick={() => rejectExtension(task.id)}>Decline</Button>
+                    <Button className="td-btn" variant="primary" style={{ flex: 1, justifyContent: 'center' }} onClick={() => approveExtension(task.id)}>Approve extension</Button>
+                    <Button className="td-btn" variant="secondary" style={{ flex: 1, justifyContent: 'center' }} onClick={() => rejectExtension(task.id)}>Decline</Button>
                   </div>
                 ) : (
                   <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontSize: 12.5, color: 'var(--text-muted)', marginTop: 8 }}>Awaiting your reviewer's decision.</div>
@@ -410,6 +496,7 @@ export default function TaskDetails() {
                     )}
                     <div style={{ display: 'flex', gap: 8 }}>
                       <Button
+                        className="td-btn"
                         variant="primary" style={{ flex: 1, justifyContent: 'center' }}
                         disabled={!extensionDate || !extensionReason.trim() || (task.dueDate && extensionDate <= task.dueDate)}
                         onClick={() => {
@@ -419,7 +506,7 @@ export default function TaskDetails() {
                       >
                         Send request
                       </Button>
-                      <Button variant="secondary" style={{ flex: 1, justifyContent: 'center' }} onClick={() => setShowExtensionForm(false)}>Cancel</Button>
+                      <Button className="td-btn" variant="secondary" style={{ flex: 1, justifyContent: 'center' }} onClick={() => setShowExtensionForm(false)}>Cancel</Button>
                     </div>
                   </div>
                 )}
@@ -440,6 +527,7 @@ export default function TaskDetails() {
 
                 {canGiveMarks && !editingMarks && (
                   <Button
+                    className="td-btn"
                     variant="secondary" style={{ marginTop: 10, width: '100%', justifyContent: 'center' }}
                     onClick={() => { setMarksDraft(task.marks != null ? String(task.marks) : ''); setEditingMarks(true); }}
                   >
@@ -456,13 +544,14 @@ export default function TaskDetails() {
                     />
                     <div style={{ display: 'flex', gap: 8 }}>
                       <Button
+                        className="td-btn"
                         variant="primary" style={{ flex: 1, justifyContent: 'center' }}
                         disabled={marksDraft === '' || Number(marksDraft) < 0 || Number(marksDraft) > 100 || !Number.isInteger(Number(marksDraft))}
                         onClick={() => { setTaskMarks(task.id, Number(marksDraft)); setEditingMarks(false); }}
                       >
                         Save
                       </Button>
-                      <Button variant="secondary" style={{ flex: 1, justifyContent: 'center' }} onClick={() => setEditingMarks(false)}>Cancel</Button>
+                      <Button className="td-btn" variant="secondary" style={{ flex: 1, justifyContent: 'center' }} onClick={() => setEditingMarks(false)}>Cancel</Button>
                     </div>
                   </div>
                 )}
@@ -471,8 +560,8 @@ export default function TaskDetails() {
 
             {canApprove && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
-                <Button variant="primary" style={{ justifyContent: 'center' }} onClick={() => approveTask(task.id)}>Approve</Button>
-                <Button variant="secondary" style={{ justifyContent: 'center' }} onClick={() => requestChanges(task.id)}>Request changes</Button>
+                <Button className="td-btn" variant="primary" style={{ justifyContent: 'center' }} onClick={() => approveTask(task.id)}>Approve</Button>
+                <Button className="td-btn" variant="secondary" style={{ justifyContent: 'center' }} onClick={() => requestChanges(task.id)}>Request changes</Button>
               </div>
             )}
           </Card>
@@ -517,6 +606,136 @@ function DetailRow({ label, children }) {
 
 function Value({ children }) {
   return <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 13.5, color: 'var(--text-primary)' }}>{children}</span>;
+}
+
+function MiniRow({ label, value }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+      <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 11.5, color: 'var(--text-muted)' }}>{label}</span>
+      <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 12, color: 'var(--text-primary)' }}>{value || '—'}</span>
+    </div>
+  );
+}
+
+function MetaItem({ icon, children, warn }) {
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: 6,
+      fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 12.5,
+      color: warn ? 'var(--amber-text)' : 'var(--text-secondary)',
+    }}>
+      {icon}{children}
+    </span>
+  );
+}
+
+function SummaryChip({ icon, label, value }) {
+  if (!value) return null;
+  return (
+    <div className="td-chip" style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 150, padding: '4px 8px', borderRadius: 10 }}>
+      <div style={{ width: 34, height: 34, borderRadius: 10, background: 'var(--accent-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        {icon}
+      </div>
+      <div>
+        <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 10.5, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</div>
+        <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 13.5, color: 'var(--text-primary)', marginTop: 1 }}>{value}</div>
+      </div>
+    </div>
+  );
+}
+
+// Same rotated-circle SVG technique as the dashboard's Donut chart, scaled
+// down to a single ring for one task's completion percentage.
+function ProgressRing({ value, size = 92 }) {
+  const stroke = 9;
+  const r = (size - stroke) / 2;
+  const circ = 2 * Math.PI * r;
+  const offset = circ * (1 - Math.min(100, Math.max(0, value)) / 100);
+  const c = size / 2;
+  return (
+    <div style={{ position: 'relative', width: size, height: size, flexShrink: 0 }}>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+        <circle cx={c} cy={c} r={r} fill="none" stroke="var(--track-bg)" strokeWidth={stroke} />
+        <circle
+          cx={c} cy={c} r={r} fill="none" stroke="var(--accent)" strokeWidth={stroke}
+          strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round"
+          transform={`rotate(-90 ${c} ${c})`}
+          style={{ transition: 'stroke-dashoffset .25s ease' }}
+        />
+      </svg>
+      <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <span style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 19, color: 'var(--heading)' }}>{value}%</span>
+      </div>
+    </div>
+  );
+}
+
+function completionLabel(status, progress) {
+  if (status === STATUS.COMPLETED) return 'Complete';
+  if (status === STATUS.IN_REVIEW) return 'Submitted — awaiting review';
+  if (status === STATUS.PENDING_APPROVAL) return 'Awaiting approval to start';
+  if (progress === 0) return 'Not started';
+  return 'In progress';
+}
+
+const HEALTH_TONES = {
+  ontrack: { bg: 'var(--accent-soft)', fg: 'var(--accent-dark)' },
+  review: { bg: 'var(--neutral-bg)', fg: 'var(--text-secondary)' },
+  risk: { bg: 'var(--amber-bg)', fg: 'var(--amber-text)' },
+  blocked: { bg: 'var(--amber-fill)', fg: '#FFFFFF' },
+};
+
+// Purely a client-side read of data the page already has (task status, its
+// linked blockers, its due date) — no new backend field, no change to what
+// gets stored. A Completed task has nothing left to signal, so it opts out
+// of the health read entirely rather than being forced into one of the four
+// states.
+function taskHealth(task, blockers, today) {
+  if (task.status === STATUS.COMPLETED) return null;
+
+  const openBlockers = blockers.filter((b) => b.linkedTaskId === task.id && b.status !== BLOCKER_STATUS.RESOLVED && b.status !== BLOCKER_STATUS.CLOSED).length;
+  if (openBlockers > 0) {
+    return { key: 'blocked', label: 'Blocked', detail: `Linked to ${openBlockers} open blocker${openBlockers > 1 ? 's' : ''}.`, Icon: IconBlock, tone: HEALTH_TONES.blocked };
+  }
+
+  if (task.status === STATUS.IN_REVIEW || task.status === STATUS.PENDING_APPROVAL || task.requestedDueDate) {
+    const detail = task.requestedDueDate ? 'A due date extension is awaiting a decision.'
+      : task.status === STATUS.PENDING_APPROVAL ? "Awaiting a manager's or team lead's approval."
+        : "Submitted — awaiting the reviewer's decision.";
+    return { key: 'review', label: 'Under Review', detail, Icon: IconEye, tone: HEALTH_TONES.review };
+  }
+
+  const overdue = isOverdue(task.dueDate, today, task.status);
+  const daysLeft = task.dueDate ? Math.round((new Date(`${task.dueDate}T00:00:00`) - new Date(`${today}T00:00:00`)) / 86400000) : null;
+  if (overdue) {
+    return { key: 'risk', label: 'At Risk', detail: 'Past its due date.', Icon: IconAlertTriangle, tone: HEALTH_TONES.risk };
+  }
+  if (daysLeft !== null && daysLeft <= 2 && task.progress < 70) {
+    const dueText = daysLeft <= 0 ? 'today' : `in ${daysLeft} day${daysLeft > 1 ? 's' : ''}`;
+    return { key: 'risk', label: 'At Risk', detail: `Due ${dueText}, with progress behind.`, Icon: IconAlertTriangle, tone: HEALTH_TONES.risk };
+  }
+
+  return { key: 'ontrack', label: 'On Track', detail: 'Progressing normally toward its due date.', Icon: IconCheckCircle, tone: HEALTH_TONES.ontrack };
+}
+
+// The per-task activity log only stores free text (see
+// backend/database/helpers.js's insertTaskEvent) — no structured event
+// type — so the icon is inferred from the exact phrasing routes/tasks.js
+// generates. Order matters: more specific phrases (e.g. "reassigned",
+// which also contains "assigned") are checked before their broader cousins.
+function activityIcon(text) {
+  const t = text.toLowerCase();
+  if (t.includes('reassigned')) return { Icon: IconArrowRight, color: 'var(--accent-mid)' };
+  if (t.includes('created')) return { Icon: IconPlusCircle, color: 'var(--accent)' };
+  if (t.includes('sent this back') || t.includes('requested changes') || t.includes('declined')) return { Icon: IconAlertTriangle, color: 'var(--amber-text)' };
+  if (t.includes('approved') || t.includes('completed')) return { Icon: IconCheckCircle, color: 'var(--accent-dark)' };
+  if (t.includes('progress updated')) return { Icon: IconBarChart, color: 'var(--accent)' };
+  if (t.includes('submitted for review')) return { Icon: IconEye, color: 'var(--accent-dark)' };
+  if (t.includes('status changed')) return { Icon: IconClock, color: 'var(--accent-mid)' };
+  if (t.includes('extension') || t.includes('due date')) return { Icon: IconCalendar, color: 'var(--amber-text)' };
+  if (t.includes('marked')) return { Icon: IconCheck, color: 'var(--accent-dark)' };
+  if (t.includes('assigned')) return { Icon: IconUser, color: 'var(--accent)' };
+  return { Icon: IconCheck, color: 'var(--text-muted)' };
 }
 
 // Turns a bare URL sitting in plain text (e.g. a pasted deployed-site link)

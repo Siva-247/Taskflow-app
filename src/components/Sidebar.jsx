@@ -7,6 +7,7 @@ import {
   IconGrid, IconUser, IconUsers, IconChecklist, IconBarChart, IconGear,
   IconEye, IconCalendar, IconChat,
 } from './icons.jsx';
+import { Avatar } from './ui.jsx';
 
 const ADMIN_NAV = [
   { label: 'Dashboard', icon: IconGrid, to: '/admin' },
@@ -64,6 +65,12 @@ const WIDTH_BY_ROLE = {
 const MIN_WIDTH = 180;
 const MAX_WIDTH = 380;
 const STORAGE_KEY = 'sidebarWidth';
+// Same table ProfilePanel.jsx keeps locally for its own identity display —
+// duplicated here rather than shared, matching that existing convention.
+const ROLE_LABEL = {
+  super_admin: 'Super Admin', admin: 'Admin', manager: 'Manager',
+  assistant_manager: 'Assistant Manager', team_lead: 'Team Lead', employee: 'Employee',
+};
 
 function loadStoredWidth(defaultWidth) {
   try {
@@ -130,9 +137,12 @@ export default function Sidebar({ open = false, onNavigate }) {
 
   return (
     <div className={`sidebar${open ? ' open' : ''}`} style={{
-      width, flexShrink: 0, background: '#FFFFFF', borderRight: '1px solid var(--border)',
-      boxShadow: '4px 0 24px -12px rgba(124,58,237,0.22)', position: 'relative', zIndex: 1,
-      padding: '20px 14px', display: 'flex', flexDirection: 'column', gap: 2,
+      width, flexShrink: 0, background: '#FFFFFF', border: '1px solid var(--border)',
+      borderRadius: 20, margin: '16px 0 16px 16px',
+      boxShadow: '0 4px 16px -6px rgba(59,30,112,0.12), 0 14px 34px -14px rgba(124,58,237,0.25)',
+      position: 'relative', zIndex: 1,
+      padding: '22px 16px', display: 'flex', flexDirection: 'column', gap: 4,
+      transition: 'box-shadow 200ms ease',
     }}>
       {items.map((item) => {
         const isActive = item.to && (item.to === location.pathname || item.to === currentPath);
@@ -142,10 +152,10 @@ export default function Sidebar({ open = false, onNavigate }) {
             key={item.label}
             onClick={() => (item.to ? go(item.to) : showToast(`${item.label} is planned for Phase 2`))}
             style={{
-              display: 'flex', alignItems: 'center', gap: 11, padding: '9px 12px', borderRadius: 12,
+              display: 'flex', alignItems: 'center', gap: 11, padding: '9px 12px 9px 9px', borderRadius: 12,
+              borderLeft: isActive ? '3px solid var(--accent)' : '3px solid transparent',
               background: isActive ? 'var(--accent-soft)' : 'transparent',
-              boxShadow: isActive ? '0 0 0 1px rgba(124,58,237,0.12), 0 4px 14px -6px rgba(124,58,237,0.35)' : 'none',
-              cursor: 'pointer', userSelect: 'none', transition: 'background 150ms ease, box-shadow 150ms ease',
+              cursor: 'pointer', userSelect: 'none', transition: 'background 150ms ease, border-color 150ms ease',
             }}
             onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = 'var(--field-bg)'; }}
             onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = 'transparent'; }}
@@ -171,6 +181,28 @@ export default function Sidebar({ open = false, onNavigate }) {
           </div>
         );
       })}
+
+      <div style={{
+        marginTop: 'auto', paddingTop: 14, display: 'flex', alignItems: 'center', gap: 10,
+        borderTop: '1px solid var(--border)',
+      }}>
+        <Avatar initial={currentUser.initial} size={34} gradient />
+        <div style={{ minWidth: 0 }}>
+          <div style={{
+            fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 700, fontSize: 13.5, color: 'var(--heading)',
+            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+          }}>
+            {currentUser.name}
+          </div>
+          <div style={{
+            fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 11.5, color: 'var(--text-muted)',
+            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+          }}>
+            {currentUser.title || ROLE_LABEL[currentUser.role]}
+          </div>
+        </div>
+      </div>
+
       <div
         className="sidebar-resize-handle"
         onMouseDown={(e) => { e.preventDefault(); setDragging(true); }}

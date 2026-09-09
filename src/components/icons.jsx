@@ -364,6 +364,15 @@ export function IconDotsVertical({ size = 16, color = 'var(--text-secondary)' })
   );
 }
 
+export function IconBlock({ size = 19, color = 'var(--amber-text)' }) {
+  return (
+    <svg {...base(size)} viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="9" stroke={color} strokeWidth="1.7" />
+      <path d="M6.5 6.5l11 11" stroke={color} strokeWidth="1.7" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 export function IconCheckDouble({ size = 14, color = 'var(--text-muted)' }) {
   return (
     <svg {...base(size)} viewBox="0 0 22 14">

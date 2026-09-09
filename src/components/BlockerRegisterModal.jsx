@@ -1,8 +1,8 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useApp } from '../context/AppContext.jsx';
 import { ROLES, BLOCKER_STATUS, BLOCKER_CATEGORIES, ESCALATION_LEVELS } from '../data/mockData.js';
 import { canManage } from '../data/hierarchy.js';
-import { Card, Select, Button, Modal } from './ui.jsx';
+import { Card, Select, Button, Modal, Pagination, PAGE_SIZE } from './ui.jsx';
 import RaiseBlockerModal from './RaiseBlockerModal.jsx';
 import DatePicker from './DatePicker.jsx';
 import { IconSearch, IconDownload, IconAlertTriangle } from './icons.jsx';
@@ -61,6 +61,7 @@ export default function BlockerRegisterModal({ onClose }) {
   const [editingBlocker, setEditingBlocker] = useState(null);
   const [pendingDelete, setPendingDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  const [page, setPage] = useState(1);
 
   // Same "build filter options from what's actually there" idea as
   // DailyUpdateHistory's employee filter — a custom "Other" category (the
@@ -104,6 +105,11 @@ export default function BlockerRegisterModal({ onClose }) {
 
   const sorted = useMemo(() => [...filtered].sort((a, b) => b.seq - a.seq), [filtered]);
 
+  useEffect(() => setPage(1), [statusFilter, categoryFilter, escalationFilter, dateFrom, dateTo, search]);
+  const pageCount = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
+  useEffect(() => { if (page > pageCount) setPage(pageCount); }, [page, pageCount]);
+  const pageItems = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
   const hasActiveFilters = search.trim() || statusFilter !== 'all' || categoryFilter !== 'all' || escalationFilter !== 'all' || dateFrom || dateTo;
   const clearFilters = () => {
     setSearch(''); setStatusFilter('all'); setCategoryFilter('all'); setEscalationFilter('all'); setDateFrom(''); setDateTo('');
@@ -140,7 +146,7 @@ export default function BlockerRegisterModal({ onClose }) {
     }
   };
 
-  const gridTemplate = '0.8fr 1fr 1fr 1.1fr 2fr 1fr 0.9fr 0.6fr 0.9fr 0.9fr 1fr';
+  const gridTemplate = '0.8fr 1fr 1fr 1.1fr 2fr 1fr 0.9fr 0.6fr 0.9fr 0.9fr 0.9fr 1fr';
 
   return (
     <Modal title="Blocker Register" onClose={onClose} maxWidth={1200}>
@@ -197,16 +203,16 @@ export default function BlockerRegisterModal({ onClose }) {
 
         <Card padded={false} style={{ overflow: 'hidden' }}>
           <div style={{ overflowX: 'auto' }}>
-            <div style={{ minWidth: 1240 }}>
+            <div style={{ minWidth: 1360 }}>
               <div style={{ display: 'grid', gridTemplateColumns: gridTemplate, background: 'var(--field-bg)', borderBottom: '2px solid var(--border)' }}>
-                {['ID', 'Raised By', 'Project', 'Category', 'Description', 'Owner To Resolve', 'Target Resolution', 'Days', 'Escalation', 'Status', ''].map((h) => (
+                {['ID', 'Raised By', 'Project', 'Category', 'Description', 'Owner To Resolve', 'Target Resolution', 'Days', 'Escalation', 'Status', 'Closed Date', ''].map((h) => (
                   <div key={h} style={{ padding: '11px 14px', borderRight: '1px solid var(--border)', fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>
                     {h}
                   </div>
                 ))}
               </div>
 
-              {sorted.map((b, i) => {
+              {pageItems.map((b, i) => {
                 const raiser = userById(b.raisedBy);
                 const owner = userById(b.ownerToResolveId);
                 const manageable = canManageBlocker(b);
@@ -229,6 +235,7 @@ export default function BlockerRegisterModal({ onClose }) {
                     <Cell><span style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 12.5, color: 'var(--heading)', fontVariantNumeric: 'tabular-nums' }}>{daysOpen(b)}</span></Cell>
                     <Cell><EscalationBadge level={b.escalationLevel} /></Cell>
                     <Cell><BlockerStatusBadge status={b.status} /></Cell>
+                    <Cell><span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 12.5, color: 'var(--text-secondary)' }}>{b.closedDate ? formatDate(b.closedDate) : '—'}</span></Cell>
                     <Cell>
                       {manageable ? (
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -267,11 +274,7 @@ export default function BlockerRegisterModal({ onClose }) {
           </div>
         </Card>
 
-        {sorted.length > 0 && (
-          <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 12.5, color: 'var(--text-muted)' }}>
-            {sorted.length} of {blockers.length} blocker{blockers.length === 1 ? '' : 's'}
-          </div>
-        )}
+        <Pagination page={page} totalItems={sorted.length} onChange={setPage} />
       </div>
 
       {showRaise && <RaiseBlockerModal onClose={() => setShowRaise(false)} />}

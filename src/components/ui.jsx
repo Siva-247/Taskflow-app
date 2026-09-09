@@ -37,6 +37,33 @@ export function StatusBadge({ status }) {
   );
 }
 
+// The daily-update tracker's own status vocabulary doesn't match Task's
+// STATUS enum (only "Completed" overlaps), so the Task-oriented StatusBadge
+// above would render everything else with the same generic fallback style —
+// this gives each of the 7 values its own color. Shared by DailyUpdateHistory
+// and CurrentProjectsBoard so both render a project/entry's status identically.
+export const DAILY_STATUS_COLOR = {
+  Open: { bg: 'var(--neutral-bg)', color: 'var(--text-secondary)' },
+  Inprogress: { bg: 'var(--accent-soft)', color: 'var(--accent-dark)' },
+  Pending: { bg: 'var(--amber-bg)', color: 'var(--amber-text)' },
+  Completed: { bg: '#EDE4FB', color: 'var(--accent-dark)' },
+  Hold: { bg: 'var(--amber-fill)', color: '#FFFFFF' },
+  Cancelled: { bg: 'var(--neutral-bg)', color: 'var(--text-muted)' },
+  Interested: { bg: 'var(--accent-soft)', color: 'var(--accent-mid)' },
+};
+
+export function DailyStatusBadge({ status }) {
+  const s = DAILY_STATUS_COLOR[status] || DAILY_STATUS_COLOR.Open;
+  return (
+    <span style={{
+      display: 'inline-block', padding: '4px 11px', borderRadius: 999, background: s.bg, color: s.color,
+      fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11.5,
+    }}>
+      {status}
+    </span>
+  );
+}
+
 const priorityStyles = {
   [PRIORITY.HIGH]: { bg: 'var(--amber-bg)', color: 'var(--amber-text)', dot: 'var(--amber-fill)' },
   [PRIORITY.MEDIUM]: { bg: 'var(--neutral-bg)', color: 'var(--text-secondary)', dot: 'var(--text-muted)' },
@@ -68,7 +95,7 @@ export function ProgressBar({ value, height = 8, color = 'var(--accent)' }) {
   );
 }
 
-export function Button({ variant = 'primary', children, onClick, style, type = 'button', disabled }) {
+export function Button({ variant = 'primary', children, onClick, style, type = 'button', disabled, className }) {
   const base = {
     padding: '10px 22px', borderRadius: 9, fontFamily: "'Manrope',system-ui,sans-serif",
     fontWeight: 700, fontSize: 13.5, border: '1px solid transparent', display: 'inline-flex',
@@ -81,15 +108,15 @@ export function Button({ variant = 'primary', children, onClick, style, type = '
     danger: { background: 'var(--amber-fill)', color: '#FFFFFF' },
   };
   return (
-    <button type={type} disabled={disabled} onClick={onClick} style={{ ...base, ...variants[variant], ...style }}>
+    <button type={type} disabled={disabled} onClick={onClick} className={className} style={{ ...base, ...variants[variant], ...style }}>
       {children}
     </button>
   );
 }
 
-export function Card({ children, style, padded = true }) {
+export function Card({ children, style, padded = true, className }) {
   return (
-    <div style={{
+    <div className={className} style={{
       background: '#FFFFFF', border: '1px solid var(--border)', borderRadius: 14,
       boxShadow: 'var(--card-shadow)', padding: padded ? '24px 26px' : 0, ...style,
     }}>
@@ -98,15 +125,16 @@ export function Card({ children, style, padded = true }) {
   );
 }
 
-export function SectionLabel({ children, first }) {
+export function SectionLabel({ children, first, icon }) {
   return (
     <div style={{ padding: first ? '20px 0 10px' : '26px 0 10px' }}>
       <div style={{
+        display: 'flex', alignItems: 'center', gap: 7,
         fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11.5,
         letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--accent-dark)',
         borderTop: first ? 'none' : '1px solid var(--border)', paddingTop: first ? 0 : 20,
       }}>
-        {children}
+        {icon}{children}
       </div>
     </div>
   );
@@ -214,6 +242,42 @@ export function Drawer({ title, children, onClose, width = 'clamp(300px, 25vw, 4
       </div>
     </div>,
     document.body,
+  );
+}
+
+// Shared page-size everyone paginating a flat record list (Tasks, Daily
+// Update History, etc.) slices against, so "10 rows per page" reads the
+// same everywhere rather than being redeclared per page.
+export const PAGE_SIZE = 10;
+
+// Renders nothing for a single-page result — callers don't need to guard
+// that themselves. `onChange` receives the next 1-indexed page number;
+// callers own the page state and should clamp it back in range if the
+// underlying (filtered) list shrinks out from under the current page.
+export function Pagination({ page, totalItems, pageSize = PAGE_SIZE, onChange }) {
+  const pageCount = Math.max(1, Math.ceil(totalItems / pageSize));
+  if (pageCount <= 1) return null;
+  const start = totalItems === 0 ? 0 : (page - 1) * pageSize + 1;
+  const end = Math.min(totalItems, page * pageSize);
+  const btnStyle = (disabled) => ({
+    padding: '7px 14px', borderRadius: 9, border: '1px solid var(--border)', background: '#FFFFFF',
+    fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 12.5,
+    color: disabled ? 'var(--text-muted)' : 'var(--accent-dark)',
+    cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.55 : 1,
+  });
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+      <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 12.5, color: 'var(--text-muted)' }}>
+        Showing {start}–{end} of {totalItems}
+      </span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <button type="button" disabled={page <= 1} onClick={() => onChange(page - 1)} style={btnStyle(page <= 1)}>← Prev</button>
+        <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 12.5, color: 'var(--text-primary)', padding: '0 4px' }}>
+          Page {page} of {pageCount}
+        </span>
+        <button type="button" disabled={page >= pageCount} onClick={() => onChange(page + 1)} style={btnStyle(page >= pageCount)}>Next →</button>
+      </div>
+    </div>
   );
 }
 
