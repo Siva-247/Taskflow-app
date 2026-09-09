@@ -4,7 +4,9 @@ import { useApp } from '../context/AppContext.jsx';
 import { STATUS, ROLES, teamById } from '../data/mockData.js';
 import StatBar, { defaultStatItems } from '../components/StatBar.jsx';
 import { Card, Avatar } from '../components/ui.jsx';
-import { IconAlertTriangle, IconCheckCircle, IconPlusCircle, IconUser, IconArrowRight } from '../components/icons.jsx';
+import { IconAlertTriangle, IconCheckCircle, IconPlusCircle, IconUser } from '../components/icons.jsx';
+import ProjectTimelineBoard from '../components/ProjectTimelineBoard.jsx';
+import TeamCompletionChart from '../components/TeamCompletionChart.jsx';
 import { useRoleGuard } from '../hooks/useRoleGuard.js';
 
 const WEEKS = [
@@ -16,7 +18,7 @@ const WEEKS = [
 ];
 
 export default function ManagerDashboard() {
-  const { currentUser, users, teams, departments, statsFor, scopedTasks, activity, TODAY } = useApp();
+  const { currentUser, users, teams, departments, statsFor, scopedTasks, activity, memberStats, TODAY } = useApp();
   const navigate = useNavigate();
   const allowed = useRoleGuard(ROLES.MANAGER);
   if (!allowed) return null;
@@ -51,13 +53,6 @@ export default function ManagerDashboard() {
   const topPerformersByTeam = deptTeams
     .map((team) => ({ team, top3: performerStats.filter((p) => p.teamId === team.id).slice(0, 3) }))
     .filter((row) => row.top3.length > 0);
-  const workload = deptEmployees.map((u) => {
-    const assigned = deptTasks.filter((t) => t.assigneeId === u.id && t.status !== STATUS.DRAFT);
-    const uStats = statsFor(assigned);
-    const team = teams.find((tm) => tm.id === u.teamId);
-    return { user: u, teamName: team?.name || '—', assigned: uStats.total, completed: uStats.completed };
-  }).sort((a, b) => b.assigned - a.assigned);
-
   const overdueTasks = deptTasks.filter((t) => t.status !== STATUS.COMPLETED && t.status !== STATUS.DRAFT && t.status !== STATUS.PENDING_APPROVAL && t.dueDate < TODAY);
 
   const trend = WEEKS.map((week) => {
@@ -78,6 +73,10 @@ export default function ManagerDashboard() {
       </div>
 
       <StatBar items={defaultStatItems(stats, 'Total Tasks')} />
+
+      <ProjectTimelineBoard title="Department's current projects" today={TODAY} />
+
+      <TeamCompletionChart title="Department's daily update completion" members={memberStats} today={TODAY} />
 
       <Card padded={false}>
         <div style={{ padding: '22px 26px 4px', fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 15.5, color: 'var(--heading)' }}>Team performance</div>
@@ -151,41 +150,6 @@ export default function ManagerDashboard() {
           )}
         </Card>
       )}
-
-      <Card padded={false}>
-        <div style={{ padding: '22px 26px 4px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 15.5, color: 'var(--heading)' }}>Employee workload</div>
-          <div onClick={() => navigate('/daily-updates')} style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
-            <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 13, color: 'var(--accent-dark)' }}>Daily updates</span>
-            <IconArrowRight size={13} />
-          </div>
-        </div>
-        <div style={{ overflowX: 'auto' }}>
-          <div style={{ minWidth: 760 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr 1fr 1fr 1fr', padding: '12px 26px', marginTop: 12, background: 'var(--field-bg)' }}>
-              {['Employee', 'Team', 'Role', 'Assigned', 'Completed'].map((h) => (
-                <div key={h} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11.5, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>{h}</div>
-              ))}
-            </div>
-            {workload.map((row, i) => (
-              <div
-                key={row.user.id}
-                onClick={() => navigate(`/tasks?assignee=${row.user.id}`)}
-                style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr 1fr 1fr 1fr', padding: '12px 26px', alignItems: 'center', borderTop: '1px solid var(--border)', borderBottom: i === workload.length - 1 ? '1px solid var(--border)' : 'none', cursor: 'pointer' }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <Avatar initial={row.user.initial} size={24} />
-                  <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 13.5, color: 'var(--text-primary)' }}>{row.user.name}</span>
-                </div>
-                <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13, color: 'var(--text-secondary)' }}>{row.teamName.replace("'s Team", '')}</div>
-                <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13, color: 'var(--text-secondary)' }}>{row.user.title}</div>
-                <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 13.5, color: 'var(--heading)' }}>{row.assigned}</div>
-                <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 13.5, color: 'var(--heading)' }}>{row.completed}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </Card>
 
       <div className="responsive-grid" style={{ display: 'grid', '--cols': '1fr 1fr', gap: 20 }}>
         <Card>

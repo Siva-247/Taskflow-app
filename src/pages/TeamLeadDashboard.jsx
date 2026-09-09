@@ -3,13 +3,15 @@ import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext.jsx';
 import { STATUS, ROLES, teamById } from '../data/mockData.js';
 import StatBar, { defaultStatItems } from '../components/StatBar.jsx';
-import { Card, Avatar } from '../components/ui.jsx';
+import { Card } from '../components/ui.jsx';
 import { IconEye, IconAlertTriangle } from '../components/icons.jsx';
 import Donut from '../components/Donut.jsx';
+import ProjectTimelineBoard from '../components/ProjectTimelineBoard.jsx';
+import TeamCompletionChart from '../components/TeamCompletionChart.jsx';
 import { useRoleGuard } from '../hooks/useRoleGuard.js';
 
 export default function TeamLeadDashboard() {
-  const { currentUser, users, departments, statsFor, scopedTasks, TODAY } = useApp();
+  const { currentUser, users, departments, statsFor, scopedTasks, memberStats, TODAY } = useApp();
   const navigate = useNavigate();
   const allowed = useRoleGuard(ROLES.TEAM_LEAD);
   if (!allowed) return null;
@@ -18,13 +20,6 @@ export default function TeamLeadDashboard() {
   const department = departments.find((d) => d.id === currentUser.departmentId);
   const teamTasks = scopedTasks(currentUser).filter((t) => t.status !== STATUS.DRAFT);
   const stats = statsFor(teamTasks);
-
-  const members = users.filter((u) => u.teamId === currentUser.teamId && u.role === ROLES.EMPLOYEE);
-  const memberRows = members.map((u) => {
-    const assigned = teamTasks.filter((t) => t.assigneeId === u.id);
-    const uStats = statsFor(assigned);
-    return { user: u, assigned: uStats.total, completed: uStats.completed };
-  });
 
   const reviewTasks = teamTasks.filter((t) => t.status === STATUS.IN_REVIEW);
   const overdueTasks = teamTasks.filter((t) => t.status !== STATUS.COMPLETED && t.status !== STATUS.PENDING_APPROVAL && t.dueDate < TODAY);
@@ -38,33 +33,9 @@ export default function TeamLeadDashboard() {
 
       <StatBar items={defaultStatItems(stats, 'Total Tasks')} />
 
-      <Card padded={false}>
-        <div style={{ padding: '22px 26px 4px', fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 15.5, color: 'var(--heading)' }}>Team members</div>
-        <div style={{ overflowX: 'auto' }}>
-          <div style={{ minWidth: 640 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1.8fr 1fr 1fr 1fr', padding: '12px 26px', marginTop: 12, background: 'var(--field-bg)' }}>
-              {['Employee', 'Role', 'Assigned', 'Completed'].map((h) => (
-                <div key={h} style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 700, fontSize: 11.5, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>{h}</div>
-              ))}
-            </div>
-            {memberRows.map((row, i) => (
-              <div
-                key={row.user.id}
-                onClick={() => navigate(`/tasks?assignee=${row.user.id}`)}
-                style={{ display: 'grid', gridTemplateColumns: '1.8fr 1fr 1fr 1fr', padding: '13px 26px', alignItems: 'center', borderTop: '1px solid var(--border)', borderBottom: i === memberRows.length - 1 ? '1px solid var(--border)' : 'none', cursor: 'pointer' }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <Avatar initial={row.user.initial} size={24} />
-                  <span style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 600, fontSize: 13.5, color: 'var(--text-primary)' }}>{row.user.name}</span>
-                </div>
-                <div style={{ fontFamily: "'Manrope',system-ui,sans-serif", fontWeight: 500, fontSize: 13, color: 'var(--text-secondary)' }}>{row.user.title}</div>
-                <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 13.5, color: 'var(--heading)' }}>{row.assigned}</div>
-                <div style={{ fontFamily: "'Poppins',system-ui,sans-serif", fontWeight: 600, fontSize: 13.5, color: 'var(--heading)' }}>{row.completed}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </Card>
+      <ProjectTimelineBoard title="Team's current projects" today={TODAY} />
+
+      <TeamCompletionChart title="Team's daily update completion" members={memberStats} today={TODAY} />
 
       <div className="responsive-grid" style={{ display: 'grid', '--cols': '1fr 1fr', gap: 20 }}>
         <Card>

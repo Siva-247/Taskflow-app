@@ -34,6 +34,16 @@ export const BLOCKER_STATUS = { OPEN: 'Open', IN_PROGRESS: 'In Progress', RESOLV
 export const BLOCKER_CATEGORIES = ['Technical', 'Dependency', 'Stakeholder', 'Resource', 'External', 'Other'];
 export const ESCALATION_LEVELS = ['Low', 'Medium', 'High', 'Critical'];
 
+// The three milestone values actually used across every intern's sheet in
+// the source tracker (interns tracker.xlsx) — 'Other' is a form sentinel
+// like BLOCKER_CATEGORIES' own, not a real stored value.
+export const DAILY_MILESTONES = ['Videos', 'Develop', 'Testing', 'Other'];
+
+// The tracker's own status vocabulary (its "Date View"/"Project Summary"
+// sheets' status filter), spelling ("Inprogress", one word) kept exactly as
+// the source uses it rather than normalized to match Task's own STATUS enum.
+export const DAILY_UPDATE_STATUSES = ['Open', 'Inprogress', 'Pending', 'Completed', 'Hold', 'Cancelled', 'Interested'];
+
 // The real current date (viewer's local time), recomputed on every page
 // load. Built from getFullYear/Month/Date rather than toISOString() so it
 // reflects the viewer's local calendar day, not UTC's.
