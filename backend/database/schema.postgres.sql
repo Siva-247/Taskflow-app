@@ -123,6 +123,64 @@ CREATE TABLE IF NOT EXISTS daily_updates (
   seq BIGSERIAL
 );
 
+-- Added after daily_updates already existed live, matching the interns
+-- tracker.xlsx work-log format (milestone/project/deliverables per entry,
+-- plus a reviewer's own remarks) — additive only, so existing rows and the
+-- older concepts_covered/practical_task/videos_completed/video_link columns
+-- above are untouched; the new form just stops writing to them.
+ALTER TABLE daily_updates ADD COLUMN IF NOT EXISTS milestone TEXT;
+ALTER TABLE daily_updates ADD COLUMN IF NOT EXISTS project TEXT;
+ALTER TABLE daily_updates ADD COLUMN IF NOT EXISTS deliverables TEXT;
+ALTER TABLE daily_updates ADD COLUMN IF NOT EXISTS self_assessment TEXT;
+ALTER TABLE daily_updates ADD COLUMN IF NOT EXISTS resources TEXT;
+-- Second revision of the format, per the Task ID/Department/.../Blocker
+-- column spec — department_id and actual_close_date are always
+-- server-computed (never trusted from the client), the same way user_id
+-- always comes from the session below; priority/due_date are plain
+-- author-supplied fields. self_assessment above is superseded by this
+-- revision (no longer written by the form) but stays for old rows.
+ALTER TABLE daily_updates ADD COLUMN IF NOT EXISTS department_id TEXT REFERENCES departments(id);
+ALTER TABLE daily_updates ADD COLUMN IF NOT EXISTS priority TEXT;
+ALTER TABLE daily_updates ADD COLUMN IF NOT EXISTS due_date TEXT;
+ALTER TABLE daily_updates ADD COLUMN IF NOT EXISTS actual_close_date TEXT;
+-- Third revision: Priority and "Start Date" are no longer asked for on the
+-- form at all — both are snapshotted server-side from the linked task the
+-- same moment task_title already is (denormalized on write, same reasoning:
+-- the linked task's own visibility stays scoped, this row's doesn't). With
+-- no task linked, both simply stay null. task_start_date is deliberately
+-- its own column, not a reuse of `date` above — `date` is this row's own
+-- day (drives the one-entry-per-day rule and the edit-lock), a completely
+-- different thing from the linked task's start date.
+ALTER TABLE daily_updates ADD COLUMN IF NOT EXISTS task_start_date TEXT;
+-- A reviewer's remarks on someone else's entry — written by whoever has
+-- management authority over the author (hierarchy.canManage), never the
+-- author themselves. Separate from the author-only fields above the same
+-- way Task Details' reviewer actions are separate from the assignee's own.
+ALTER TABLE daily_updates ADD COLUMN IF NOT EXISTS bdm_remarks TEXT;
+ALTER TABLE daily_updates ADD COLUMN IF NOT EXISTS bdm_remarks_by TEXT REFERENCES users(id);
+ALTER TABLE daily_updates ADD COLUMN IF NOT EXISTS bdm_remarks_at TEXT;
+-- A real "TK001"-style id, first introduced to let a historical spreadsheet
+-- backfill survive import with its own numbering intact, now the standard
+-- id for every new daily update going forward too (see routes/dailyUpdates.js
+-- POST) — null only stays possible for rows written before this existed,
+-- where the UI's fallback DU-0001-style id (derived from `seq`) keeps
+-- covering the display.
+ALTER TABLE daily_updates ADD COLUMN IF NOT EXISTS custom_task_id TEXT;
+
+-- Atomic, race-free numbering for the TK### id above — a MAX(...)+1 query
+-- would double-assign under concurrent submissions, a sequence can't. Primed
+-- to continue right after the 174 ids the spreadsheet backfill already
+-- assigned by hand; the `is_called` guard makes that priming a genuine
+-- one-time thing, so re-running this file never rewinds the sequence
+-- backwards once real submissions have already advanced it past 174.
+CREATE SEQUENCE IF NOT EXISTS daily_update_task_id_seq;
+DO $$
+BEGIN
+  IF NOT (SELECT is_called FROM daily_update_task_id_seq) THEN
+    PERFORM setval('daily_update_task_id_seq', 174, true);
+  END IF;
+END $$;
+
 -- Anyone can raise a blocker; it's visible to the WHOLE company regardless of
 -- role/department/team (see routes/blockers.js — deliberately unscoped, the
 -- one resource in this app where that's true), since resolving one often

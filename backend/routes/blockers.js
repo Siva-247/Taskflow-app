@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { prepare } from '../database/db.js';
 import { TODAY } from '../database/constants.js';
 import { insertGlobalActivity } from '../database/helpers.js';
-import { canManageBlocker } from '../database/hierarchy.js';
+import { canManageBlocker, canManage } from '../database/hierarchy.js';
 import { requireAuth } from '../middleware/auth.js';
 import { asyncRoute } from '../middleware/asyncRoute.js';
 
@@ -79,6 +79,19 @@ router.post('/', asyncRoute(async (req, res) => {
   if (owner) {
     await prepare('INSERT INTO notifications (id, user_id, type, text, blocker_id, read, created_at) VALUES (?, ?, ?, ?, ?, 0, ?)')
       .run(`note-${randomUUID()}`, owner.id, 'blocker_assigned', `${req.user.name} named you as owner to resolve a blocker`, id, TODAY);
+  }
+
+  // Also tell everyone with management authority over the raiser — their
+  // team lead, assistant manager, manager, and any admin/super admin —
+  // mirroring exactly who canManageBlocker already lets edit/delete this row,
+  // so "can act on it" and "gets told about it" stay in sync. Skips whoever
+  // was already notified as the named owner, and never notifies the raiser
+  // about their own submission (canManage already excludes self-management).
+  const allUsers = await prepare('SELECT * FROM users WHERE is_active = 1').all();
+  const chain = allUsers.filter((u) => u.id !== owner?.id && canManage(u, req.user));
+  const insertChainNotification = prepare('INSERT INTO notifications (id, user_id, type, text, blocker_id, read, created_at) VALUES (?, ?, ?, ?, ?, 0, ?)');
+  for (const person of chain) {
+    await insertChainNotification.run(`note-${randomUUID()}`, person.id, 'blocker_assigned', `${req.user.name} raised a blocker (${b.category})`, id, TODAY);
   }
 
   const blocker = await prepare(`SELECT ${SELECT_COLUMNS} FROM blockers WHERE id = ?`).get(id);
