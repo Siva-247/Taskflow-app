@@ -6,6 +6,8 @@ import { Card, SectionLabel, Field, TextInput, TextArea, Select, Button, Modal, 
 import DatePicker from '../components/DatePicker.jsx';
 import { roleHome } from '../utils.js';
 
+const OTHER_CATEGORY = '__other__';
+
 export default function EditTask() {
   const { taskId } = useParams();
   const navigate = useNavigate();
@@ -32,9 +34,23 @@ export default function EditTask() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [task, canManage]);
 
+  // The fixed list plus any custom category someone already typed in on a
+  // past task — same reasoning as CreateTask.jsx's identical memo, so a
+  // one-off "Other" entry becomes pickable again later instead of needing
+  // to be retyped every time.
+  const allCategories = useMemo(
+    () => [...new Set([...CATEGORIES, ...tasks.map((t) => t.category).filter(Boolean)])],
+    [tasks],
+  );
+
   const [title, setTitle] = useState(task?.title || '');
   const [description, setDescription] = useState(task?.description || '');
-  const [category, setCategory] = useState(task?.category || CATEGORIES[0]);
+  const taskCategoryIsCustom = task?.category && !allCategories.includes(task.category);
+  const [categorySelection, setCategorySelection] = useState(
+    taskCategoryIsCustom ? OTHER_CATEGORY : (task?.category || CATEGORIES[0]),
+  );
+  const [customCategory, setCustomCategory] = useState(taskCategoryIsCustom ? task.category : '');
+  const category = categorySelection === OTHER_CATEGORY ? customCategory.trim() : categorySelection;
   const [subtasks, setSubtasks] = useState(task?.subtasks || []);
   const [subtaskDraft, setSubtaskDraft] = useState('');
   const [priority, setPriority] = useState(task?.priority || PRIORITY.MEDIUM);
@@ -71,6 +87,7 @@ export default function EditTask() {
     const e = {};
     if (!title.trim()) e.title = true;
     if (!description.trim()) e.description = true;
+    if (categorySelection === OTHER_CATEGORY && !customCategory.trim()) e.category = true;
     if (!startDate) e.startDate = true;
     if (!dueDate) e.dueDate = true;
     if (startDate && startDate < TODAY) e.startInPast = true;
@@ -126,8 +143,18 @@ export default function EditTask() {
 
         <div style={{ height: 18 }} />
         <Field label="Milestone">
-          <Select value={category} onChange={setCategory} options={CATEGORIES.map((c) => ({ value: c, label: c }))} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <Select
+              value={categorySelection}
+              onChange={setCategorySelection}
+              options={[...allCategories.map((c) => ({ value: c, label: c })), { value: OTHER_CATEGORY, label: 'Other — type your own' }]}
+            />
+            {categorySelection === OTHER_CATEGORY && (
+              <TextInput value={customCategory} onChange={setCustomCategory} placeholder="Enter a milestone" />
+            )}
+          </div>
         </Field>
+        {errors.category && <ErrorText>Enter a milestone, or pick one from the list.</ErrorText>}
 
         <SectionLabel>Assignment &amp; priority</SectionLabel>
         <div className="responsive-grid" style={{ display: 'grid', '--cols': '1fr 1fr 1fr', gap: 22 }}>

@@ -6,7 +6,7 @@ import { canAccessTeamScope, assignableTargets } from '../data/hierarchy.js';
 import { Card, Avatar, StatusBadge, PriorityBadge, ProgressBar, SectionLabel, Button, Select, TextArea, TextInput, Modal } from '../components/ui.jsx';
 import DatePicker from '../components/DatePicker.jsx';
 import {
-  IconCheck, IconUser, IconUsersGroup, IconBuilding, IconClipboard, IconCalendar,
+  IconCheck, IconUser, IconUsersGroup, IconBuilding, IconCalendar,
   IconClock, IconAlertTriangle, IconCheckCircle, IconBlock, IconEye, IconPlusCircle,
   IconArrowRight, IconBarChart, IconEdit, IconTrash,
 } from '../components/icons.jsx';
@@ -134,15 +134,6 @@ export default function TaskDetails() {
             <span style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 14, color: 'var(--heading)' }}>{progress}%</span>
           </div>
           <ProgressBar value={progress} height={9} />
-        </div>
-      </Card>
-
-      <Card className="td-card" style={{ padding: '18px 24px' }}>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 24 }}>
-          <SummaryChip icon={<IconUser size={16} color="var(--accent-dark)" />} label="Assignee" value={assignee?.name} />
-          <SummaryChip icon={<IconBuilding size={16} color="var(--accent-dark)" />} label="Department" value={department?.name} />
-          <SummaryChip icon={<IconUsersGroup size={16} color="var(--accent-dark)" />} label="Team" value={team?.name} />
-          <SummaryChip icon={<IconClipboard size={16} color="var(--accent-dark)" />} label="Milestone" value={task.category} />
         </div>
       </Card>
 
@@ -626,21 +617,6 @@ function MetaItem({ icon, children, warn }) {
     }}>
       {icon}{children}
     </span>
-  );
-}
-
-function SummaryChip({ icon, label, value }) {
-  if (!value) return null;
-  return (
-    <div className="td-chip" style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 150, padding: '4px 8px', borderRadius: 10 }}>
-      <div style={{ width: 34, height: 34, borderRadius: 10, background: 'var(--accent-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-        {icon}
-      </div>
-      <div>
-        <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 10.5, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</div>
-        <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 13.5, color: 'var(--text-primary)', marginTop: 1 }}>{value}</div>
-      </div>
-    </div>
   );
 }
 
