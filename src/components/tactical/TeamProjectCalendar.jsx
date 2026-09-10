@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Avatar } from '../ui.jsx';
 import { formatDate } from '../../utils.js';
 import { CHART_COLORS, EmptyNote } from './shared.jsx';
@@ -58,6 +59,13 @@ function colorFor(project, colorByProject) {
 }
 
 export default function TeamProjectCalendar({ timeline, from, to, today }) {
+  // { segId, top, left } of the hovered segment, in viewport coordinates —
+  // portaled to <body> as `position: fixed`. A plain `position: absolute`
+  // tooltip here gets double-clipped: by the horizontally-scrolling grid's
+  // own `overflowX: auto` container AND by the ancestor `card-glass` Card's
+  // backdrop-filter + border-radius boundary (same bug fixed in
+  // MemberBarChart/TrendBarChart) — either alone is enough to hide it for
+  // any segment near the top row or off the visible scroll position.
   const [hoveredSeg, setHoveredSeg] = useState(null);
 
   // "All Time" (no from/to selected) has no fixed bound — the visible
@@ -138,22 +146,25 @@ export default function TeamProjectCalendar({ timeline, from, to, today }) {
                   return (
                     <div
                       key={segId}
-                      onMouseEnter={() => setHoveredSeg(segId)}
+                      onMouseEnter={(e) => {
+                        const r = e.currentTarget.getBoundingClientRect();
+                        setHoveredSeg({ segId, top: r.top - 8, left: r.left });
+                      }}
                       onMouseLeave={() => setHoveredSeg(null)}
                       style={{
                         position: 'absolute', top: 7, left: seg.startIndex * DAY_WIDTH + 3, width: span * DAY_WIDTH - 6, height: ROW_HEIGHT - 14,
                         background: color, borderRadius: 6, display: 'flex', alignItems: 'center', padding: '0 10px',
-                        cursor: 'default', boxShadow: hoveredSeg === segId ? '0 6px 16px -5px rgba(0,0,0,0.4)' : '0 1px 2px rgba(23,18,38,0.12)',
-                        zIndex: hoveredSeg === segId ? 2 : 1,
+                        cursor: 'default', boxShadow: hoveredSeg?.segId === segId ? '0 6px 16px -5px rgba(0,0,0,0.4)' : '0 1px 2px rgba(23,18,38,0.12)',
+                        zIndex: hoveredSeg?.segId === segId ? 2 : 1,
                       }}
                     >
                       <span style={{ fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: 11, color: '#FFFFFF', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         {seg.project}
                       </span>
-                      {hoveredSeg === segId && (
+                      {hoveredSeg?.segId === segId && createPortal(
                         <div style={{
-                          position: 'absolute', bottom: '100%', left: 0, marginBottom: 8, background: 'var(--ink)', color: '#FFFFFF',
-                          borderRadius: 9, padding: '9px 13px', whiteSpace: 'nowrap', zIndex: 3, boxShadow: '0 10px 24px -8px rgba(0,0,0,0.45)',
+                          position: 'fixed', top: hoveredSeg.top, left: hoveredSeg.left, transform: 'translateY(-100%)', background: 'var(--ink)', color: '#FFFFFF',
+                          borderRadius: 9, padding: '9px 13px', whiteSpace: 'nowrap', zIndex: 4000, pointerEvents: 'none', boxShadow: '0 10px 24px -8px rgba(0,0,0,0.45)',
                         }}>
                           <div style={{ fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: 11.5, marginBottom: 4 }}>{seg.project}</div>
                           <div style={{ fontFamily: 'var(--font-body)', fontWeight: 500, fontSize: 11 }}>{row.name}</div>
@@ -161,7 +172,8 @@ export default function TeamProjectCalendar({ timeline, from, to, today }) {
                             {span === 1 ? formatDate(days[seg.startIndex]) : `${formatDate(days[seg.startIndex])} – ${formatDate(days[seg.endIndex])}`}
                           </div>
                           <div style={{ fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: 11, marginTop: 2, color: '#D9CBFB' }}>{seg.lastStatus}</div>
-                        </div>
+                        </div>,
+                        document.body,
                       )}
                     </div>
                   );

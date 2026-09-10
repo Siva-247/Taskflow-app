@@ -105,7 +105,13 @@ const TREND_COL_WIDTH = { daily: 38, weekly: 62, monthly: 54 };
 // the day labels the rest of the time.
 const GRID_DIVISIONS = 4;
 export function TrendBarChart({ buckets, series, granularity = 'weekly', height = 140 }) {
-  const [hovered, setHovered] = useState(null);
+  // { key, top, left } of the hovered bar-group, in viewport coordinates —
+  // portaled to <body> as `position: fixed`, same reasoning as
+  // MemberBarChart's tooltip: this chart always sits inside a `card-glass`
+  // Card, and a plain `position: absolute` tooltip anchored inside it gets
+  // clipped by the card's own backdrop-filter + border-radius boundary the
+  // moment it needs to render above the card's top edge.
+  const [hover, setHover] = useState(null);
   if (buckets.length === 0) return <EmptyNote>No activity logged in this range.</EmptyNote>;
   const max = Math.max(1, ...buckets.flatMap((b) => series.map((s) => b[s.key] || 0)));
   const colWidth = TREND_COL_WIDTH[granularity] || 48;
@@ -122,6 +128,12 @@ export function TrendBarChart({ buckets, series, granularity = 'weekly', height 
   // as well as give React two elements with the same key.
   const ticks = [...new Set([...Array(GRID_DIVISIONS + 1)].map((_, i) => Math.round((max * i) / GRID_DIVISIONS)))];
   const gridBackground = `repeating-linear-gradient(to top, var(--line) 0, var(--line) 1px, transparent 1px, transparent ${barAreaHeight / GRID_DIVISIONS}px)`;
+  const showTip = (b) => (e) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    setHover({ key: b.key, top: r.top - 8, left: r.left + r.width / 2 });
+  };
+  const hideTip = () => setHover(null);
+  const hoveredBucket = hover && buckets.find((b) => b.key === hover.key);
   return (
     <div>
       {series.length > 1 && (
@@ -146,33 +158,32 @@ export function TrendBarChart({ buckets, series, granularity = 'weekly', height 
               {series.length === 1 && (
                 <span style={{ fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: 11, color: 'var(--heading)' }}>{b[series[0].key]}</span>
               )}
-              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: barAreaHeight, background: gridBackground, position: 'relative' }}>
+              <div onMouseEnter={showTip(b)} onMouseLeave={hideTip} style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: barAreaHeight, background: gridBackground }}>
                 {series.map((s) => (
                   <div
                     key={s.key} className="anim-scale-in"
-                    onMouseEnter={() => setHovered(`${b.key}`)}
-                    onMouseLeave={() => setHovered(null)}
                     style={{ width: series.length > 1 ? 16 : 22, height: Math.max(4, ((b[s.key] || 0) / max) * barAreaHeight), borderRadius: '5px 5px 2px 2px', background: s.color, cursor: 'default' }}
                   />
                 ))}
-                {hovered === b.key && (
-                  <div style={{
-                    position: 'absolute', bottom: '100%', left: '50%', transform: 'translateX(-50%)', marginBottom: 8, zIndex: 5,
-                    background: 'var(--ink)', color: '#FFFFFF', borderRadius: 9, padding: '9px 13px', whiteSpace: 'nowrap',
-                    boxShadow: '0 10px 24px -8px rgba(0,0,0,0.45)',
-                  }}>
-                    <div style={{ fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: 11.5, marginBottom: 4 }}>{b.label}</div>
-                    {series.map((s) => (
-                      <div key={s.key} style={{ fontFamily: 'var(--font-body)', fontWeight: 500, fontSize: 11 }}>{s.label}: {b[s.key] || 0}</div>
-                    ))}
-                  </div>
-                )}
               </div>
               <span title={b.label} style={{ fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: 10, color: 'var(--text-muted)', textAlign: 'center', lineHeight: 1.25 }}>{b.label}</span>
             </div>
           ))}
         </div>
       </div>
+      {hoveredBucket && createPortal(
+        <div style={{
+          position: 'fixed', top: hover.top, left: hover.left, transform: 'translate(-50%, -100%)', zIndex: 4000,
+          background: 'var(--ink)', color: '#FFFFFF', borderRadius: 9, padding: '9px 13px', whiteSpace: 'nowrap', pointerEvents: 'none',
+          boxShadow: '0 10px 24px -8px rgba(0,0,0,0.45)',
+        }}>
+          <div style={{ fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: 11.5, marginBottom: 4 }}>{hoveredBucket.label}</div>
+          {series.map((s) => (
+            <div key={s.key} style={{ fontFamily: 'var(--font-body)', fontWeight: 500, fontSize: 11 }}>{s.label}: {hoveredBucket[s.key] || 0}</div>
+          ))}
+        </div>,
+        document.body,
+      )}
     </div>
   );
 }
@@ -185,13 +196,28 @@ export function TrendBarChart({ buckets, series, granularity = 'weekly', height 
 // the table can never disagree about who's shown or in what order.
 const MEMBER_COL_WIDTH = 74;
 export function MemberBarChart({ members, height = 150 }) {
-  const [hovered, setHovered] = useState(null);
+  // { id, top, left } of the currently-hovered bar-pair, in viewport
+  // coordinates — the tooltip itself is portaled to <body> and positioned
+  // `fixed` from this rect, same reasoning as DatePicker.jsx: this chart
+  // always sits inside a `card-glass` Card, and Chromium clips anything
+  // painted outside a backdrop-filter + border-radius box regardless of
+  // `overflow`, so a plain `position: absolute` tooltip anchored inside the
+  // card silently disappears the moment it needs to render above the
+  // card's own top edge (exactly the first couple of rows, and any time
+  // the page is scrolled so the chart sits near the viewport top).
+  const [hover, setHover] = useState(null);
   if (members.length === 0) return <EmptyNote>No members match.</EmptyNote>;
   const max = Math.max(1, ...members.flatMap((m) => [m.totalEntries, m.completed]));
   const barAreaHeight = height - 34;
   const GRID_DIVISIONS = 4;
   const ticks = [...new Set([...Array(GRID_DIVISIONS + 1)].map((_, i) => Math.round((max * i) / GRID_DIVISIONS)))];
   const gridBackground = `repeating-linear-gradient(to top, var(--line) 0, var(--line) 1px, transparent 1px, transparent ${barAreaHeight / GRID_DIVISIONS}px)`;
+  const showTip = (m) => (e) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    setHover({ id: m.id, top: r.top - 8, left: r.left + r.width / 2 });
+  };
+  const hideTip = () => setHover(null);
+  const hoveredMember = hover && members.find((m) => m.id === hover.id);
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 10 }}>
@@ -214,31 +240,15 @@ export function MemberBarChart({ members, height = 150 }) {
           {members.map((m) => (
             <div key={m.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, flex: '0 0 auto', width: MEMBER_COL_WIDTH }}>
               <span style={{ fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: 11, color: 'var(--heading)' }}>{m.totalEntries}</span>
-              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, height: barAreaHeight, background: gridBackground, position: 'relative' }}>
+              <div onMouseEnter={showTip(m)} onMouseLeave={hideTip} style={{ display: 'flex', alignItems: 'flex-end', gap: 4, height: barAreaHeight, background: gridBackground }}>
                 <div
                   className="anim-scale-in"
-                  onMouseEnter={() => setHovered(m.id)} onMouseLeave={() => setHovered(null)}
                   style={{ width: 16, height: Math.max(4, (m.totalEntries / max) * barAreaHeight), borderRadius: '5px 5px 2px 2px', background: 'var(--accent-deep)', cursor: 'default' }}
                 />
                 <div
                   className="anim-scale-in"
-                  onMouseEnter={() => setHovered(m.id)} onMouseLeave={() => setHovered(null)}
                   style={{ width: 16, height: Math.max(4, (m.completed / max) * barAreaHeight), borderRadius: '5px 5px 2px 2px', background: 'var(--accent-mid)', cursor: 'default' }}
                 />
-                {hovered === m.id && (
-                  <div style={{
-                    position: 'absolute', bottom: '100%', left: '50%', transform: 'translateX(-50%)', marginBottom: 8, zIndex: 5,
-                    background: 'var(--ink)', color: '#FFFFFF', borderRadius: 9, padding: '9px 13px', whiteSpace: 'nowrap',
-                    boxShadow: '0 10px 24px -8px rgba(0,0,0,0.45)',
-                  }}>
-                    <div style={{ fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: 11.5, marginBottom: 4 }}>{m.name}</div>
-                    <div style={{ fontFamily: 'var(--font-body)', fontWeight: 500, fontSize: 11 }}>Total entries: {m.totalEntries}</div>
-                    <div style={{ fontFamily: 'var(--font-body)', fontWeight: 500, fontSize: 11 }}>Completed: {m.completed}</div>
-                    <div style={{ fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: 11, marginTop: 2, color: '#D9CBFB' }}>
-                      {m.totalEntries > 0 ? `${m.completionRate}% completion rate` : 'No entries in this range'}
-                    </div>
-                  </div>
-                )}
               </div>
               <Avatar initial={m.name[0]} size={24} gradient />
               <span title={m.name} style={{ fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: 10.5, color: 'var(--text-primary)', textAlign: 'center', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.name}</span>
@@ -249,6 +259,21 @@ export function MemberBarChart({ members, height = 150 }) {
           ))}
         </div>
       </div>
+      {hoveredMember && createPortal(
+        <div style={{
+          position: 'fixed', top: hover.top, left: hover.left, transform: 'translate(-50%, -100%)', zIndex: 4000,
+          background: 'var(--ink)', color: '#FFFFFF', borderRadius: 9, padding: '9px 13px', whiteSpace: 'nowrap', pointerEvents: 'none',
+          boxShadow: '0 10px 24px -8px rgba(0,0,0,0.45)',
+        }}>
+          <div style={{ fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: 11.5, marginBottom: 4 }}>{hoveredMember.name}</div>
+          <div style={{ fontFamily: 'var(--font-body)', fontWeight: 500, fontSize: 11 }}>Total entries: {hoveredMember.totalEntries}</div>
+          <div style={{ fontFamily: 'var(--font-body)', fontWeight: 500, fontSize: 11 }}>Completed: {hoveredMember.completed}</div>
+          <div style={{ fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: 11, marginTop: 2, color: '#D9CBFB' }}>
+            {hoveredMember.totalEntries > 0 ? `${hoveredMember.completionRate}% completion rate` : 'No entries in this range'}
+          </div>
+        </div>,
+        document.body,
+      )}
     </div>
   );
 }
