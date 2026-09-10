@@ -29,6 +29,7 @@ export async function getTask(taskId) {
     extensionReason: task.extension_reason,
     submissionNote: task.submission_note,
     approvedBy: task.approved_by,
+    reviewedBy: task.reviewed_by,
     subtasks,
     comments,
     activityLog,

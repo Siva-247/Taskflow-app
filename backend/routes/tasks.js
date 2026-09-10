@@ -350,7 +350,7 @@ router.post('/:id/approve', asyncRoute(async (req, res) => {
   if (!existing) return res.status(404).json({ error: 'Task not found' });
   if (!(await canReviewTask(req.user, existing))) return res.status(403).json({ error: 'You are not a reviewer for this task' });
 
-  await prepare('UPDATE tasks SET status = ?, progress = 100 WHERE id = ?').run(STATUS.COMPLETED, req.params.id);
+  await prepare('UPDATE tasks SET status = ?, progress = 100, reviewed_by = ? WHERE id = ?').run(STATUS.COMPLETED, req.user.id, req.params.id);
   await insertTaskEvent(req.params.id, 'Approved — task completed');
   await insertGlobalActivity('completed', `${await userName(existing.assignee_id)}'s "${existing.title}" was approved`, existing.team_id);
   await insertNotification(existing.assignee_id, req.user.id, 'approved', `${await userName(req.user.id)} approved "${existing.title}"`, req.params.id);

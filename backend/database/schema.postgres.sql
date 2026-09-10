@@ -83,6 +83,7 @@ CREATE TABLE IF NOT EXISTS tasks (
   extension_reason TEXT,
   submission_note TEXT,
   approved_by TEXT REFERENCES users(id),
+  reviewed_by TEXT REFERENCES users(id),
   seq BIGSERIAL
 );
 
@@ -90,6 +91,12 @@ CREATE TABLE IF NOT EXISTS tasks (
 -- alone (a no-op there) wouldn't apply it — runs every time this file is
 -- applied, itself a no-op once the column is already present.
 ALTER TABLE tasks ADD COLUMN IF NOT EXISTS approved_by TEXT REFERENCES users(id);
+-- Who approved a submitted-for-review task's completion — the review
+-- counterpart to approved_by (creation sign-off). Kept as a separate
+-- column rather than reusing approved_by since a single task can go
+-- through both flows in its lifetime (creation approval, then later a
+-- review approval), and each needs to be independently attributable.
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS reviewed_by TEXT REFERENCES users(id);
 
 CREATE TABLE IF NOT EXISTS task_subtasks (
   id TEXT PRIMARY KEY,
