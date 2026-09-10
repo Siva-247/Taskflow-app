@@ -26,6 +26,7 @@ import MyTeam from './pages/MyTeam.jsx';
 import Settings from './pages/Settings.jsx';
 import Reports from './pages/Reports.jsx';
 import Chat from './pages/Chat.jsx';
+import TacticalMeeting from './pages/TacticalMeeting.jsx';
 import NotFound from './pages/NotFound.jsx';
 
 function AppRoutes() {
@@ -68,6 +69,7 @@ function AppRoutes() {
           <Route path="/settings" element={<Settings />} />
           <Route path="/reports" element={<Reports />} />
           <Route path="/chat" element={<Chat />} />
+          <Route path="/tactical-meeting" element={<TacticalMeeting />} />
           <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>

@@ -5,7 +5,7 @@ import { useChat } from '../context/ChatContext.jsx';
 import { ROLES } from '../data/mockData.js';
 import {
   IconGrid, IconUser, IconUsers, IconChecklist, IconBarChart, IconGear,
-  IconEye, IconCalendar, IconChat, IconChevronDown,
+  IconEye, IconCalendar, IconChat, IconChevronDown, IconTarget,
 } from './icons.jsx';
 import { Avatar } from './ui.jsx';
 
@@ -15,6 +15,7 @@ const ADMIN_NAV = [
   { label: 'All Tasks', icon: IconChecklist, to: '/tasks' },
   { label: 'Chat', icon: IconChat, to: '/chat' },
   { label: 'Daily Updates', icon: IconCalendar, to: '/daily-updates' },
+  { label: 'Tactical Meeting', icon: IconTarget, to: '/tactical-meeting' },
   { label: 'Reports', icon: IconBarChart, to: '/reports' },
   { label: 'Settings', icon: IconGear, to: '/settings' },
 ];
@@ -29,6 +30,7 @@ const NAV_BY_ROLE = {
     { label: 'Approvals', icon: IconEye, to: '/tasks?status=Pending+Approval' },
     { label: 'Chat', icon: IconChat, to: '/chat' },
     { label: 'Daily Updates', icon: IconCalendar, to: '/daily-updates' },
+    { label: 'Tactical Meeting', icon: IconTarget, to: '/tactical-meeting' },
     { label: 'Reports', icon: IconBarChart, to: '/reports' },
   ],
   [ROLES.ASSISTANT_MANAGER]: [
@@ -39,6 +41,7 @@ const NAV_BY_ROLE = {
     { label: 'Reviews', icon: IconEye, to: '/tasks?status=Submitted+for+Review' },
     { label: 'Chat', icon: IconChat, to: '/chat' },
     { label: 'Daily Updates', icon: IconCalendar, to: '/daily-updates' },
+    { label: 'Tactical Meeting', icon: IconTarget, to: '/tactical-meeting' },
     { label: 'Reports', icon: IconBarChart, to: '/reports' },
   ],
   [ROLES.TEAM_LEAD]: [
@@ -49,6 +52,7 @@ const NAV_BY_ROLE = {
     { label: 'Reviews', icon: IconEye, to: '/tasks?status=Submitted+for+Review' },
     { label: 'Chat', icon: IconChat, to: '/chat' },
     { label: 'Daily Updates', icon: IconCalendar, to: '/daily-updates' },
+    { label: 'Tactical Meeting', icon: IconTarget, to: '/tactical-meeting' },
     { label: 'Reports', icon: IconBarChart, to: '/reports' },
   ],
   [ROLES.EMPLOYEE]: [
@@ -56,6 +60,7 @@ const NAV_BY_ROLE = {
     { label: 'My Tasks', icon: IconChecklist, to: '/tasks' },
     { label: 'Chat', icon: IconChat, to: '/chat' },
     { label: 'Update History', icon: IconBarChart, to: '/daily-updates' },
+    { label: 'Tactical Meeting', icon: IconTarget, to: '/tactical-meeting' },
   ],
 };
 

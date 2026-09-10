@@ -55,6 +55,18 @@ export function IconUser({ size = 17, color = 'var(--text-muted)' }) {
   );
 }
 
+// A target/crosshair — "tactical", a focused one-on-one review rather than
+// a broad team roster (IconUsers/IconUsersGroup already cover that).
+export function IconTarget({ size = 17, color = 'var(--text-muted)' }) {
+  return (
+    <svg {...base(size)} viewBox="0 0 20 20">
+      <circle cx="10" cy="10" r="7" stroke={color} strokeWidth="1.6" />
+      <circle cx="10" cy="10" r="3.7" stroke={color} strokeWidth="1.6" />
+      <circle cx="10" cy="10" r="1" fill={color} />
+    </svg>
+  );
+}
+
 export function IconUsers({ size = 17, color = 'var(--text-muted)' }) {
   return (
     <svg {...base(size)} viewBox="0 0 20 20">
