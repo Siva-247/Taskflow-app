@@ -64,18 +64,28 @@ export default function TaskList() {
   const availableTeams = teams.filter((team) => visible.some((task) => task.teamId === team.id));
   const availableAssignees = users.filter((u) => visible.some((task) => task.assigneeId === u.id));
 
-  // What the small tag in the Approvals view should say for one task —
-  // "Pending approval" while it's still waiting, "Approved by <name>" (or
-  // "Approved by you") once someone's cleared it, or "Extension pending" for
-  // a due-date extension request sitting on an already-live task.
+  // What the small approval/review-status tag under a task's Status badge
+  // should say — shown in every filter view (not just "Pending Approval" or
+  // "Approvals & Reviews"), so this history stays visible even once a
+  // request is resolved and the task itself has dropped out of those
+  // stricter filters. "Pending approval"/"Extension pending" while
+  // something is still waiting on a decision, checked before the two
+  // historical fallbacks (also in priority order: a review approval is
+  // always the more recent, more relevant action on an already-completed
+  // task than an earlier creation approval, so it wins when a task carries
+  // both over its lifetime). Returns null for a task that's never touched
+  // either flow.
   const approvalTag = (task) => {
-    if (task.approvedBy) {
-      if (task.approvedBy === currentUser.id) return 'Approved by you';
-      const approver = users.find((u) => u.id === task.approvedBy);
-      return `Approved by ${approver?.name || 'someone'}`;
+    if (task.status === STATUS.PENDING_APPROVAL) return { label: 'Pending approval', resolved: false };
+    if (task.requestedDueDate) return { label: 'Extension pending', resolved: false };
+    if (task.reviewedBy) {
+      const reviewer = users.find((u) => u.id === task.reviewedBy);
+      return { label: task.reviewedBy === currentUser.id ? 'Reviewed by you' : `Reviewed by ${reviewer?.name || 'someone'}`, resolved: true };
     }
-    if (task.status === STATUS.PENDING_APPROVAL) return 'Pending approval';
-    if (task.requestedDueDate) return 'Extension pending';
+    if (task.approvedBy) {
+      const approver = users.find((u) => u.id === task.approvedBy);
+      return { label: task.approvedBy === currentUser.id ? 'Approved by you' : `Approved by ${approver?.name || 'someone'}`, resolved: true };
+    }
     return null;
   };
 
@@ -83,13 +93,23 @@ export default function TaskList() {
     if (status === 'Approval Requests' && !isApprovalRequest(task)) return false;
     if (status === 'Overdue' && bucketOf(task) !== 'overdue') return false;
     if (status === STATUS.PENDING_APPROVAL) {
-      // The Approvals view covers both flavors of "needs a reviewer's
-      // decision" — a brand-new task still awaiting creation sign-off, and an
-      // existing task carrying a pending due-date extension request — plus
-      // creation requests that have already been resolved (approvedBy set),
-      // so a request doesn't just vanish the moment someone clears it; it
-      // stays here showing who approved it.
-      if (task.status !== STATUS.PENDING_APPROVAL && !task.requestedDueDate && !task.approvedBy) return false;
+      // Strictly "still awaiting a decision" — a brand-new task awaiting
+      // creation sign-off, or an existing task carrying an open due-date
+      // extension request. `requestedDueDate` clears back to null the
+      // moment that extension is approved or rejected (routes/tasks.js), so
+      // this alone is a reliable "still open" check. A resolved creation
+      // request drops out of this view once approved — find it via "All
+      // statuses" or "Completed" instead.
+      if (task.status !== STATUS.PENDING_APPROVAL && !task.requestedDueDate) return false;
+    } else if (status === 'Approvals & Reviews') {
+      // The landing view for the merged nav item: still-open items from
+      // either flow (creation approval, due-date extension, or a review
+      // submission awaiting sign-off) PLUS resolved history from either —
+      // everything that ever needed this person's decision, unlike "All
+      // statuses" which also includes tasks that never touched either flow.
+      const stillOpen = task.status === STATUS.PENDING_APPROVAL || task.status === STATUS.IN_REVIEW || task.requestedDueDate;
+      const resolved = task.approvedBy || task.reviewedBy;
+      if (!stillOpen && !resolved) return false;
     } else if (status !== 'all' && status !== 'Overdue' && status !== 'Approval Requests' && task.status !== status) {
       return false;
     }
@@ -140,7 +160,7 @@ export default function TaskList() {
             />
           </div>
           <div className="filter-field" style={{ width: 158 }}>
-            <Select value={status} onChange={setStatus} options={[{ value: 'all', label: 'All statuses' }, ...STATUS_OPTIONS.map((s) => ({ value: s, label: s })), { value: 'Overdue', label: 'Overdue' }, { value: 'Approval Requests', label: 'Approval Requests' }]} />
+            <Select value={status} onChange={setStatus} options={[{ value: 'all', label: 'All statuses' }, ...STATUS_OPTIONS.map((s) => ({ value: s, label: s })), { value: 'Overdue', label: 'Overdue' }, { value: 'Approval Requests', label: 'Approval Requests' }, { value: 'Approvals & Reviews', label: 'Approvals & Reviews' }]} />
           </div>
           <div className="filter-field" style={{ width: 140 }}>
             <Select value={priority} onChange={setPriority} options={[{ value: 'all', label: 'All priorities' }, ...PRIORITY_OPTIONS.map((p) => ({ value: p, label: p }))]} />
@@ -173,6 +193,7 @@ export default function TaskList() {
               const assignee = users.find((u) => u.id === task.assigneeId);
               const assignedBy = users.find((u) => u.id === task.createdBy);
               const team = teamById(task.teamId);
+              const tag = approvalTag(task);
               return (
                 <div
                   key={task.id}
@@ -195,14 +216,14 @@ export default function TaskList() {
                   </div>
                   <div>
                     <StatusBadge status={task.status} />
-                    {status === STATUS.PENDING_APPROVAL && approvalTag(task) && (
+                    {tag && (
                       <div style={{
                         marginTop: 5, display: 'inline-block', padding: '2px 8px', borderRadius: 999,
                         fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 10.5,
-                        background: task.approvedBy ? 'var(--accent-soft)' : 'var(--amber-bg)',
-                        color: task.approvedBy ? 'var(--accent-dark)' : 'var(--amber-text)',
+                        background: tag.resolved ? 'var(--accent-soft)' : 'var(--amber-bg)',
+                        color: tag.resolved ? 'var(--accent-dark)' : 'var(--amber-text)',
                       }}>
-                        {approvalTag(task)}
+                        {tag.label}
                       </div>
                     )}
                   </div>
