@@ -48,7 +48,7 @@ export default function TacticalMeeting() {
           <button
             type="button" onClick={() => { setCameFromTeamView(false); setViewMode('individual'); }}
             className={`tab-pill${viewMode === 'individual' ? ' active' : ''}`}
-            style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '8px 16px', border: 0, background: 'transparent', fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: 12.5, cursor: 'pointer' }}
+            style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '8px 16px', border: 0, fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: 12.5, cursor: 'pointer' }}
           >
             <IconUser size={14} color={viewMode === 'individual' ? '#FFFFFF' : 'currentColor'} />
             Individual View
@@ -56,7 +56,7 @@ export default function TacticalMeeting() {
           <button
             type="button" onClick={() => setViewMode('team')}
             className={`tab-pill${viewMode === 'team' ? ' active' : ''}`}
-            style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '8px 16px', border: 0, background: 'transparent', fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: 12.5, cursor: 'pointer' }}
+            style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '8px 16px', border: 0, fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: 12.5, cursor: 'pointer' }}
           >
             <IconUsersGroup size={14} color={viewMode === 'team' ? '#FFFFFF' : 'currentColor'} />
             Team View

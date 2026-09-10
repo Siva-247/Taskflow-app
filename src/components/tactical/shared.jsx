@@ -90,11 +90,37 @@ export function GenericDonut({ segments, centerLabel, centerValue }) {
 // its neighbor — fixing that once here beats two copies of the same chart
 // quietly drifting out of sync.
 const TREND_COL_WIDTH = { daily: 38, weekly: 62, monthly: 54 };
+// `height` bounds only the bar area itself — the outer row is left to size
+// naturally to its real content (count label + bars + day label stacked),
+// which is what a fixed height on that OUTER flex row used to fight: with
+// `alignItems: 'flex-end'` anchoring each column to the row's bottom, any
+// column whose natural stack (label + gap + bars + gap + day-label) is
+// taller than the fixed row height pokes out above the row's own top edge
+// — invisible in a plain box, but this chart always sits inside a
+// `card-glass` Card, and Chromium clips anything painted outside a
+// backdrop-filter + border-radius box regardless of `overflow`. That's what
+// made the count number read as a clipped sliver, and — when the content
+// was instead SHORTER than the fixed height — left dead empty space below
+// the day labels the rest of the time.
+const GRID_DIVISIONS = 4;
 export function TrendBarChart({ buckets, series, granularity = 'weekly', height = 140 }) {
+  const [hovered, setHovered] = useState(null);
   if (buckets.length === 0) return <EmptyNote>No activity logged in this range.</EmptyNote>;
   const max = Math.max(1, ...buckets.flatMap((b) => series.map((s) => b[s.key] || 0)));
   const colWidth = TREND_COL_WIDTH[granularity] || 48;
   const barAreaHeight = height - 34;
+  const topPad = series.length === 1 ? 18 : 0;
+  // Evenly-spaced gridlines/ticks from 0 to the range's own max (not a
+  // "rounded to a nice number" scale) — a repeating-gradient background on
+  // each bar-area column, so every column's lines land at the exact same
+  // pixel row without measuring anything: same height, same pattern, same
+  // baseline.
+  // De-duplicated — a small max (e.g. 1-3) rounds several of these quarter
+  // steps down to the same integer, which would otherwise stack two
+  // identical labels on the exact same pixel row (same value / max ratio)
+  // as well as give React two elements with the same key.
+  const ticks = [...new Set([...Array(GRID_DIVISIONS + 1)].map((_, i) => Math.round((max * i) / GRID_DIVISIONS)))];
+  const gridBackground = `repeating-linear-gradient(to top, var(--line) 0, var(--line) 1px, transparent 1px, transparent ${barAreaHeight / GRID_DIVISIONS}px)`;
   return (
     <div>
       {series.length > 1 && (
@@ -107,23 +133,44 @@ export function TrendBarChart({ buckets, series, granularity = 'weekly', height 
           ))}
         </div>
       )}
-      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, height, overflowX: 'auto', paddingBottom: 2 }}>
-        {buckets.map((b) => (
-          <div key={b.key} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, flex: '0 0 auto', width: colWidth }}>
-            {series.length === 1 && (
-              <span style={{ fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: 11, color: 'var(--heading)' }}>{b[series[0].key]}</span>
-            )}
-            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: barAreaHeight }}>
-              {series.map((s) => (
-                <div
-                  key={s.key} className="anim-scale-in" title={`${b.label} · ${s.label}: ${b[s.key] || 0}`}
-                  style={{ width: series.length > 1 ? 16 : 22, height: Math.max(4, ((b[s.key] || 0) / max) * barAreaHeight), borderRadius: '5px 5px 2px 2px', background: s.color, cursor: 'default' }}
-                />
-              ))}
+      <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ flexShrink: 0, width: 20, height: barAreaHeight, marginTop: topPad, position: 'relative' }}>
+          {ticks.map((t) => (
+            <span key={t} style={{ position: 'absolute', right: 0, bottom: (t / max) * barAreaHeight - 6, fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: 9.5, color: 'var(--text-muted)' }}>{t}</span>
+          ))}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, overflowX: 'auto', paddingBottom: 2, flex: 1 }}>
+          {buckets.map((b) => (
+            <div key={b.key} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, flex: '0 0 auto', width: colWidth }}>
+              {series.length === 1 && (
+                <span style={{ fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: 11, color: 'var(--heading)' }}>{b[series[0].key]}</span>
+              )}
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: barAreaHeight, background: gridBackground, position: 'relative' }}>
+                {series.map((s) => (
+                  <div
+                    key={s.key} className="anim-scale-in"
+                    onMouseEnter={() => setHovered(`${b.key}`)}
+                    onMouseLeave={() => setHovered(null)}
+                    style={{ width: series.length > 1 ? 16 : 22, height: Math.max(4, ((b[s.key] || 0) / max) * barAreaHeight), borderRadius: '5px 5px 2px 2px', background: s.color, cursor: 'default' }}
+                  />
+                ))}
+                {hovered === b.key && (
+                  <div style={{
+                    position: 'absolute', bottom: '100%', left: '50%', transform: 'translateX(-50%)', marginBottom: 8, zIndex: 5,
+                    background: 'var(--ink)', color: '#FFFFFF', borderRadius: 9, padding: '9px 13px', whiteSpace: 'nowrap',
+                    boxShadow: '0 10px 24px -8px rgba(0,0,0,0.45)',
+                  }}>
+                    <div style={{ fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: 11.5, marginBottom: 4 }}>{b.label}</div>
+                    {series.map((s) => (
+                      <div key={s.key} style={{ fontFamily: 'var(--font-body)', fontWeight: 500, fontSize: 11 }}>{s.label}: {b[s.key] || 0}</div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <span title={b.label} style={{ fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: 10, color: 'var(--text-muted)', textAlign: 'center', lineHeight: 1.25 }}>{b.label}</span>
             </div>
-            <span title={b.label} style={{ fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: 10, color: 'var(--text-muted)', textAlign: 'center', lineHeight: 1.25 }}>{b.label}</span>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -233,7 +280,7 @@ export function MultiSelectField({ label, options, selected, onChange, allLabel 
           className="anim-modal-in"
           style={{
             position: 'fixed', top: coords.top, left: coords.left, width: coords.width, zIndex: 3000, maxHeight: 280, overflowY: 'auto',
-            background: 'var(--surface-strong)', border: '1px solid var(--line)', borderRadius: 12,
+            background: 'var(--field-bg)', border: '1px solid var(--line)', borderRadius: 12,
             boxShadow: '0 16px 40px -14px rgba(124,58,237,0.35)', padding: 6,
           }}
         >
@@ -244,9 +291,12 @@ export function MultiSelectField({ label, options, selected, onChange, allLabel 
             {allLabel}
           </div>
           {options.map((opt) => (
-            <label key={opt.value} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', borderRadius: 8, cursor: 'pointer', fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: 12.5, color: 'var(--text-primary)' }}>
-              <input type="checkbox" checked={selected.includes(opt.value)} onChange={() => toggle(opt.value)} style={{ accentColor: 'var(--brand)' }} />
-              {opt.label}
+            <label
+              key={opt.value} title={opt.label}
+              style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', borderRadius: 8, cursor: 'pointer', fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: 12.5, color: 'var(--text-primary)' }}
+            >
+              <input type="checkbox" checked={selected.includes(opt.value)} onChange={() => toggle(opt.value)} style={{ accentColor: 'var(--brand)', flexShrink: 0 }} />
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{opt.label}</span>
             </label>
           ))}
           {options.length === 0 && <div style={{ padding: '8px 10px', fontFamily: 'var(--font-body)', fontSize: 12, color: 'var(--text-muted)' }}>No members.</div>}

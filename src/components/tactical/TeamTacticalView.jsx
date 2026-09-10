@@ -7,8 +7,9 @@ import {
   IconTaskList, IconCheckCircle, IconPending, IconTarget, IconUsersGroup, IconBarChart, IconLayers, IconClipboard,
 } from '../icons.jsx';
 import {
-  CHART_COLORS, periodPresets, FilterField, MultiSelectField, GenericDonut, KpiCard, SectionTitle, EmptyNote, TrendBarChart, DailyStatusPill,
+  CHART_COLORS, periodPresets, FilterField, MultiSelectField, GenericDonut, KpiCard, SectionTitle, EmptyNote, TrendBarChart,
 } from './shared.jsx';
+import TeamProjectCalendar from './TeamProjectCalendar.jsx';
 
 const MEMBER_MODE_OPTIONS = [
   { value: 'all', label: 'All Members' },
@@ -17,63 +18,20 @@ const MEMBER_MODE_OPTIONS = [
   { value: 'individual', label: 'Individual' },
 ];
 
-function relativeDate(iso, today) {
-  if (!iso) return '';
-  const days = Math.round((new Date(today) - new Date(iso)) / 86400000);
-  if (days <= 0) return 'Updated today';
-  if (days === 1) return 'Updated yesterday';
-  return `Updated ${days} days ago`;
-}
-
-// Same project card shape as the Dashboard's "Current Projects" board, but
-// its own dark-mode-aware styling (that board hard-codes a light-only
-// #FFFFFF background/ring) — every field comes straight off Team View's
-// own already-filtered `rows`, so it stays in lockstep with the Team/
-// Department/Members/Period filters instead of reading a separately-scoped
-// endpoint that wouldn't even see this member's role at all.
-function ProjectMiniCard({ project, today }) {
-  return (
-    <div style={{ position: 'relative', border: '1px solid var(--line)', borderRadius: 12, padding: '14px 16px', background: 'var(--surface)' }}>
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
-        <span
-          title={project.project}
-          style={{
-            fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 13.5, color: 'var(--heading)', lineHeight: 1.3,
-            display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
-          }}
-        >
-          {project.project}
-        </span>
-        <DailyStatusPill status={project.latestStatus} />
-      </div>
-      {project.latestMilestone && (
-        <div title={project.latestMilestone} style={{ fontFamily: 'var(--font-body)', fontWeight: 500, fontSize: 12, color: 'var(--text-secondary)', marginTop: 8, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          On {project.latestMilestone}
-        </div>
-      )}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 12, gap: 8 }}>
-        <div style={{ display: 'flex' }}>
-          {project.contributors.slice(0, 4).map((c, i) => (
-            <div key={c.id} title={c.name} style={{ marginLeft: i === 0 ? 0 : -8, border: '2px solid var(--surface)', borderRadius: 999 }}>
-              <Avatar initial={c.name?.[0] || '?'} size={22} gradient />
-            </div>
-          ))}
-          {project.contributors.length > 4 && (
-            <div style={{
-              marginLeft: -8, width: 22, height: 22, borderRadius: 999, border: '2px solid var(--surface)', background: 'var(--track-bg)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: 9.5, color: 'var(--text-muted)',
-            }}>
-              +{project.contributors.length - 4}
-            </div>
-          )}
-        </div>
-        <div style={{ textAlign: 'right', fontFamily: 'var(--font-body)', fontWeight: 500, fontSize: 11, color: 'var(--text-muted)', flexShrink: 0 }}>
-          {project.updateCount} update{project.updateCount === 1 ? '' : 's'}
-          <div>{relativeDate(project.latestDate, today)}</div>
-        </div>
-      </div>
-    </div>
-  );
+// A donut with 20+ tiny slivers (this app's real Milestone/Project data runs
+// that long-tailed — one typo-variant milestone can be its own 1-entry
+// category) reads as noise, not a chart. Caps to the top MAX_DONUT_SEGMENTS-1
+// by size plus one grouped "Other" slice — display-only: the underlying
+// distribution the server sends stays fully itemized, this just decides how
+// many of those real categories get their own wedge.
+const MAX_DONUT_SEGMENTS = 7;
+function capDonutSegments(segments) {
+  if (segments.length <= MAX_DONUT_SEGMENTS) return segments;
+  const top = segments.slice(0, MAX_DONUT_SEGMENTS - 1);
+  const rest = segments.slice(MAX_DONUT_SEGMENTS - 1);
+  const restCount = rest.reduce((s, seg) => s + seg.count, 0);
+  const restPct = Math.round(rest.reduce((s, seg) => s + seg.pct, 0) * 10) / 10;
+  return [...top, { label: `Other (${rest.length} more)`, count: restCount, pct: restPct, color: 'var(--text-muted)' }];
 }
 
 // The Team View — a sibling to Individual View, not a rewrite of it. Same
@@ -203,15 +161,15 @@ export default function TeamTacticalView({ onSelectMember }) {
 
   const {
     totalInterns, totalEntries, completedEntries, pendingEntries, completionRate,
-    memberPerformance, activityTrend, projectDistribution, activityTypeDistribution, currentProjects,
+    memberPerformance, activityTrend, projectDistribution, activityTypeDistribution, timeline,
   } = data;
 
   const activeGranularity = trendGranularityOverride || activityTrend.granularity;
   const trendBuckets = activityTrend.buckets;
 
   const totalActiveDays = projectDistribution.reduce((s, p) => s + p.activeDays, 0);
-  const projectSegments = projectDistribution.map((p, i) => ({ label: p.label, count: p.activeDays, pct: p.pct, color: CHART_COLORS[i % CHART_COLORS.length] }));
-  const activitySegments = activityTypeDistribution.map((a, i) => ({ ...a, color: CHART_COLORS[(i + 3) % CHART_COLORS.length] }));
+  const projectSegments = capDonutSegments(projectDistribution.map((p, i) => ({ label: p.label, count: p.activeDays, pct: p.pct, color: CHART_COLORS[i % CHART_COLORS.length] })));
+  const activitySegments = capDonutSegments(activityTypeDistribution.map((a, i) => ({ ...a, color: CHART_COLORS[(i + 3) % CHART_COLORS.length] })));
 
   const canOpenMember = (memberId) => canSelectOthers || memberId === currentUser.id;
   const openMember = (memberId) => { if (canOpenMember(memberId)) onSelectMember(memberId); };
@@ -231,7 +189,7 @@ export default function TeamTacticalView({ onSelectMember }) {
 
       {/* KPI row */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14 }}>
-        <KpiCard icon={<IconUsersGroup size={18} color="var(--accent)" />} value={totalInterns} label="Total Interns" />
+        <KpiCard icon={<IconUsersGroup size={18} color="var(--accent)" />} value={totalInterns} label="Total Members" />
         <KpiCard icon={<IconTaskList size={18} color="var(--accent)" />} value={totalEntries} label="Total Entries" />
         <KpiCard icon={<IconCheckCircle size={18} color="var(--green-deep)" />} value={completedEntries} label="Completed" />
         <KpiCard icon={<IconPending size={18} color="var(--amber-deep)" />} value={pendingEntries} label="Pending" />
@@ -310,17 +268,14 @@ export default function TeamTacticalView({ onSelectMember }) {
         </Card>
       </div>
 
-      {/* Team's Current Projects */}
+      {/* Team's Current Projects — calendar/gantt only, driven entirely by
+          this page's own Department/Team/Intern-Developer/Period filters
+          (same idea as the Dashboard's ProjectTimelineBoard, no filters of
+          its own). */}
       <Card>
         <SectionTitle icon={<IconLayers size={16} color="var(--accent)" />}>Team's Current Projects</SectionTitle>
         <div style={{ marginTop: 14 }}>
-          {currentProjects.length === 0 ? (
-            <EmptyNote>No active projects in this range.</EmptyNote>
-          ) : (
-            <div className="responsive-grid" style={{ display: 'grid', '--cols': 'repeat(auto-fill, minmax(220px, 1fr))', gap: 12 }}>
-              {currentProjects.map((p) => <ProjectMiniCard key={p.project} project={p} today={TODAY} />)}
-            </div>
-          )}
+          <TeamProjectCalendar timeline={timeline} from={effectiveFrom} to={effectiveTo} today={TODAY} />
         </div>
       </Card>
 
