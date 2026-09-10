@@ -13,6 +13,7 @@ import usersRouter from './routes/users.js';
 import departmentsRouter from './routes/departments.js';
 import teamsRouter from './routes/teams.js';
 import chatRouter from './routes/chat.js';
+import tacticalRouter from './routes/tactical.js';
 import { attachSocket } from './socket/index.js';
 
 const app = express();
@@ -41,6 +42,7 @@ app.use('/api/users', usersRouter);
 app.use('/api/departments', departmentsRouter);
 app.use('/api/teams', teamsRouter);
 app.use('/api/chat', chatRouter);
+app.use('/api/tactical', tacticalRouter);
 
 // Catches anything forwarded via next(err) — every async route/middleware is
 // wrapped in asyncRoute specifically so a rejected promise ends up here

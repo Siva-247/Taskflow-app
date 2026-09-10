@@ -71,7 +71,7 @@ async function userLookup(rows) {
 // Lead should be able to see who on their team hasn't logged, not just who
 // has. Same scope shape as scopeRowsForDashboard (team/department/all), but
 // read straight off the users table.
-async function scopedRoster(user) {
+export async function scopedRoster(user) {
   const columns = `id, name, title, team_id as "teamId", department_id as "departmentId"`;
   let scope;
   let users;
