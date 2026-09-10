@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useApp } from '../context/AppContext.jsx';
 import { ROLES, BLOCKER_STATUS, BLOCKER_CATEGORIES, ESCALATION_LEVELS } from '../data/mockData.js';
-import { canManage } from '../data/hierarchy.js';
 import { Card, Select, Button, Modal, Pagination, PAGE_SIZE } from './ui.jsx';
 import RaiseBlockerModal from './RaiseBlockerModal.jsx';
 import DatePicker from './DatePicker.jsx';
@@ -9,6 +8,7 @@ import { IconSearch, IconDownload, IconAlertTriangle, IconX } from './icons.jsx'
 import { formatDate, downloadCsv } from '../utils.js';
 
 const STATUS_OPTIONS = Object.values(BLOCKER_STATUS);
+const BLOCKER_MANAGER_ROLES = [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.MANAGER, ROLES.ASSISTANT_MANAGER, ROLES.TEAM_LEAD];
 
 const ESCALATION_COLOR = {
   Low: { bg: 'var(--accent-soft)', color: 'var(--accent-dark)' },
@@ -82,11 +82,14 @@ export default function BlockerRegisterModal({ onClose }) {
     return Math.max(0, Math.round((end - start) / 86400000));
   };
 
+  // Mirrors backend/database/hierarchy.js's canManageBlocker exactly: any
+  // management-tier role can act on ANY blocker company-wide (not scoped to
+  // the raiser's own team/department — resolving one often needs someone
+  // outside that chain), plus the raiser themselves and the named owner.
   const canManageBlocker = (b) => {
-    if (currentUser.role === ROLES.SUPER_ADMIN || currentUser.role === ROLES.ADMIN) return true;
+    if (BLOCKER_MANAGER_ROLES.includes(currentUser.role)) return true;
     if (currentUser.id === b.raisedBy || currentUser.id === b.ownerToResolveId) return true;
-    const raiser = userById(b.raisedBy);
-    return Boolean(raiser) && canManage(currentUser, raiser);
+    return false;
   };
 
   const filtered = useMemo(() => blockers.filter((b) => {
