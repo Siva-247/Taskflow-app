@@ -105,14 +105,19 @@ export async function canApproveCreationTask(approver, task) {
 }
 
 // Blockers are readable by everyone (see routes/blockers.js — no scopeX
-// function for the list, deliberately), but editing/closing one is still
-// gated: the raiser, the named owner, or anyone who could manage the raiser
-// as a person (reuses canManage's cascading rank+scope authority).
-export function canManageBlocker(actor, blocker, raiser) {
-  if (actor.role === 'super_admin' || actor.role === 'admin') return true;
+// function for the list, deliberately), and editing/closing one is
+// deliberately just as unscoped: any management-tier role (super_admin,
+// admin, manager, assistant_manager, team_lead), regardless of whether they
+// have any team/department relationship to the raiser — the same "may need
+// someone outside the raiser's own chain" reasoning that makes the list
+// itself company-wide also applies to who can act on one. Plus the raiser
+// themselves, and the named owner (who may be a plain employee explicitly
+// assigned to fix this one blocker, without holding any of those roles).
+const BLOCKER_MANAGER_ROLES = ['super_admin', 'admin', 'manager', 'assistant_manager', 'team_lead'];
+export function canManageBlocker(actor, blocker) {
+  if (BLOCKER_MANAGER_ROLES.includes(actor.role)) return true;
   if (actor.id === blocker.raised_by) return true;
   if (blocker.owner_to_resolve_id && actor.id === blocker.owner_to_resolve_id) return true;
-  if (raiser) return canManage(actor, raiser);
   return false;
 }
 

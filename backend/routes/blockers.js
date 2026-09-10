@@ -82,11 +82,15 @@ router.post('/', asyncRoute(async (req, res) => {
   }
 
   // Also tell everyone with management authority over the raiser — their
-  // team lead, assistant manager, manager, and any admin/super admin —
-  // mirroring exactly who canManageBlocker already lets edit/delete this row,
-  // so "can act on it" and "gets told about it" stay in sync. Skips whoever
-  // was already notified as the named owner, and never notifies the raiser
-  // about their own submission (canManage already excludes self-management).
+  // team lead, assistant manager, manager, and any admin/super admin.
+  // Deliberately narrower than canManageBlocker itself (which now lets ANY
+  // management-tier role act on ANY blocker company-wide, not just the
+  // raiser's own chain) — proactively notifying every manager/lead in the
+  // company every time anyone raises a blocker would be noise, not signal;
+  // the register itself is where someone outside the chain would go
+  // looking. Skips whoever was already notified as the named owner, and
+  // never notifies the raiser about their own submission (canManage
+  // already excludes self-management).
   const allUsers = await prepare('SELECT * FROM users WHERE is_active = 1').all();
   const chain = allUsers.filter((u) => u.id !== owner?.id && canManage(u, req.user));
   const insertChainNotification = prepare('INSERT INTO notifications (id, user_id, type, text, blocker_id, read, created_at) VALUES (?, ?, ?, ?, ?, 0, ?)');
@@ -102,8 +106,7 @@ router.patch('/:id', asyncRoute(async (req, res) => {
   const existing = await prepare('SELECT * FROM blockers WHERE id = ?').get(req.params.id);
   if (!existing) return res.status(404).json({ error: 'Blocker not found' });
 
-  const raiser = await prepare('SELECT * FROM users WHERE id = ?').get(existing.raised_by);
-  if (!canManageBlocker(req.user, existing, raiser)) {
+  if (!canManageBlocker(req.user, existing)) {
     return res.status(403).json({ error: 'You do not have permission to update this blocker' });
   }
 
@@ -176,16 +179,15 @@ router.patch('/:id', asyncRoute(async (req, res) => {
   res.json({ blocker });
 }));
 
-// Same authority as editing — the raiser, the named owner, or anyone in the
-// raiser's management chain, not just admin/super_admin. The register now
-// opens as a popup with inline edit/delete rather than a routed page, so
-// delete needs to work for whoever the UI already lets manage the row.
+// Same authority as editing — the raiser, the named owner, or any
+// management-tier role, company-wide. The register now opens as a popup
+// with inline edit/delete rather than a routed page, so delete needs to
+// work for whoever the UI already lets manage the row.
 router.delete('/:id', asyncRoute(async (req, res) => {
   const existing = await prepare('SELECT * FROM blockers WHERE id = ?').get(req.params.id);
   if (!existing) return res.status(404).json({ error: 'Blocker not found' });
 
-  const raiser = await prepare('SELECT * FROM users WHERE id = ?').get(existing.raised_by);
-  if (!canManageBlocker(req.user, existing, raiser)) {
+  if (!canManageBlocker(req.user, existing)) {
     return res.status(403).json({ error: 'You do not have permission to delete this blocker' });
   }
 
