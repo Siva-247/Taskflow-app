@@ -1,10 +1,10 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { IconClipboard, IconCheckCircle, IconClock, IconAlertTriangle, IconPending, IconUsersGroup, IconBuilding } from './icons.jsx';
+import { IconTaskList, IconCheckCircle, IconClock, IconAlertTriangle, IconPending, IconUsersGroup, IconBuilding } from './icons.jsx';
 
 export function defaultStatItems(stats, totalLabel = 'Total', completedBadge) {
   return [
-    { icon: <IconClipboard size={19} color="var(--accent)" />, value: stats.total, label: totalLabel, to: '/tasks' },
+    { icon: <IconTaskList size={19} color="var(--accent)" />, value: stats.total, label: totalLabel, to: '/tasks' },
     { icon: <IconCheckCircle size={19} color="var(--accent-dark)" />, value: stats.completed, label: 'Completed', badge: completedBadge, to: '/tasks?status=Completed' },
     { icon: <IconClock size={19} color="var(--accent-mid)" />, value: stats.inProgress, label: 'In Progress', to: '/tasks?status=In+Progress' },
     { icon: <IconPending size={19} color="var(--accent-deep)" />, value: stats.pending, label: 'Pending', to: '/tasks?status=To+Do' },

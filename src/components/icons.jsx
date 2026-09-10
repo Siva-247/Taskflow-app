@@ -161,6 +161,24 @@ export function IconClipboard({ size = 19, color = 'var(--accent)' }) {
   );
 }
 
+// A clipboard holding a multi-row checklist (two done, one open) — used for
+// "Total Tasks"-style counts where showing several items, not one big
+// checkmark, better matches "a count of many things" than IconClipboard.
+export function IconTaskList({ size = 19, color = 'var(--accent)' }) {
+  return (
+    <svg {...base(size)} viewBox="0 0 24 24">
+      <rect x="5" y="3.5" width="14" height="18" rx="2.5" stroke={color} strokeWidth="1.7" />
+      <path d="M9 3.5V3a2 2 0 012-2h2a2 2 0 012 2v.5" stroke={color} strokeWidth="1.7" />
+      <path d="M7.6 9.3l1.1 1.1 2-2" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M12.7 9.3h4" stroke={color} strokeWidth="1.5" strokeLinecap="round" />
+      <path d="M7.6 14.3l1.1 1.1 2-2" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M12.7 14.3h4" stroke={color} strokeWidth="1.5" strokeLinecap="round" />
+      <rect x="7.1" y="17.8" width="2.2" height="2.2" rx=".5" stroke={color} strokeWidth="1.4" />
+      <path d="M12.7 18.9h4" stroke={color} strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 export function IconPaperclip({ size = 15, color = 'var(--text-secondary)' }) {
   return (
     <svg {...base(size)} viewBox="0 0 20 20">
