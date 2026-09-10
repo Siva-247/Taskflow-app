@@ -187,8 +187,11 @@ export default function TeamTacticalView({ onSelectMember }) {
         <KpiCard icon={<IconTarget size={18} color="var(--accent-dark)" />} value={`${completionRate}%`} label="Team Completion Rate" />
       </div>
 
-      {/* Team Performance + Activity Trend */}
-      <div className="responsive-grid" style={{ display: 'grid', '--cols': '1.3fr 1fr', gap: 16, alignItems: 'start' }}>
+      {/* Team Performance Overview, full width, with Team Activity Trend
+          stacked directly below it (also full width) — side-by-side at
+          1.3fr/1fr used to squeeze both the table's columns and the chart's
+          bars into half the page. */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         <Card padded={false}>
           <div style={{ padding: '20px 22px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
             <SectionTitle icon={<IconUsersGroup size={16} color="var(--accent)" />}>Team Performance Overview</SectionTitle>
