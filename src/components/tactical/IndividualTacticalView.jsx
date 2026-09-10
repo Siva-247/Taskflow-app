@@ -5,12 +5,12 @@ import { ROLES } from '../../data/mockData.js';
 import { Card, Avatar, Select } from '../ui.jsx';
 import DatePicker from '../DatePicker.jsx';
 import {
-  IconTarget, IconTaskList, IconCheckCircle, IconPending, IconBarChart, IconAlertTriangle,
-  IconLayers, IconClipboard, IconCheck,
+  IconTarget, IconTaskList, IconCheckCircle, IconPending, IconBarChart,
+  IconLayers, IconClipboard,
 } from '../icons.jsx';
 import { formatDate } from '../../utils.js';
 import {
-  CHART_COLORS, periodPresets, FilterField, GenericDonut, KpiCard, SectionTitle, EmptyNote, DailyStatusPill,
+  CHART_COLORS, periodPresets, FilterField, GenericDonut, KpiCard, SectionTitle, EmptyNote, DailyStatusPill, TrendBarChart,
 } from './shared.jsx';
 
 // The Individual View — built first, and deliberately self-contained (reads
@@ -154,18 +154,12 @@ export default function IndividualTacticalView({ initialSelectedId, onBackToTeam
     );
   }
 
-  const { profile, attentionItems, activityTrend, projectDistribution, activityTypeDistribution, recentDeliveries, deliveryReliability } = data;
+  const { profile, activityTrend, projectDistribution, activityTypeDistribution, recentDeliveries } = data;
 
   const trendBuckets = activityTrend[trendGranularity] || [];
-  const trendMax = Math.max(1, ...trendBuckets.map((b) => b.count));
 
   const projectSegments = projectDistribution.map((p, i) => ({ ...p, color: CHART_COLORS[i % CHART_COLORS.length] }));
   const activitySegments = activityTypeDistribution.map((a, i) => ({ ...a, color: CHART_COLORS[(i + 3) % CHART_COLORS.length] }));
-  const reliabilitySegments = [
-    { label: 'On Time', count: deliveryReliability.onTime, color: 'var(--green)' },
-    { label: '1–2 Days Late', count: deliveryReliability.oneToTwoDaysLate, color: 'var(--amber)' },
-    { label: '3+ Days Late', count: deliveryReliability.threePlusDaysLate, color: 'var(--red)' },
-  ].filter((s) => s.count > 0).map((s) => ({ ...s, pct: Math.round((s.count / Math.max(1, deliveryReliability.onTime + deliveryReliability.oneToTwoDaysLate + deliveryReliability.threePlusDaysLate)) * 1000) / 10 }));
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -195,7 +189,6 @@ export default function IndividualTacticalView({ initialSelectedId, onBackToTeam
           <KpiCard icon={<IconCheckCircle size={18} color="var(--green-deep)" />} value={data.completed} label="Completed" />
           <KpiCard icon={<IconPending size={18} color="var(--amber-deep)" />} value={data.pending} label="Pending" />
           <KpiCard icon={<IconTarget size={18} color="var(--accent-dark)" />} value={`${data.completionRate}%`} label="Completion Rate" />
-          <KpiCard icon={<IconAlertTriangle size={18} color="var(--red-deep)" />} value={attentionItems.length} label="Attention Required" tone={attentionItems.length > 0 ? 'danger' : undefined} />
         </div>
       </div>
 
@@ -206,22 +199,11 @@ export default function IndividualTacticalView({ initialSelectedId, onBackToTeam
             <SectionTitle icon={<IconBarChart size={16} color="var(--accent)" />}>Activity Trend</SectionTitle>
             <Select value={trendGranularity} onChange={setTrendGranularity} options={[{ value: 'weekly', label: 'Weekly' }, { value: 'monthly', label: 'Monthly' }]} />
           </div>
-          {trendBuckets.length === 0 ? (
-            <EmptyNote>No activity logged in this range.</EmptyNote>
-          ) : (
-            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, height: 140, paddingTop: 10, overflowX: 'auto' }}>
-              {trendBuckets.map((b) => (
-                <div key={b.key} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, flex: '0 0 auto', width: 40 }}>
-                  <span style={{ fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: 11, color: 'var(--heading)' }}>{b.count}</span>
-                  <div className="anim-scale-in" style={{
-                    width: 20, height: Math.max(4, (b.count / trendMax) * 90), borderRadius: '6px 6px 2px 2px',
-                    background: 'var(--brand-grad-raised)',
-                  }} />
-                  <span style={{ fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: 9.5, color: 'var(--text-muted)', textAlign: 'center', whiteSpace: 'nowrap' }}>{b.label}</span>
-                </div>
-              ))}
-            </div>
-          )}
+          <TrendBarChart
+            buckets={trendBuckets.map((b) => ({ key: b.key, label: b.label, count: b.count }))}
+            series={[{ key: 'count', color: 'var(--brand-grad-raised)', label: 'Updates' }]}
+            granularity={trendGranularity}
+          />
         </Card>
 
         <Card>
@@ -239,8 +221,8 @@ export default function IndividualTacticalView({ initialSelectedId, onBackToTeam
         </Card>
       </div>
 
-      {/* Project Progress + Recent Deliveries + Delivery Reliability */}
-      <div className="responsive-grid" style={{ display: 'grid', '--cols': '1fr 1.1fr 1fr', gap: 16, alignItems: 'start' }}>
+      {/* Project Progress + Recent Deliveries */}
+      <div className="responsive-grid" style={{ display: 'grid', '--cols': '1fr 1.5fr', gap: 16, alignItems: 'start' }}>
         <Card>
           <SectionTitle icon={<IconLayers size={16} color="var(--accent)" />}>Project Progress</SectionTitle>
           <div style={{ fontFamily: 'var(--font-body)', fontWeight: 500, fontSize: 11.5, color: 'var(--text-muted)', marginTop: 2, marginBottom: 14 }}>
@@ -249,9 +231,9 @@ export default function IndividualTacticalView({ initialSelectedId, onBackToTeam
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {projectSegments.map((p) => (
               <div key={p.label}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                  <span style={{ fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: 12.5, color: 'var(--text-primary)' }}>{p.label}</span>
-                  <span style={{ fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: 11.5, color: 'var(--text-muted)' }}>{p.count} activities · {p.pct}%</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, marginBottom: 6 }}>
+                  <span title={p.label} style={{ fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: 12.5, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{p.label}</span>
+                  <span style={{ fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: 11.5, color: 'var(--text-muted)', flexShrink: 0, whiteSpace: 'nowrap' }}>{p.count} activities · {p.pct}%</span>
                 </div>
                 <div style={{ height: 8, borderRadius: 999, background: 'var(--track-bg)', overflow: 'hidden' }}>
                   <div className="anim-scale-in" style={{ width: `${p.pct}%`, height: '100%', borderRadius: 999, background: p.color }} />
@@ -296,20 +278,6 @@ export default function IndividualTacticalView({ initialSelectedId, onBackToTeam
               </table>
             )}
           </div>
-        </Card>
-
-        <Card>
-          <SectionTitle icon={<IconCheck size={16} color="var(--accent)" />}>Delivery Reliability</SectionTitle>
-          <div style={{ marginTop: 14 }}>
-            {reliabilitySegments.length === 0 ? <EmptyNote>Insufficient data — needs both a due date and an actual close date.</EmptyNote> : (
-              <GenericDonut segments={reliabilitySegments} centerLabel="On Time" centerValue={deliveryReliability.onTimePct != null ? `${deliveryReliability.onTimePct}%` : '—'} />
-            )}
-          </div>
-          {deliveryReliability.insufficientData > 0 && (
-            <div style={{ fontFamily: 'var(--font-body)', fontWeight: 500, fontSize: 11.5, color: 'var(--text-muted)', marginTop: 12 }}>
-              {deliveryReliability.insufficientData} additional {deliveryReliability.insufficientData === 1 ? 'entry has' : 'entries have'} insufficient data (missing due/close date).
-            </div>
-          )}
         </Card>
       </div>
     </div>

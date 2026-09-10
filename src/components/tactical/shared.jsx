@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 // Shared building blocks between the Tactical Meeting Individual and Team
 // views — same visual language (frosted cards, the violet categorical
@@ -70,13 +71,59 @@ export function GenericDonut({ segments, centerLabel, centerValue }) {
       </div>
       <div style={{ flex: 1, minWidth: 140, display: 'flex', flexDirection: 'column', gap: 8 }}>
         {segments.map((seg) => (
-          <div key={seg.label} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div key={seg.label} title={`${seg.label}: ${seg.pct}% (${seg.count})`} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ width: 8, height: 8, borderRadius: 2.5, background: seg.color, flexShrink: 0 }} />
             <span style={{ flex: 1, fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: 12, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{seg.label}</span>
-            <span style={{ fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: 12, color: 'var(--heading)' }}>{seg.pct}% <span style={{ color: 'var(--text-muted)', fontWeight: 500 }}>({seg.count})</span></span>
+            <span style={{ fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: 12, color: 'var(--heading)', flexShrink: 0 }}>{seg.pct}% <span style={{ color: 'var(--text-muted)', fontWeight: 500 }}>({seg.count})</span></span>
           </div>
         ))}
         {total === 0 && <div style={{ fontFamily: 'var(--font-body)', fontSize: 12, color: 'var(--text-muted)' }}>No data in this range.</div>}
+      </div>
+    </div>
+  );
+}
+
+// A shared "activity over time" bar chart — used by both Individual View
+// (one series: entries per bucket) and Team View (paired series: total vs
+// completed per bucket). Column width scales with granularity specifically
+// so a weekly bucket's longer range label ("Aug 10–16") never crowds into
+// its neighbor — fixing that once here beats two copies of the same chart
+// quietly drifting out of sync.
+const TREND_COL_WIDTH = { daily: 38, weekly: 62, monthly: 54 };
+export function TrendBarChart({ buckets, series, granularity = 'weekly', height = 140 }) {
+  if (buckets.length === 0) return <EmptyNote>No activity logged in this range.</EmptyNote>;
+  const max = Math.max(1, ...buckets.flatMap((b) => series.map((s) => b[s.key] || 0)));
+  const colWidth = TREND_COL_WIDTH[granularity] || 48;
+  const barAreaHeight = height - 34;
+  return (
+    <div>
+      {series.length > 1 && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 10 }}>
+          {series.map((s) => (
+            <span key={s.key} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <span style={{ width: 8, height: 8, borderRadius: 2, background: s.color, flexShrink: 0 }} />
+              <span style={{ fontFamily: 'var(--font-body)', fontSize: 11, color: 'var(--text-secondary)' }}>{s.label}</span>
+            </span>
+          ))}
+        </div>
+      )}
+      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, height, overflowX: 'auto', paddingBottom: 2 }}>
+        {buckets.map((b) => (
+          <div key={b.key} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, flex: '0 0 auto', width: colWidth }}>
+            {series.length === 1 && (
+              <span style={{ fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: 11, color: 'var(--heading)' }}>{b[series[0].key]}</span>
+            )}
+            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: barAreaHeight }}>
+              {series.map((s) => (
+                <div
+                  key={s.key} className="anim-scale-in" title={`${b.label} · ${s.label}: ${b[s.key] || 0}`}
+                  style={{ width: series.length > 1 ? 16 : 22, height: Math.max(4, ((b[s.key] || 0) / max) * barAreaHeight), borderRadius: '5px 5px 2px 2px', background: s.color, cursor: 'default' }}
+                />
+              ))}
+            </div>
+            <span title={b.label} style={{ fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: 10, color: 'var(--text-muted)', textAlign: 'center', lineHeight: 1.25 }}>{b.label}</span>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -111,6 +158,102 @@ export function SectionTitle({ icon, children, trailing }) {
       </div>
       {trailing}
     </div>
+  );
+}
+
+// A checkbox-list multi-select — used by Team View's "Members" filter, where
+// a plain <select> can't represent "more than one chosen". Portaled to
+// <body> with `position: fixed` from the trigger's own getBoundingClientRect
+// — same reasoning as DatePicker.jsx: an ancestor Card carries
+// `backdrop-filter`, and Chromium clips any absolutely-positioned descendant
+// to a backdrop-filter element's bounds, so the panel has to render outside
+// that DOM subtree to avoid getting cut off.
+export function MultiSelectField({ label, options, selected, onChange, allLabel = 'All' }) {
+  const [open, setOpen] = useState(false);
+  const [coords, setCoords] = useState(null);
+  const triggerRef = useRef(null);
+  const panelRef = useRef(null);
+
+  const reposition = () => {
+    if (!triggerRef.current) return;
+    const r = triggerRef.current.getBoundingClientRect();
+    setCoords({ top: r.bottom + 6, left: r.left, width: Math.max(r.width, 220) });
+  };
+
+  useEffect(() => {
+    if (!open) return undefined;
+    reposition();
+    const handler = (e) => {
+      if (triggerRef.current?.contains(e.target)) return;
+      if (panelRef.current?.contains(e.target)) return;
+      setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    window.addEventListener('scroll', reposition, true);
+    window.addEventListener('resize', reposition);
+    return () => {
+      document.removeEventListener('mousedown', handler);
+      window.removeEventListener('scroll', reposition, true);
+      window.removeEventListener('resize', reposition);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  const toggle = (id) => {
+    const next = new Set(selected);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    onChange([...next]);
+  };
+
+  const summary = selected.length === 0
+    ? allLabel
+    : selected.length === 1
+      ? (options.find((o) => o.value === selected[0])?.label || '1 selected')
+      : `${selected.length} selected`;
+
+  return (
+    <FilterField label={label}>
+      <div ref={triggerRef}>
+        <div
+          onClick={() => setOpen((v) => !v)}
+          style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, width: '100%',
+            padding: '12px 15px', border: '1px solid var(--line)', borderRadius: 9, background: 'var(--field-bg)', cursor: 'pointer',
+            boxShadow: open ? '0 0 0 3px rgba(124,58,237,0.2)' : 'none',
+          }}
+        >
+          <span style={{ fontFamily: 'var(--font-body)', fontWeight: 500, fontSize: 13.5, color: selected.length ? 'var(--text-primary)' : 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{summary}</span>
+          <svg width="14" height="14" viewBox="0 0 20 20" fill="none" style={{ flexShrink: 0 }}><path d="M5 8l5 5 5-5" stroke="var(--text-muted)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
+        </div>
+      </div>
+
+      {open && coords && createPortal(
+        <div
+          ref={panelRef}
+          className="anim-modal-in"
+          style={{
+            position: 'fixed', top: coords.top, left: coords.left, width: coords.width, zIndex: 3000, maxHeight: 280, overflowY: 'auto',
+            background: 'var(--surface-strong)', border: '1px solid var(--line)', borderRadius: 12,
+            boxShadow: '0 16px 40px -14px rgba(124,58,237,0.35)', padding: 6,
+          }}
+        >
+          <div
+            onClick={() => onChange([])}
+            style={{ padding: '8px 10px', borderRadius: 8, cursor: 'pointer', fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: 12.5, color: selected.length === 0 ? 'var(--brand)' : 'var(--text-primary)' }}
+          >
+            {allLabel}
+          </div>
+          {options.map((opt) => (
+            <label key={opt.value} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', borderRadius: 8, cursor: 'pointer', fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: 12.5, color: 'var(--text-primary)' }}>
+              <input type="checkbox" checked={selected.includes(opt.value)} onChange={() => toggle(opt.value)} style={{ accentColor: 'var(--brand)' }} />
+              {opt.label}
+            </label>
+          ))}
+          {options.length === 0 && <div style={{ padding: '8px 10px', fontFamily: 'var(--font-body)', fontSize: 12, color: 'var(--text-muted)' }}>No members.</div>}
+        </div>,
+        document.body,
+      )}
+    </FilterField>
   );
 }
 
