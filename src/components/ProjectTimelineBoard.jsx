@@ -191,7 +191,7 @@ export default function ProjectTimelineBoard({ title, today, groupByDepartment =
   const gridWidth = days.length * DAY_WIDTH;
 
   return (
-    <Card padded={false} style={{ overflow: 'hidden' }}>
+    <Card padded={false}>
       <div style={{ padding: '22px 26px 0' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <IconLayers size={17} color="var(--accent)" />
@@ -245,6 +245,7 @@ export default function ProjectTimelineBoard({ title, today, groupByDepartment =
         )}
       </div>
 
+      <div style={{ overflow: 'hidden', borderRadius: '0 0 18px 18px' }}>
       {waitingOnCustomRange ? (
         <EmptyState>Pick a from and to date to see that range.</EmptyState>
       ) : loading ? (
@@ -349,6 +350,7 @@ export default function ProjectTimelineBoard({ title, today, groupByDepartment =
           </div>
         </div>
       )}
+      </div>
     </Card>
   );
 }

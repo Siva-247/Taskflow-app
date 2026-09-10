@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 const WEEKDAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -25,8 +26,17 @@ const isSameDay = (a, y, m, d) => a && a.getFullYear() === y && a.getMonth() ===
 // are rendered by the OS/browser and cannot be styled with CSS at all, so
 // there was no way to theme them purple. Stores/emits the same yyyy-mm-dd
 // string every date field in this app already reads and compares directly.
+//
+// The calendar panel is portaled straight to <body> and positioned with
+// `position: fixed` from the trigger's own getBoundingClientRect() — same
+// reasoning as Drawer.jsx's portal: an ancestor Card carries `backdrop-filter`
+// (the frosted-glass look), and Chromium clips any absolutely-positioned
+// descendant to a backdrop-filter element's bounds regardless of its
+// `overflow` value. Rendering outside that DOM subtree is the only fix that
+// doesn't fight the frosted-glass card treatment.
 export default function DatePicker({ value, onChange, min, placeholder = 'Select date', disabled = false }) {
   const [open, setOpen] = useState(false);
+  const [coords, setCoords] = useState(null);
   const selected = parseISO(value);
   const minDate = parseISO(min);
   const today = new Date();
@@ -34,7 +44,8 @@ export default function DatePicker({ value, onChange, min, placeholder = 'Select
   const base = selected || today;
   const [viewYear, setViewYear] = useState(base.getFullYear());
   const [viewMonth, setViewMonth] = useState(base.getMonth());
-  const containerRef = useRef(null);
+  const triggerRef = useRef(null);
+  const panelRef = useRef(null);
 
   useEffect(() => {
     if (!open) return;
@@ -44,11 +55,29 @@ export default function DatePicker({ value, onChange, min, placeholder = 'Select
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
+  const reposition = () => {
+    if (!triggerRef.current) return;
+    const r = triggerRef.current.getBoundingClientRect();
+    setCoords({ top: r.bottom + 6, left: r.left, width: r.width });
+  };
+
   useEffect(() => {
     if (!open) return undefined;
-    const handler = (e) => { if (containerRef.current && !containerRef.current.contains(e.target)) setOpen(false); };
+    reposition();
+    const handler = (e) => {
+      if (triggerRef.current?.contains(e.target)) return;
+      if (panelRef.current?.contains(e.target)) return;
+      setOpen(false);
+    };
     document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    window.addEventListener('scroll', reposition, true);
+    window.addEventListener('resize', reposition);
+    return () => {
+      document.removeEventListener('mousedown', handler);
+      window.removeEventListener('scroll', reposition, true);
+      window.removeEventListener('resize', reposition);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
@@ -94,7 +123,7 @@ export default function DatePicker({ value, onChange, min, placeholder = 'Select
   };
 
   return (
-    <div ref={containerRef} style={{ position: 'relative', width: '100%' }}>
+    <div ref={triggerRef} style={{ position: 'relative', width: '100%' }}>
       <div
         onClick={() => !disabled && setOpen((v) => !v)}
         style={{
@@ -104,7 +133,7 @@ export default function DatePicker({ value, onChange, min, placeholder = 'Select
           boxShadow: open ? '0 0 0 3px rgba(186,85,211,0.35)' : 'none', transition: 'box-shadow 150ms ease, border-color 150ms ease',
         }}
       >
-        <span style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 500, fontSize: 13.5, color: value ? 'var(--accent-dark)' : 'var(--text-muted)' }}>
+        <span style={{ fontFamily: 'var(--font-body)', fontWeight: 500, fontSize: 13.5, color: value ? 'var(--accent-dark)' : 'var(--text-muted)' }}>
           {value ? formatDisplay(value) : placeholder}
         </span>
         <svg width="18" height="18" viewBox="0 0 20 20" fill="none" style={{ flexShrink: 0 }}>
@@ -114,15 +143,19 @@ export default function DatePicker({ value, onChange, min, placeholder = 'Select
         </svg>
       </div>
 
-      {open && (
-        <div style={{
-          position: 'absolute', top: 'calc(100% + 6px)', left: 0, zIndex: 30, width: 280,
-          background: 'var(--date-soft)', border: '1px solid rgba(186,85,211,0.45)', borderRadius: 14,
-          boxShadow: '0 16px 40px -14px rgba(124,58,237,0.35)', padding: '16px 16px 12px',
-        }}>
+      {open && coords && createPortal(
+        <div
+          ref={panelRef}
+          className="anim-modal-in"
+          style={{
+            position: 'fixed', top: coords.top, left: coords.left, zIndex: 3000, width: 280,
+            background: 'var(--date-soft)', border: '1px solid rgba(186,85,211,0.45)', borderRadius: 14,
+            boxShadow: '0 16px 40px -14px rgba(124,58,237,0.35)', padding: '16px 16px 12px',
+          }}
+        >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
             <button type="button" onClick={() => goMonth(-1)} style={navBtnStyle}>‹</button>
-            <span style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 12, color: 'var(--heading)' }}>
+            <span style={{ fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: 12, color: 'var(--heading)' }}>
               {MONTHS[viewMonth]} {viewYear}
             </span>
             <button type="button" onClick={() => goMonth(1)} style={navBtnStyle}>›</button>
@@ -130,7 +163,7 @@ export default function DatePicker({ value, onChange, min, placeholder = 'Select
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 2, marginBottom: 4 }}>
             {WEEKDAYS.map((w) => (
-              <div key={w} style={{ textAlign: 'center', fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 8.5, color: 'var(--text-muted)', padding: '4px 0' }}>{w}</div>
+              <div key={w} style={{ textAlign: 'center', fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: 8.5, color: 'var(--text-muted)', padding: '4px 0' }}>{w}</div>
             ))}
           </div>
 
@@ -150,7 +183,7 @@ export default function DatePicker({ value, onChange, min, placeholder = 'Select
                     background: isSelected ? 'var(--date-accent)' : 'transparent',
                     color: disabledDay ? 'var(--text-muted)' : isSelected ? '#FFFFFF' : 'var(--text-primary)',
                     opacity: c.muted ? 0.35 : 1, cursor: disabledDay ? 'not-allowed' : 'pointer',
-                    fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: isSelected || isToday ? 700 : 500, fontSize: 11,
+                    fontFamily: 'var(--font-body)', fontWeight: isSelected || isToday ? 700 : 500, fontSize: 11,
                     transition: 'background 120ms ease',
                   }}
                   onMouseEnter={(e) => { if (!disabledDay && !isSelected) e.currentTarget.style.background = 'rgba(186,85,211,0.3)'; }}
@@ -166,7 +199,8 @@ export default function DatePicker({ value, onChange, min, placeholder = 'Select
             <span onClick={() => { onChange(''); setOpen(false); }} style={linkStyle}>Clear</span>
             <span onClick={goToday} style={linkStyle}>Today</span>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );
@@ -178,5 +212,5 @@ const navBtnStyle = {
 };
 
 const linkStyle = {
-  fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 10.5, color: 'var(--accent-dark)', cursor: 'pointer',
+  fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: 10.5, color: 'var(--accent-dark)', cursor: 'pointer',
 };
