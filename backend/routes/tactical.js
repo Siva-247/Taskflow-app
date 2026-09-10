@@ -1,6 +1,5 @@
 import { Router } from 'express';
 import { prepare } from '../database/db.js';
-import { TODAY } from '../database/constants.js';
 import { canManage } from '../database/hierarchy.js';
 import { scopedRoster } from './dailyUpdates.js';
 import { requireAuth } from '../middleware/auth.js';
@@ -54,22 +53,6 @@ function normalizeMilestone(raw) {
   if (!v) return 'Unclassified';
   const hit = MILESTONE_CANON.find((m) => m.match.some((token) => v === token || v.includes(token)));
   return hit ? hit.canon : (raw.trim() || 'Unclassified');
-}
-
-// A fixed, known vocabulary — only ever surfaces a term actually found in
-// this person's own deliverable/task text, never invents or infers a skill
-// they weren't shown to have touched.
-const SKILL_VOCAB = [
-  'React', 'Node.js', 'Express', 'PostgreSQL', 'MongoDB', 'MySQL', 'SQL', 'Redis',
-  'Python', 'JavaScript', 'TypeScript', 'HTML', 'CSS', 'Tailwind',
-  'REST', 'GraphQL', 'API Integration', 'WebSocket', 'RBAC', 'JWT', 'OAuth', 'Authentication',
-  'Docker', 'AWS', 'CI/CD', 'Git', 'GitHub',
-  'Redux', 'Vite', 'Webpack', 'Jest', 'Testing', 'Figma',
-  'Machine Learning', 'NLP', 'LLM', 'Pandas', 'NumPy', 'TensorFlow', 'PyTorch',
-];
-function extractSkills(rows) {
-  const text = rows.map((r) => `${r.deliverables || ''} ${r.taskCompleted || ''} ${r.resources || ''}`).join(' ').toLowerCase();
-  return SKILL_VOCAB.filter((skill) => text.includes(skill.toLowerCase()));
 }
 
 function daysBetween(a, b) {
@@ -231,8 +214,10 @@ router.get('/:internId', asyncRoute(async (req, res) => {
   const projectDistribution = distributionOf(rows, (r) => r.project, 'Unknown / Other');
   const activityTypeDistribution = distributionOf(rows, (r) => normalizeMilestone(r.milestone), 'Unclassified');
 
-  // ---- Recent deliveries — most recent first.
-  const recentDeliveries = [...rows].reverse().slice(0, 12).map((r) => ({
+  // ---- Recent deliveries — most recent first, capped short: this is a
+  // "what's fresh" glance, not the full history (Daily Update History
+  // already covers that).
+  const recentDeliveries = [...rows].reverse().slice(0, 4).map((r) => ({
     id: r.id, displayId: r.displayId, project: r.project || 'Unknown / Other',
     task: r.taskCompleted, deliverable: r.deliverables, milestone: normalizeMilestone(r.milestone),
     status: r.status, dueDate: r.dueDate, taskId: r.taskId,
@@ -242,17 +227,6 @@ router.get('/:internId', asyncRoute(async (req, res) => {
   // close date are counted; everything else is "insufficient data", never
   // guessed at or silently excluded from the total.
   let onTime = 0; let oneToTwo = 0; let threePlus = 0; let insufficientCount = 0;
-  const plannedVsActual = [];
-  for (const r of [...rows].reverse().slice(0, 15)) {
-    let status = 'Insufficient data';
-    if (r.dueDate && r.actualCloseDate) {
-      const lateDays = daysBetween(r.dueDate, r.actualCloseDate);
-      status = lateDays <= 0 ? 'On Time' : lateDays <= 2 ? '1–2 Days Late' : '3+ Days Late';
-    } else if (r.status !== 'Completed') {
-      status = r.status;
-    }
-    plannedVsActual.push({ displayId: r.displayId, dueDate: r.dueDate, actualCloseDate: r.actualCloseDate, status });
-  }
   for (const r of rows) {
     if (!r.dueDate || !r.actualCloseDate) { insufficientCount += 1; continue; }
     const lateDays = daysBetween(r.dueDate, r.actualCloseDate);
@@ -263,34 +237,6 @@ router.get('/:internId', asyncRoute(async (req, res) => {
     onTime, oneToTwoDaysLate: oneToTwo, threePlusDaysLate: threePlus, insufficientData: insufficientCount,
     onTimePct: reliabilityKnown > 0 ? Math.round((onTime / reliabilityKnown) * 1000) / 10 : null,
   };
-
-  // ---- Task health — Blocked only ever from a real open-blocker join
-  // result; At Risk is the one other condition backed by real data (overdue
-  // and not completed); everything else with enough data to judge is
-  // Healthy; no linked task at all is its own honest "unavailable" bucket.
-  let healthy = 0; let atRisk = 0; let blockedCount = 0; let unavailable = 0;
-  for (const r of rows) {
-    const bState = blockerStateOf(r.taskId);
-    if (bState === 'blocked') { blockedCount += 1; continue; }
-    if (bState === 'unavailable' && !r.dueDate) { unavailable += 1; continue; }
-    const overdue = r.status !== 'Completed' && r.dueDate && r.dueDate < TODAY;
-    if (overdue) atRisk += 1; else healthy += 1;
-  }
-  const taskHealth = { healthy, atRisk, blocked: blockedCount, unavailable, total: rows.length };
-
-  const developmentJourney = extractSkills(rows);
-
-  // ---- Tactical discussion — generated from the same conditions the rest
-  // of this bundle already computed, not a fixed script.
-  const discussionPrompts = [];
-  if (pendingRows.length > 0) discussionPrompts.push(`What is blocking ${pendingRows[0].displayId}?`);
-  if (blockedRows.length > 0) discussionPrompts.push(`What's needed to unblock ${blockedRows[0].displayId}?`);
-  if (missingReview.length > 0) discussionPrompts.push('Which completed task needs review?');
-  const topProject = projectDistribution[0];
-  if (topProject && topProject.pct >= 60 && projectDistribution.length > 1) {
-    discussionPrompts.push('Should the next task diversify project exposure?');
-  }
-  discussionPrompts.push(`What should ${target.name.split(' ')[0]} own next week?`);
 
   const currentProjects = [...new Set(rows.slice(-5).map((r) => r.project).filter((p) => p && p.trim() && p.trim() !== '-'))];
 
@@ -308,10 +254,6 @@ router.get('/:internId', asyncRoute(async (req, res) => {
     activityTypeDistribution,
     recentDeliveries,
     deliveryReliability,
-    plannedVsActual,
-    taskHealth,
-    developmentJourney,
-    discussionPrompts,
   });
 }));
 

@@ -3,9 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext.jsx';
 import { ROLES } from '../data/mockData.js';
 import { Card, Avatar, Select } from '../components/ui.jsx';
+import DatePicker from '../components/DatePicker.jsx';
 import {
   IconTarget, IconTaskList, IconCheckCircle, IconPending, IconBarChart, IconAlertTriangle,
-  IconLayers, IconClipboard, IconBlock, IconCheck, IconArrowRight, IconChat,
+  IconLayers, IconClipboard, IconCheck,
 } from '../components/icons.jsx';
 import { formatDate } from '../utils.js';
 
@@ -28,6 +29,7 @@ function periodPresets(today) {
     { key: '7d', label: 'Last 7 Days', from: daysBack(today, 7), to: today },
     { key: '30d', label: 'Last 30 Days', from: daysBack(today, 30), to: today },
     { key: 'month', label: 'This Month', from: monthStart(today), to: today },
+    { key: 'custom', label: 'Custom Range' },
   ];
 }
 
@@ -36,26 +38,6 @@ function FilterField({ label, children }) {
     <div className="filter-field" style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 170 }}>
       <span style={{ fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: 10.5, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>{label}</span>
       {children}
-    </div>
-  );
-}
-
-const SEVERITY_COLOR = { high: { bg: 'rgba(225,29,72,.10)', fg: 'var(--red-deep)', dot: 'var(--red)' }, medium: { bg: 'var(--amber-bg)', fg: 'var(--amber-text)', dot: 'var(--amber-fill)' }, low: { bg: 'var(--surface)', fg: 'var(--text-secondary)', dot: 'var(--text-muted)' } };
-
-function AttentionRow({ item, onClick }) {
-  const tone = SEVERITY_COLOR[item.severity] || SEVERITY_COLOR.low;
-  return (
-    <div
-      onClick={onClick}
-      className="table-glass-row"
-      style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '12px 14px', borderRadius: 10, cursor: onClick ? 'pointer' : 'default' }}
-    >
-      <span style={{ width: 8, height: 8, borderRadius: 999, background: tone.dot, marginTop: 5, flexShrink: 0 }} />
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: 13, color: 'var(--heading)' }}>{item.title}</div>
-        <div style={{ fontFamily: 'var(--font-body)', fontWeight: 500, fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>{item.detail}</div>
-      </div>
-      {onClick && <IconArrowRight size={13} color="var(--text-muted)" />}
     </div>
   );
 }
@@ -133,12 +115,17 @@ export default function TacticalMeeting() {
   const [teamFilter, setTeamFilter] = useState('all');
   const [selectedId, setSelectedId] = useState(currentUser.id);
   const [periodKey, setPeriodKey] = useState('30d');
+  const [customFrom, setCustomFrom] = useState('');
+  const [customTo, setCustomTo] = useState('');
   const [trendGranularity, setTrendGranularity] = useState('weekly');
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const presets = useMemo(() => periodPresets(TODAY), [TODAY]);
   const preset = presets.find((p) => p.key === periodKey);
+  const effectiveFrom = periodKey === 'custom' ? customFrom : preset?.from;
+  const effectiveTo = periodKey === 'custom' ? customTo : preset?.to;
+  const waitingOnCustomRange = periodKey === 'custom' && !(customFrom && customTo);
 
   useEffect(() => {
     if (!canSelectOthers) return;
@@ -169,27 +156,79 @@ export default function TacticalMeeting() {
   }, [teamFilter, filteredRoster.length]);
 
   useEffect(() => {
+    if (waitingOnCustomRange) return undefined;
     let cancelled = false;
     setLoading(true);
-    const query = preset?.from && preset?.to ? `?from=${preset.from}&to=${preset.to}` : '';
+    const query = effectiveFrom && effectiveTo ? `?from=${effectiveFrom}&to=${effectiveTo}` : '';
     apiCall(`/tactical/${selectedId}${query}`)
       .then((r) => { if (!cancelled) setData(r); })
       .catch(() => { if (!cancelled) showToast("Could not load that person's tactical data"); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedId, periodKey]);
+  }, [selectedId, effectiveFrom, effectiveTo, waitingOnCustomRange]);
 
-  if (loading || !data) {
+  const filterRow = (
+    <Card style={{ padding: '18px 22px' }}>
+      <div className="stack-mobile" style={{ display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'flex-end' }}>
+        {canSelectOthers ? (
+          <>
+            {teamOptions.length > 1 && (
+              <FilterField label="Team">
+                <Select
+                  value={teamFilter}
+                  onChange={(v) => { setTeamFilter(v); }}
+                  options={[{ value: 'all', label: 'All Teams' }, ...teamOptions.map((t) => ({ value: t, label: t }))]}
+                />
+              </FilterField>
+            )}
+            <FilterField label="Intern / Developer">
+              <Select
+                value={selectedId}
+                onChange={setSelectedId}
+                options={filteredRoster.map((u) => ({ value: u.id, label: `${u.name}${u.title ? ' · ' + u.title : ''}` }))}
+              />
+            </FilterField>
+          </>
+        ) : (
+          <FilterField label="Intern / Developer">
+            <div style={{ padding: '12px 15px', border: '1px solid var(--line)', borderRadius: 14, background: 'var(--surface)', fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: 13.5, color: 'var(--text-primary)' }}>
+              {currentUser.name}
+            </div>
+          </FilterField>
+        )}
+        <FilterField label="Period">
+          <Select value={periodKey} onChange={setPeriodKey} options={presets.map((p) => ({ value: p.key, label: p.label }))} />
+        </FilterField>
+        {periodKey === 'custom' && (
+          <>
+            <FilterField label="From">
+              <DatePicker value={customFrom} onChange={setCustomFrom} />
+            </FilterField>
+            <FilterField label="To">
+              <DatePicker value={customTo} onChange={setCustomTo} min={customFrom} />
+            </FilterField>
+          </>
+        )}
+      </div>
+    </Card>
+  );
+
+  if (waitingOnCustomRange || loading || !data) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
         <PageHeader />
-        <Card><div style={{ fontFamily: 'var(--font-body)', fontSize: 13.5, color: 'var(--text-muted)', textAlign: 'center', padding: '30px 0' }}>Loading…</div></Card>
+        {filterRow}
+        <Card>
+          <div style={{ fontFamily: 'var(--font-body)', fontSize: 13.5, color: 'var(--text-muted)', textAlign: 'center', padding: '30px 0' }}>
+            {waitingOnCustomRange ? 'Pick a from and to date to see that range.' : 'Loading…'}
+          </div>
+        </Card>
       </div>
     );
   }
 
-  const { profile, attentionItems, activityTrend, projectDistribution, activityTypeDistribution, recentDeliveries, deliveryReliability, plannedVsActual, taskHealth, developmentJourney, discussionPrompts } = data;
+  const { profile, attentionItems, activityTrend, projectDistribution, activityTypeDistribution, recentDeliveries, deliveryReliability } = data;
 
   const trendBuckets = activityTrend[trendGranularity] || [];
   const trendMax = Math.max(1, ...trendBuckets.map((b) => b.count));
@@ -201,50 +240,11 @@ export default function TacticalMeeting() {
     { label: '1–2 Days Late', count: deliveryReliability.oneToTwoDaysLate, color: 'var(--amber)' },
     { label: '3+ Days Late', count: deliveryReliability.threePlusDaysLate, color: 'var(--red)' },
   ].filter((s) => s.count > 0).map((s) => ({ ...s, pct: Math.round((s.count / Math.max(1, deliveryReliability.onTime + deliveryReliability.oneToTwoDaysLate + deliveryReliability.threePlusDaysLate)) * 1000) / 10 }));
-  const healthSegments = [
-    { label: 'Healthy', count: taskHealth.healthy, color: 'var(--green)' },
-    { label: 'At Risk', count: taskHealth.atRisk, color: 'var(--amber)' },
-    { label: 'Blocked', count: taskHealth.blocked, color: 'var(--red)' },
-    { label: 'Data Unavailable', count: taskHealth.unavailable, color: 'var(--text-muted)' },
-  ].filter((s) => s.count > 0).map((s) => ({ ...s, pct: Math.round((s.count / Math.max(1, taskHealth.total)) * 1000) / 10 }));
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       <PageHeader />
-
-      <Card style={{ padding: '18px 22px' }}>
-        <div className="stack-mobile" style={{ display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'flex-end' }}>
-          {canSelectOthers ? (
-            <>
-              {teamOptions.length > 1 && (
-                <FilterField label="Team">
-                  <Select
-                    value={teamFilter}
-                    onChange={(v) => { setTeamFilter(v); }}
-                    options={[{ value: 'all', label: 'All Teams' }, ...teamOptions.map((t) => ({ value: t, label: t }))]}
-                  />
-                </FilterField>
-              )}
-              <FilterField label="Intern / Developer">
-                <Select
-                  value={selectedId}
-                  onChange={setSelectedId}
-                  options={filteredRoster.map((u) => ({ value: u.id, label: `${u.name}${u.title ? ' · ' + u.title : ''}` }))}
-                />
-              </FilterField>
-            </>
-          ) : (
-            <FilterField label="Intern / Developer">
-              <div style={{ padding: '12px 15px', border: '1px solid var(--line)', borderRadius: 14, background: 'var(--surface)', fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: 13.5, color: 'var(--text-primary)' }}>
-                {currentUser.name}
-              </div>
-            </FilterField>
-          )}
-          <FilterField label="Period">
-            <Select value={periodKey} onChange={setPeriodKey} options={presets.map((p) => ({ value: p.key, label: p.label }))} />
-          </FilterField>
-        </div>
-      </Card>
+      {filterRow}
 
       {/* Profile + KPIs */}
       <div className="responsive-grid" style={{ display: 'grid', '--cols': '300px 1fr', gap: 16, alignItems: 'stretch' }}>
@@ -313,29 +313,8 @@ export default function TacticalMeeting() {
         </Card>
       </div>
 
-      {/* Manager Attention */}
-      <Card>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-          <SectionTitle icon={<IconAlertTriangle size={16} color="var(--red-deep)" />}>Manager Attention</SectionTitle>
-          {attentionItems.length > 0 && (
-            <span style={{ padding: '3px 10px', borderRadius: 999, background: 'rgba(225,29,72,.12)', fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: 11, color: 'var(--red-deep)' }}>
-              {attentionItems.length} item{attentionItems.length === 1 ? '' : 's'}
-            </span>
-          )}
-        </div>
-        {attentionItems.length === 0 ? (
-          <EmptyNote>Nothing needs attention in this range.</EmptyNote>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 8 }}>
-            {attentionItems.map((item) => (
-              <AttentionRow key={item.id} item={item} onClick={item.taskId ? () => navigate(`/tasks/${item.taskId}`) : undefined} />
-            ))}
-          </div>
-        )}
-      </Card>
-
-      {/* Project Progress + Recent Deliveries */}
-      <div className="responsive-grid" style={{ display: 'grid', '--cols': '1fr 1.4fr', gap: 16, alignItems: 'start' }}>
+      {/* Project Progress + Recent Deliveries + Delivery Reliability */}
+      <div className="responsive-grid" style={{ display: 'grid', '--cols': '1fr 1.1fr 1fr', gap: 16, alignItems: 'start' }}>
         <Card>
           <SectionTitle icon={<IconLayers size={16} color="var(--accent)" />}>Project Progress</SectionTitle>
           <div style={{ fontFamily: 'var(--font-body)', fontWeight: 500, fontSize: 11.5, color: 'var(--text-muted)', marginTop: 2, marginBottom: 14 }}>
@@ -365,10 +344,10 @@ export default function TacticalMeeting() {
             {recentDeliveries.length === 0 ? (
               <div style={{ padding: '0 22px 20px' }}><EmptyNote>No entries in this range.</EmptyNote></div>
             ) : (
-              <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 560 }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 460 }}>
                 <thead>
                   <tr className="table-glass-head">
-                    {['Task ID', 'Project', 'Task / Deliverable', 'Milestone', 'Status', 'Due Date'].map((h) => (
+                    {['Task ID', 'Project', 'Task / Deliverable', 'Status', 'Due Date'].map((h) => (
                       <th key={h} style={{ textAlign: 'left', padding: '9px 14px', fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: 10.5, letterSpacing: '0.04em', textTransform: 'uppercase' }}>{h}</th>
                     ))}
                   </tr>
@@ -382,8 +361,7 @@ export default function TacticalMeeting() {
                     >
                       <td style={{ padding: '10px 14px', fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: 12, color: 'var(--brand)' }}>{d.displayId}</td>
                       <td style={{ padding: '10px 14px', fontFamily: 'var(--font-body)', fontWeight: 500, fontSize: 12, color: 'var(--text-secondary)' }}>{d.project}</td>
-                      <td style={{ padding: '10px 14px', fontFamily: 'var(--font-body)', fontWeight: 500, fontSize: 12.5, color: 'var(--text-primary)', maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.deliverable || d.task}</td>
-                      <td style={{ padding: '10px 14px', fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: 12, color: 'var(--text-secondary)' }}>{d.milestone}</td>
+                      <td style={{ padding: '10px 14px', fontFamily: 'var(--font-body)', fontWeight: 500, fontSize: 12.5, color: 'var(--text-primary)', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.deliverable || d.task}</td>
                       <td style={{ padding: '10px 14px' }}><DailyStatusPill status={d.status} /></td>
                       <td style={{ padding: '10px 14px', fontFamily: 'var(--font-body)', fontWeight: 500, fontSize: 12, color: 'var(--text-secondary)' }}>{d.dueDate ? formatDate(d.dueDate) : '—'}</td>
                     </tr>
@@ -393,10 +371,7 @@ export default function TacticalMeeting() {
             )}
           </div>
         </Card>
-      </div>
 
-      {/* Reliability + Planned vs Actual + Task Health */}
-      <div className="responsive-grid" style={{ display: 'grid', '--cols': '1fr 1.2fr 1fr', gap: 16, alignItems: 'start' }}>
         <Card>
           <SectionTitle icon={<IconCheck size={16} color="var(--accent)" />}>Delivery Reliability</SectionTitle>
           <div style={{ marginTop: 14 }}>
@@ -409,84 +384,6 @@ export default function TacticalMeeting() {
               {deliveryReliability.insufficientData} additional {deliveryReliability.insufficientData === 1 ? 'entry has' : 'entries have'} insufficient data (missing due/close date).
             </div>
           )}
-        </Card>
-
-        <Card padded={false}>
-          <div style={{ padding: '20px 22px 0' }}>
-            <SectionTitle icon={<IconTarget size={16} color="var(--accent)" />}>Planned vs Actual</SectionTitle>
-          </div>
-          <div className="table-scroll" style={{ marginTop: 14 }}>
-            {plannedVsActual.length === 0 ? (
-              <div style={{ padding: '0 22px 20px' }}><EmptyNote>No entries in this range.</EmptyNote></div>
-            ) : (
-              <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 380 }}>
-                <thead>
-                  <tr className="table-glass-head">
-                    {['Task ID', 'Planned', 'Actual', 'Status'].map((h) => (
-                      <th key={h} style={{ textAlign: 'left', padding: '9px 14px', fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: 10.5, letterSpacing: '0.04em', textTransform: 'uppercase' }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {plannedVsActual.map((r) => (
-                    <tr key={r.displayId} className="table-glass-row" style={{ borderBottom: '1px solid var(--line)' }}>
-                      <td style={{ padding: '10px 14px', fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: 12, color: 'var(--brand)' }}>{r.displayId}</td>
-                      <td style={{ padding: '10px 14px', fontFamily: 'var(--font-body)', fontWeight: 500, fontSize: 12, color: 'var(--text-secondary)' }}>{r.dueDate ? formatDate(r.dueDate) : '—'}</td>
-                      <td style={{ padding: '10px 14px', fontFamily: 'var(--font-body)', fontWeight: 500, fontSize: 12, color: 'var(--text-secondary)' }}>{r.actualCloseDate ? formatDate(r.actualCloseDate) : '—'}</td>
-                      <td style={{ padding: '10px 14px' }}><ReliabilityPill status={r.status} /></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
-        </Card>
-
-        <Card>
-          <SectionTitle icon={<IconBlock size={16} color="var(--accent)" />}>Task Health</SectionTitle>
-          <div style={{ marginTop: 14 }}>
-            {healthSegments.length === 0 ? <EmptyNote>No data in this range.</EmptyNote> : (
-              <GenericDonut segments={healthSegments} centerLabel="Total Tasks" centerValue={taskHealth.total} />
-            )}
-          </div>
-        </Card>
-      </div>
-
-      {/* Development Journey + Tactical Discussion */}
-      <div className="responsive-grid" style={{ display: 'grid', '--cols': '1fr 1fr', gap: 16, alignItems: 'start' }}>
-        <Card>
-          <SectionTitle icon={<IconLayers size={16} color="var(--accent)" />}>Development Journey</SectionTitle>
-          <div style={{ fontFamily: 'var(--font-body)', fontWeight: 500, fontSize: 11.5, color: 'var(--text-muted)', marginTop: 2, marginBottom: 14 }}>
-            Skills and technologies mentioned in {profile.name.split(' ')[0]}'s own deliverables.
-          </div>
-          {developmentJourney.length === 0 ? (
-            <EmptyNote>No recognized skill keywords found in this range's entries.</EmptyNote>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {developmentJourney.map((skill) => (
-                <div key={skill} style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-                  <IconCheck size={13} color="var(--green-deep)" />
-                  <span style={{ fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: 13, color: 'var(--text-primary)' }}>{skill}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </Card>
-
-        <Card>
-          <SectionTitle icon={<IconChat size={16} color="var(--accent)" />}>Tactical Discussion</SectionTitle>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 14 }}>
-            {discussionPrompts.map((prompt, i) => (
-              <div key={prompt} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-                <span style={{
-                  width: 20, height: 20, borderRadius: 999, background: 'var(--accent-soft)', color: 'var(--brand)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                  fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: 11,
-                }}>{i + 1}</span>
-                <span style={{ fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: 13, color: 'var(--text-primary)', lineHeight: 1.5 }}>{prompt}</span>
-              </div>
-            ))}
-          </div>
         </Card>
       </div>
     </div>
@@ -532,18 +429,6 @@ const DAILY_STATUS_TONE = {
 };
 function DailyStatusPill({ status }) {
   const tone = DAILY_STATUS_TONE[status] || DAILY_STATUS_TONE.Open;
-  return (
-    <span style={{ padding: '3px 10px', borderRadius: 999, background: tone.bg, color: tone.fg, fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: 11 }}>{status}</span>
-  );
-}
-
-const RELIABILITY_TONE = {
-  'On Time': { bg: 'rgba(16,185,129,.12)', fg: 'var(--green-deep)' },
-  '1–2 Days Late': { bg: 'var(--amber-bg)', fg: 'var(--amber-text)' },
-  '3+ Days Late': { bg: 'rgba(225,29,72,.10)', fg: 'var(--red-deep)' },
-};
-function ReliabilityPill({ status }) {
-  const tone = RELIABILITY_TONE[status] || { bg: 'var(--surface)', fg: 'var(--text-secondary)' };
   return (
     <span style={{ padding: '3px 10px', borderRadius: 999, background: tone.bg, color: tone.fg, fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: 11 }}>{status}</span>
   );
