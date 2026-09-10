@@ -56,10 +56,6 @@ function normalizeMilestone(raw) {
   return hit ? hit.canon : (raw.trim() || 'Unclassified');
 }
 
-function daysBetween(a, b) {
-  return Math.round((new Date(`${b}T00:00:00`) - new Date(`${a}T00:00:00`)) / 86400000);
-}
-
 function isoWeekStart(dateStr) {
   const d = new Date(`${dateStr}T00:00:00`);
   const day = (d.getDay() + 6) % 7; // Monday = 0
@@ -129,17 +125,6 @@ function normalizeStatusKey(raw) {
   return collapsed ? collapsed.toLowerCase() : 'not recorded';
 }
 
-// "Last 7 Days -> daily, Last 30 Days -> weekly, longer -> monthly" — derived
-// from the actual resolved span rather than hard-coded to a period key, so a
-// Custom Range gets the same sensible treatment automatically.
-function pickGranularity(from, to) {
-  if (!from || !to) return 'monthly';
-  const span = daysBetween(from, to) + 1;
-  if (span <= 9) return 'daily';
-  if (span <= 60) return 'weekly';
-  return 'monthly';
-}
-
 // Team View's roster is scoped by TEAM MEMBERSHIP, not management authority
 // — unlike scopedRoster (built for "who do I manage", empty for an
 // employee), everyone should be able to see their own team's tactical
@@ -205,7 +190,7 @@ async function teamViewScope(user, query) {
 // same `rows`). No mock data anywhere in here: every label, category and
 // count is derived from the live Employees/Daily-Update rows fetched above.
 async function getTeamTacticalAnalytics(user, query) {
-  const { from, to, teamId, departmentId, memberIds, titleGroup, granularity: granularityOverride } = query;
+  const { from, to, teamId, departmentId, memberIds, titleGroup } = query;
   const { scope, users: fullRoster, availableDepartments, availableTeams } = await teamViewScope(user, { teamId, departmentId });
 
   // The Intern/Developer filter's "Interns"/"Developers" one-click groups
@@ -264,31 +249,6 @@ async function getTeamTacticalAnalytics(user, query) {
       completionRate: uRows.length > 0 ? Math.round((uCompleted / uRows.length) * 1000) / 10 : 0,
     };
   }).sort((a, b) => a.name.localeCompare(b.name));
-
-  // ---- Activity trend — Total Entries vs Completed per bucket, at a
-  // granularity picked from the actual resolved date span (or explicitly
-  // overridden by the Daily/Weekly/Monthly toggle).
-  const g = granularityOverride && ['daily', 'weekly', 'monthly'].includes(granularityOverride)
-    ? granularityOverride
-    : pickGranularity(from, to);
-  const bucketOf = g === 'daily' ? (d) => d : g === 'weekly' ? (d) => isoWeekStart(d) : (d) => d.slice(0, 7);
-  const labelOf = g === 'daily'
-    ? (d) => shortLabel(d)
-    : g === 'weekly'
-      ? (weekStart) => weekRangeLabel(weekStart, addDaysISO(weekStart, 6))
-      : (ym) => new Date(`${ym}-01T00:00:00`).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-  const buckets = new Map();
-  for (const r of rows) {
-    const key = bucketOf(r.date);
-    if (!buckets.has(key)) buckets.set(key, { total: 0, completed: 0 });
-    const b = buckets.get(key);
-    b.total += 1;
-    if (normalizeStatusKey(r.status) === 'completed') b.completed += 1;
-  }
-  const activityTrend = {
-    granularity: g,
-    buckets: [...buckets.keys()].sort().map((key) => ({ key, label: labelOf(key), ...buckets.get(key) })),
-  };
 
   // ---- Work Distribution by Project — "how many days did the team actually
   // record work against each project", not "how many rows exist": counts
@@ -358,7 +318,6 @@ async function getTeamTacticalAnalytics(user, query) {
     // rule as everywhere else in this file, no fixed role enum involved.
     availableMembers: fullRoster.map((u) => ({ id: u.id, name: u.name, title: u.title })).sort((a, b) => a.name.localeCompare(b.name)),
     memberPerformance,
-    activityTrend,
     projectDistribution, activityTypeDistribution,
     timeline,
   };
