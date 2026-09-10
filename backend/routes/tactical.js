@@ -60,23 +60,6 @@ function daysBetween(a, b) {
   return Math.round((new Date(`${b}T00:00:00`) - new Date(`${a}T00:00:00`)) / 86400000);
 }
 
-// A fixed, known vocabulary — only ever surfaces a term actually found in
-// someone's own deliverable/task text, never invents or infers a skill they
-// weren't shown to have touched. Team View's own Development Journey needs
-// this (aggregated across everyone in scope); the Individual View doesn't
-// use it any more, by request.
-const SKILL_VOCAB = [
-  'React', 'Node.js', 'Express', 'PostgreSQL', 'MongoDB', 'MySQL', 'SQL', 'Redis',
-  'Python', 'JavaScript', 'TypeScript', 'HTML', 'CSS', 'Tailwind',
-  'REST', 'GraphQL', 'API Integration', 'WebSocket', 'RBAC', 'JWT', 'OAuth', 'Authentication',
-  'Docker', 'AWS', 'CI/CD', 'Git', 'GitHub',
-  'Redux', 'Vite', 'Webpack', 'Jest', 'Testing', 'Figma',
-  'Machine Learning', 'NLP', 'LLM', 'Pandas', 'NumPy', 'TensorFlow', 'PyTorch',
-];
-function textOf(row) {
-  return `${row.deliverables || ''} ${row.taskCompleted || ''} ${row.resources || ''}`.toLowerCase();
-}
-
 function isoWeekStart(dateStr) {
   const d = new Date(`${dateStr}T00:00:00`);
   const day = (d.getDay() + 6) % 7; // Monday = 0
@@ -91,6 +74,70 @@ function addDaysISO(dateStr, n) {
 function shortLabel(iso) {
   const d = new Date(`${iso}T00:00:00`);
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+// "Aug 10-16" when a week stays inside one month, "Aug 31-Sep 6" only when it
+// genuinely crosses a month boundary — the repeated month name in every
+// bucket's label was what made the trend chart's x-axis crowd/overlap.
+function weekRangeLabel(weekStart, weekEnd) {
+  const start = new Date(`${weekStart}T00:00:00`);
+  const end = new Date(`${weekEnd}T00:00:00`);
+  const sameMonth = start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear();
+  return sameMonth ? `${shortLabel(weekStart)}–${end.getDate()}` : `${shortLabel(weekStart)}–${shortLabel(weekEnd)}`;
+}
+
+// ---- Team View's free-text grouping ---------------------------------------
+// Team View (unlike Individual View's MILESTONE_CANON above) is required to
+// never bucket a raw field into a fixed enum — a brand new Milestone or
+// Project value entered tomorrow must show up as its own category with zero
+// code changes. The only normalization allowed is collapsing whitespace and
+// case: "Develop"/"develop"/"DEVELOP" are the same entry, but "development"
+// is a genuinely different word and stays its own group. Each group displays
+// under whichever exact original spelling occurred most often in it.
+function collapseText(raw) {
+  const collapsed = (raw || '').replace(/\s+/g, ' ').trim();
+  return !collapsed || collapsed === '-' ? null : collapsed;
+}
+// One pass over `rows` builds every group's entry count AND its count of
+// distinct dates at once — cheap to compute both, since which one a caller
+// actually displays (Activity Type wants entry count, Work Distribution
+// wants distinct-day count) varies by chart.
+function buildFreeTextGroups(rows, valueOf, blankLabel) {
+  const groups = new Map(); // normKey -> { displayVotes: Map<string, number>, dates: Set<string>, count: number }
+  for (const r of rows) {
+    const collapsed = collapseText(valueOf(r));
+    const key = collapsed ? collapsed.toLowerCase() : '__blank__';
+    const display = collapsed || blankLabel;
+    if (!groups.has(key)) groups.set(key, { displayVotes: new Map(), dates: new Set(), count: 0 });
+    const g = groups.get(key);
+    g.displayVotes.set(display, (g.displayVotes.get(display) || 0) + 1);
+    g.dates.add(r.date);
+    g.count += 1;
+  }
+  return [...groups.values()].map((g) => ({
+    label: [...g.displayVotes.entries()].sort((a, b) => b[1] - a[1])[0][0],
+    count: g.count,
+    activeDays: g.dates.size,
+  }));
+}
+
+// Status is read as-is from the data, not assumed to be only
+// Completed/Pending — normalized the same case/whitespace-only way so
+// "completed"/"Completed"/"COMPLETED" count together without silently
+// folding a genuinely different status (e.g. "on-track") into either bucket.
+function normalizeStatusKey(raw) {
+  const collapsed = collapseText(raw);
+  return collapsed ? collapsed.toLowerCase() : 'not recorded';
+}
+
+// "Last 7 Days -> daily, Last 30 Days -> weekly, longer -> monthly" — derived
+// from the actual resolved span rather than hard-coded to a period key, so a
+// Custom Range gets the same sensible treatment automatically.
+function pickGranularity(from, to) {
+  if (!from || !to) return 'monthly';
+  const span = daysBetween(from, to) + 1;
+  if (span <= 9) return 'daily';
+  if (span <= 60) return 'weekly';
+  return 'monthly';
 }
 
 // Team View's roster is scoped by TEAM MEMBERSHIP, not management authority
@@ -151,9 +198,32 @@ async function teamViewScope(user, query) {
   };
 }
 
-router.get('/team', asyncRoute(async (req, res) => {
-  const { from, to, teamId, departmentId, project } = req.query;
-  const { scope, users: roster, availableDepartments, availableTeams } = await teamViewScope(req.user, { teamId, departmentId });
+// Team View's single reusable analytics function — every number the page
+// shows comes out of this one bundle, built from exactly one filtered
+// row-set, so no chart can ever disagree with another about what's "in
+// scope" (the KPI row, the table, and every chart below all read from the
+// same `rows`). No mock data anywhere in here: every label, category and
+// count is derived from the live Employees/Daily-Update rows fetched above.
+async function getTeamTacticalAnalytics(user, query) {
+  const { from, to, teamId, departmentId, memberIds, titleGroup, granularity: granularityOverride } = query;
+  const { scope, users: fullRoster, availableDepartments, availableTeams } = await teamViewScope(user, { teamId, departmentId });
+
+  // The Intern/Developer filter's "Interns"/"Developers" one-click groups
+  // are resolved here from each person's real `title` (case/whitespace
+  // normalized, never a fixed role enum) rather than the frontend guessing
+  // from a roster snapshot it already has — that would go stale the moment
+  // Department/Team narrows to a different roster. "Individual" mode still
+  // narrows by an explicit id list. Both only ever narrow the
+  // already-authorized roster, never widen it, same rule as teamId/
+  // departmentId above.
+  let roster = fullRoster;
+  if (memberIds) {
+    const selectedMemberIds = new Set(String(memberIds).split(',').map((s) => s.trim()).filter(Boolean));
+    roster = roster.filter((u) => selectedMemberIds.has(u.id));
+  } else if (titleGroup) {
+    const key = String(titleGroup).trim().toLowerCase();
+    roster = roster.filter((u) => (u.title || '').trim().toLowerCase() === key);
+  }
 
   let rows = [];
   if (roster.length > 0) {
@@ -162,40 +232,23 @@ router.get('/team', asyncRoute(async (req, res) => {
     const dateParams = (from && to) ? [from, to] : [];
     const rowsRaw = await prepare(
       `SELECT id, user_id as "userId", task_id as "taskId", custom_task_id as "customTaskId", seq, date, status, task_completed as "taskCompleted",
-        milestone, project, deliverables, resources, priority, due_date as "dueDate", actual_close_date as "actualCloseDate",
-        bdm_remarks as "bdmRemarks", bdm_remarks_by as "bdmRemarksBy"
+        milestone, project, deliverables, resources, priority, due_date as "dueDate", actual_close_date as "actualCloseDate"
        FROM daily_updates WHERE user_id IN (${placeholders}) ${dateClause} ORDER BY date ASC, seq ASC`,
     ).all(...roster.map((u) => u.id), ...dateParams);
     rows = rowsRaw.map((r) => ({ ...r, displayId: r.customTaskId || `DU-${String(r.seq).padStart(4, '0')}` }));
-    if (project) rows = rows.filter((r) => (r.project || '').trim() === project);
   }
-  const userById = new Map(roster.map((u) => [u.id, u]));
 
-  const linkedTaskIds = [...new Set(rows.map((r) => r.taskId).filter(Boolean))];
-  const blockerByTask = new Map();
-  if (linkedTaskIds.length > 0) {
-    const placeholders = linkedTaskIds.map(() => '?').join(', ');
-    const blockerRows = await prepare(
-      `SELECT linked_task_id as "taskId", status FROM blockers WHERE linked_task_id IN (${placeholders})`,
-    ).all(...linkedTaskIds);
-    for (const b of blockerRows) {
-      const cur = blockerByTask.get(b.taskId);
-      const isOpen = b.status !== 'Resolved' && b.status !== 'Closed';
-      if (!cur || (isOpen && !cur.open)) blockerByTask.set(b.taskId, { open: isOpen });
-    }
-  }
-  const isBlocked = (taskId) => Boolean(taskId && blockerByTask.get(taskId)?.open);
+  // ---- KPIs — Total Entries is every row after every filter; Completed and
+  // Pending only ever count an exact normalized-status match, so a genuinely
+  // different status (e.g. "on-track") is never silently folded into either.
+  const totalEntries = rows.length;
+  const completedEntries = rows.filter((r) => normalizeStatusKey(r.status) === 'completed').length;
+  const pendingEntries = rows.filter((r) => normalizeStatusKey(r.status) === 'pending').length;
+  const completionRate = totalEntries > 0 ? Math.round((completedEntries / totalEntries) * 1000) / 10 : 0;
 
-  const totalUpdates = rows.length;
-  const completed = rows.filter((r) => r.status === 'Completed').length;
-  const pending = totalUpdates - completed;
-  const completionRate = totalUpdates > 0 ? Math.round((completed / totalUpdates) * 1000) / 10 : 0;
-  const blockedRows = rows.filter((r) => isBlocked(r.taskId));
-
-  // ---- Member performance — one row per roster member (even at 0/0, same
-  // "the whole roster, not just who happened to log something" reasoning
-  // used everywhere else), each with an attention level grounded in their
-  // own rows, never a fabricated score.
+  // ---- Member performance — one row per roster member, even at 0/0 (an
+  // employee with nothing logged still exists and still belongs here), no
+  // fabricated attention/risk score of any kind.
   const rowsByUser = new Map();
   for (const r of rows) {
     if (!rowsByUser.has(r.userId)) rowsByUser.set(r.userId, []);
@@ -203,178 +256,81 @@ router.get('/team', asyncRoute(async (req, res) => {
   }
   const memberPerformance = roster.map((u) => {
     const uRows = rowsByUser.get(u.id) || [];
-    const uCompleted = uRows.filter((r) => r.status === 'Completed').length;
-    const uPending = uRows.length - uCompleted;
-    const uBlocked = uRows.filter((r) => isBlocked(r.taskId)).length;
-    let attentionLevel = 'healthy';
-    let attentionReason = 'No open issues in this range';
-    if (uBlocked > 0) {
-      attentionLevel = 'critical';
-      attentionReason = `${uBlocked} open blocker${uBlocked === 1 ? '' : 's'}`;
-    } else if (uPending > 0) {
-      attentionLevel = 'attention';
-      attentionReason = `${uPending} pending task${uPending === 1 ? '' : 's'}`;
-    } else if (uRows.length === 0) {
-      attentionLevel = 'attention';
-      attentionReason = 'Nothing logged in this range';
-    }
+    const uCompleted = uRows.filter((r) => normalizeStatusKey(r.status) === 'completed').length;
+    const uPending = uRows.filter((r) => normalizeStatusKey(r.status) === 'pending').length;
     return {
       id: u.id, name: u.name, title: u.title, departmentName: u.departmentName, teamName: u.teamName,
-      total: uRows.length, completed: uCompleted, pending: uPending,
+      totalEntries: uRows.length, completed: uCompleted, pending: uPending,
       completionRate: uRows.length > 0 ? Math.round((uCompleted / uRows.length) * 1000) / 10 : 0,
-      attentionLevel, attentionReason,
     };
   }).sort((a, b) => a.name.localeCompare(b.name));
 
-  // ---- Manager attention — same three data-honesty rules as Individual
-  // View (blank Priority/Reviewed-By/Blocker mean "not recorded", never a
-  // positive or negative judgement), aggregated across the whole roster.
-  const missingPriority = rows.filter((r) => !r.priority || !r.priority.trim());
-  const missingReview = rows.filter((r) => (!r.bdmRemarks || !r.bdmRemarks.trim()) && !r.bdmRemarksBy);
-  const managerAttention = [
-    pending > 0 && { id: 'pending', title: `${pending} Pending Task${pending === 1 ? '' : 's'}`, detail: 'Tasks not yet completed', severity: 'high', count: pending },
-    missingPriority.length > 0 && { id: 'priority', title: `${missingPriority.length} Record${missingPriority.length === 1 ? '' : 's'} Missing Priority`, detail: 'Priority not recorded', severity: 'medium', count: missingPriority.length },
-    missingReview.length > 0 && { id: 'review', title: `${missingReview.length} Record${missingReview.length === 1 ? '' : 's'} Missing Review Information`, detail: 'BDM remarks / reviewer not recorded', severity: 'medium', count: missingReview.length },
-    totalUpdates > 0 && { id: 'effort', title: `${totalUpdates} Task${totalUpdates === 1 ? '' : 's'} Without Effort Information`, detail: 'No effort field exists in the Daily Update record', severity: 'low', count: totalUpdates },
-    blockedRows.length > 0 && { id: 'blockers', title: `${blockedRows.length} Explicit Blocker${blockedRows.length === 1 ? '' : 's'}`, detail: 'Open blocker linked to a task', severity: 'high', count: blockedRows.length },
-  ].filter(Boolean);
-
-  // ---- Activity trend — weekly/monthly, Total vs Completed per bucket.
-  function buildTrend(bucketOf, labelOf) {
-    if (rows.length === 0) return [];
-    const buckets = new Map();
-    for (const r of rows) {
-      const key = bucketOf(r.date);
-      if (!buckets.has(key)) buckets.set(key, { total: 0, completed: 0 });
-      const b = buckets.get(key);
-      b.total += 1;
-      if (r.status === 'Completed') b.completed += 1;
-    }
-    return [...buckets.keys()].sort().map((key) => ({ key, label: labelOf(key), ...buckets.get(key) }));
+  // ---- Activity trend — Total Entries vs Completed per bucket, at a
+  // granularity picked from the actual resolved date span (or explicitly
+  // overridden by the Daily/Weekly/Monthly toggle).
+  const g = granularityOverride && ['daily', 'weekly', 'monthly'].includes(granularityOverride)
+    ? granularityOverride
+    : pickGranularity(from, to);
+  const bucketOf = g === 'daily' ? (d) => d : g === 'weekly' ? (d) => isoWeekStart(d) : (d) => d.slice(0, 7);
+  const labelOf = g === 'daily'
+    ? (d) => shortLabel(d)
+    : g === 'weekly'
+      ? (weekStart) => weekRangeLabel(weekStart, addDaysISO(weekStart, 6))
+      : (ym) => new Date(`${ym}-01T00:00:00`).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+  const buckets = new Map();
+  for (const r of rows) {
+    const key = bucketOf(r.date);
+    if (!buckets.has(key)) buckets.set(key, { total: 0, completed: 0 });
+    const b = buckets.get(key);
+    b.total += 1;
+    if (normalizeStatusKey(r.status) === 'completed') b.completed += 1;
   }
   const activityTrend = {
-    weekly: buildTrend((d) => isoWeekStart(d), (weekStart) => `${shortLabel(weekStart)}–${shortLabel(addDaysISO(weekStart, 6))}`),
-    monthly: buildTrend((d) => d.slice(0, 7), (ym) => new Date(`${ym}-01T00:00:00`).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })),
+    granularity: g,
+    buckets: [...buckets.keys()].sort().map((key) => ({ key, label: labelOf(key), ...buckets.get(key) })),
   };
 
-  // ---- Distributions — same honest-bucketing rule as Individual View.
-  function distributionOf(keyFn, fallback) {
-    const counts = new Map();
-    for (const r of rows) {
-      const raw = keyFn(r);
-      const key = raw && raw.trim() && raw.trim() !== '-' ? raw.trim() : fallback;
-      counts.set(key, (counts.get(key) || 0) + 1);
-    }
-    const total = rows.length || 1;
-    return [...counts.entries()].map(([key, count]) => ({ label: key, count, pct: Math.round((count / total) * 1000) / 10 })).sort((a, b) => b.count - a.count);
-  }
-  const projectDistribution = distributionOf((r) => r.project, 'Unknown / Other');
-  const activityTypeDistribution = distributionOf((r) => normalizeMilestone(r.milestone), 'Unclassified');
+  // ---- Work Distribution by Project — "how many days did the team actually
+  // record work against each project", not "how many rows exist": counts
+  // DISTINCT dates per project (so two members logging the same project on
+  // the same day count as one active day, and two entries from one member
+  // on one day don't double it either), never a fixed project list.
+  const projectGroups = buildFreeTextGroups(rows, (r) => r.project, 'Project Not Recorded');
+  const totalActiveDays = projectGroups.reduce((sum, gr) => sum + gr.activeDays, 0) || 1;
+  const projectDistribution = projectGroups
+    .map((gr) => ({ label: gr.label, activeDays: gr.activeDays, pct: Math.round((gr.activeDays / totalActiveDays) * 1000) / 10 }))
+    .sort((a, b) => b.activeDays - a.activeDays);
 
-  // ---- Delivery reliability — identical rule to Individual View: only
-  // rows with both dates are counted; a still-open row is "Pending", not
-  // silently folded into "late".
-  let onTime = 0; let oneToTwo = 0; let threePlus = 0; let insufficientCount = 0;
-  for (const r of rows) {
-    if (r.status !== 'Completed') { continue; }
-    if (!r.dueDate || !r.actualCloseDate) { insufficientCount += 1; continue; }
-    const lateDays = daysBetween(r.dueDate, r.actualCloseDate);
-    if (lateDays <= 0) onTime += 1; else if (lateDays <= 2) oneToTwo += 1; else threePlus += 1;
-  }
-  const reliabilityKnown = onTime + oneToTwo + threePlus;
-  const deliveryReliability = {
-    onTime, oneToTwoDaysLate: oneToTwo, threePlusDaysLate: threePlus, insufficientData: insufficientCount,
-    onTimePct: reliabilityKnown > 0 ? Math.round((onTime / reliabilityKnown) * 1000) / 10 : null,
-  };
+  // ---- Activity Type — categories read straight off the raw Milestone
+  // values (case/whitespace normalized only, see buildFreeTextGroups) —
+  // a brand new milestone entered tomorrow appears automatically, no enum
+  // to update.
+  const milestoneGroups = buildFreeTextGroups(rows, (r) => r.milestone, 'Unclassified');
+  const totalForActivityType = rows.length || 1;
+  const activityTypeDistribution = milestoneGroups
+    .map((gr) => ({ label: gr.label, count: gr.count, pct: Math.round((gr.count / totalForActivityType) * 1000) / 10 }))
+    .sort((a, b) => b.count - a.count);
 
-  // ---- Task health — the same four data-grounded buckets as Individual
-  // View used before it was trimmed from that page: Blocked only from a
-  // real open-blocker join, Pending from status, Attention only for a
-  // completed-but-unreviewed row (a real condition, not a guess), Healthy
-  // otherwise.
-  let healthy = 0; let attention = 0; let blockedCount = 0; let pendingHealth = 0;
-  for (const r of rows) {
-    if (isBlocked(r.taskId)) { blockedCount += 1; continue; }
-    if (r.status !== 'Completed') { pendingHealth += 1; continue; }
-    const reviewed = (r.bdmRemarks && r.bdmRemarks.trim()) || r.bdmRemarksBy;
-    if (!reviewed) { attention += 1; continue; }
-    healthy += 1;
-  }
-  const taskHealth = { healthy, attention, blocked: blockedCount, pending: pendingHealth, total: rows.length };
-
-  // ---- Recent team deliveries — newest first, short glance list.
-  const recentDeliveries = [...rows].reverse().slice(0, 8).map((r) => ({
-    id: r.id, displayId: r.displayId, project: r.project || 'Unknown / Other',
-    task: r.taskCompleted, deliverable: r.deliverables, milestone: normalizeMilestone(r.milestone),
-    status: r.status, dueDate: r.dueDate, taskId: r.taskId,
-    memberName: userById.get(r.userId)?.name || 'Unknown',
-  }));
-
-  // ---- Team development journey — same fixed vocabulary as before, now
-  // counting how many people's own entries mention each skill (not just
-  // whether it appears once anywhere), so it reads as team capability
-  // breadth rather than one person's list.
-  const skillMemberCount = new Map();
-  for (const [userId, uRows] of rowsByUser) {
-    const combined = uRows.map(textOf).join(' ');
-    for (const skill of SKILL_VOCAB) {
-      if (combined.includes(skill.toLowerCase())) skillMemberCount.set(skill, (skillMemberCount.get(skill) || 0) + 1);
-    }
-  }
-  const developmentJourney = [...skillMemberCount.entries()]
-    .map(([skill, memberCount]) => ({ skill, memberCount }))
-    .sort((a, b) => b.memberCount - a.memberCount)
-    .slice(0, 10);
-
-  // ---- Heatmap — last 7 calendar days ending TODAY (independent of the
-  // period filter, which can span much longer) x roster member, one of
-  // three states per cell: logged (green), nothing logged (neutral — never
-  // "blocked" merely for being empty), or logged-and-linked-to-an-open-
-  // blocker (red). Built from ALL of that member's rows in the last 7 days,
-  // not the (possibly narrower) filtered `rows` above, so switching Period
-  // doesn't make the heatmap lie about recent activity.
-  const heatmapDays = [...Array(7)].map((_, i) => addDaysISO(TODAY, -(6 - i)));
-  let heatmap = [];
-  if (roster.length > 0) {
-    const placeholders = roster.map(() => '?').join(', ');
-    const recentRows = await prepare(
-      `SELECT user_id as "userId", task_id as "taskId", date FROM daily_updates WHERE user_id IN (${placeholders}) AND date >= ? AND date <= ?`,
-    ).all(...roster.map((u) => u.id), heatmapDays[0], heatmapDays[6]);
-    const byUserDay = new Map();
-    for (const r of recentRows) byUserDay.set(`${r.userId}::${r.date}`, r.taskId);
-    heatmap = roster.map((u) => ({
-      memberId: u.id, memberName: u.name,
-      days: heatmapDays.map((d) => {
-        const key = `${u.id}::${d}`;
-        if (!byUserDay.has(key)) return { date: d, state: 'none' };
-        return { date: d, state: isBlocked(byUserDay.get(key)) ? 'blocked' : 'logged' };
-      }),
-    }));
-  }
-
-  // ---- Tactical discussion — generated from this bundle's own conditions.
-  const discussionPrompts = [];
-  if (pending > 0) discussionPrompts.push('Which pending tasks need immediate attention?');
-  if (blockedRows.length > 0) discussionPrompts.push('Are there any blockers requiring manager support?');
-  const mostPending = [...memberPerformance].sort((a, b) => b.pending - a.pending)[0];
-  if (mostPending && mostPending.pending >= 2) discussionPrompts.push(`Does ${mostPending.name.split(' ')[0]} need support with the pending work?`);
-  if (missingReview.length > 0) discussionPrompts.push('Which recent deliveries should be reviewed?');
-  const topProject = projectDistribution[0];
-  if (topProject && topProject.pct >= 60 && projectDistribution.length > 1) {
-    discussionPrompts.push(`Is the current concentration on ${topProject.label} aligned with this week's priorities?`);
-  }
-  discussionPrompts.push('What should the team focus on next week?');
-
-  res.json({
-    scope, totalMembers: roster.length,
+  return {
+    scope,
+    totalInterns: roster.length,
+    totalEntries, completedEntries, pendingEntries, completionRate,
     availableDepartments: availableDepartments.map((d) => ({ id: d.id, name: d.name })),
     availableTeams: availableTeams.map((t) => ({ id: t.id, name: t.name })),
-    totalUpdates, completed, pending, completionRate,
-    memberPerformance, managerAttention,
-    activityTrend, projectDistribution, activityTypeDistribution,
-    deliveryReliability, taskHealth, recentDeliveries, developmentJourney, heatmap,
-    discussionPrompts,
-  });
+    // `title` lets the frontend offer "Interns"/"Developers" as one-click
+    // bulk picks (matched exactly, case/whitespace-normalized) before
+    // falling back to the "Individual" checkbox list for anyone else
+    // (team leads, managers, or a custom title) — same free-text-normalize
+    // rule as everywhere else in this file, no fixed role enum involved.
+    availableMembers: fullRoster.map((u) => ({ id: u.id, name: u.name, title: u.title })).sort((a, b) => a.name.localeCompare(b.name)),
+    memberPerformance,
+    activityTrend,
+    projectDistribution, activityTypeDistribution,
+  };
+}
+
+router.get('/team', asyncRoute(async (req, res) => {
+  res.json(await getTeamTacticalAnalytics(req.user, req.query));
 }));
 
 router.get('/:internId', asyncRoute(async (req, res) => {
@@ -404,77 +360,10 @@ router.get('/:internId', asyncRoute(async (req, res) => {
 
   const rows = rowsRaw.map((r) => ({ ...r, displayId: r.customTaskId || `DU-${String(r.seq).padStart(4, '0')}` }));
 
-  // Blocker status per linked real Task — a real join result, not a guess
-  // off a blank field (this table has no "blocker" column of its own; see
-  // schema.postgres.sql). No linked task at all means the question genuinely
-  // doesn't apply, not "assumed fine" — kept as its own 'unavailable' state.
-  const linkedTaskIds = [...new Set(rows.map((r) => r.taskId).filter(Boolean))];
-  const blockerByTask = new Map();
-  if (linkedTaskIds.length > 0) {
-    const placeholders = linkedTaskIds.map(() => '?').join(', ');
-    const blockerRows = await prepare(
-      `SELECT linked_task_id as "taskId", status FROM blockers WHERE linked_task_id IN (${placeholders})`,
-    ).all(...linkedTaskIds);
-    for (const b of blockerRows) {
-      const cur = blockerByTask.get(b.taskId);
-      const isOpen = b.status !== 'Resolved' && b.status !== 'Closed';
-      if (!cur || (isOpen && !cur.open)) blockerByTask.set(b.taskId, { open: isOpen, any: true });
-    }
-  }
-  const blockerStateOf = (taskId) => {
-    if (!taskId) return 'unavailable';
-    const b = blockerByTask.get(taskId);
-    if (!b) return 'none';
-    return b.open ? 'blocked' : 'resolved';
-  };
-
   const totalUpdates = rows.length;
   const completed = rows.filter((r) => r.status === 'Completed').length;
   const pending = rows.filter((r) => r.status !== 'Completed').length;
   const completionRate = totalUpdates > 0 ? Math.round((completed / totalUpdates) * 1000) / 10 : 0;
-
-  // ---- Attention items — every one grounded in an explicit condition in
-  // the data, never an inference from missing data (see route-level docs
-  // for the three cases this deliberately gets right: blank Priority,
-  // blank Blocker/no-linked-task, blank Reviewed By all mean "not
-  // recorded", never "low/none/unblocked").
-  const attentionItems = [];
-  const pendingRows = rows.filter((r) => r.status !== 'Completed');
-  for (const r of pendingRows.slice(0, 5)) {
-    attentionItems.push({
-      id: `pending-${r.id}`, type: 'pending', severity: 'high',
-      title: `${r.displayId} is Pending`, detail: r.taskCompleted?.slice(0, 80) || r.project || 'No description',
-      dailyUpdateId: r.id, taskId: r.taskId || null,
-    });
-  }
-  const missingPriority = rows.filter((r) => !r.priority || !r.priority.trim());
-  if (missingPriority.length > 0) {
-    attentionItems.push({
-      id: 'priority-missing', type: 'priority', severity: 'medium',
-      title: 'Priority data not recorded', detail: `${missingPriority.length} of ${totalUpdates} entries have no priority on file`,
-    });
-  }
-  const missingReview = rows.filter((r) => (!r.bdmRemarks || !r.bdmRemarks.trim()) && !r.bdmRemarksBy);
-  if (missingReview.length > 0) {
-    attentionItems.push({
-      id: 'review-missing', type: 'review', severity: 'medium',
-      title: 'Review information not recorded', detail: `${missingReview.length} of ${totalUpdates} entries have no BDM remarks or reviewer on file`,
-    });
-  }
-  if (totalUpdates > 0) {
-    attentionItems.push({
-      id: 'effort-missing', type: 'effort', severity: 'low',
-      title: 'Effort not tracked', detail: 'No estimated/actual effort field exists in the Daily Update record',
-    });
-  }
-  const blockedRows = rows.filter((r) => blockerStateOf(r.taskId) === 'blocked');
-  for (const r of blockedRows) {
-    attentionItems.push({
-      id: `blocked-${r.id}`, type: 'blocker', severity: 'high',
-      title: `${r.displayId} has an open blocker`, detail: r.taskCompleted?.slice(0, 80) || '',
-      dailyUpdateId: r.id, taskId: r.taskId,
-    });
-  }
 
   // ---- Activity trend — weekly (Monday-start) and monthly buckets over the
   // fetched range, both returned so the frontend's Weekly/Monthly toggle
@@ -491,7 +380,7 @@ router.get('/:internId', asyncRoute(async (req, res) => {
   const activityTrend = {
     weekly: buildTrend(
       (d) => isoWeekStart(d),
-      (weekStart) => `${shortLabel(weekStart)}–${shortLabel(addDaysISO(weekStart, 6))}`,
+      (weekStart) => weekRangeLabel(weekStart, addDaysISO(weekStart, 6)),
     ),
     monthly: buildTrend(
       (d) => d.slice(0, 7),
@@ -525,21 +414,6 @@ router.get('/:internId', asyncRoute(async (req, res) => {
     status: r.status, dueDate: r.dueDate, taskId: r.taskId,
   }));
 
-  // ---- Delivery reliability — only rows with BOTH a due date and an actual
-  // close date are counted; everything else is "insufficient data", never
-  // guessed at or silently excluded from the total.
-  let onTime = 0; let oneToTwo = 0; let threePlus = 0; let insufficientCount = 0;
-  for (const r of rows) {
-    if (!r.dueDate || !r.actualCloseDate) { insufficientCount += 1; continue; }
-    const lateDays = daysBetween(r.dueDate, r.actualCloseDate);
-    if (lateDays <= 0) onTime += 1; else if (lateDays <= 2) oneToTwo += 1; else threePlus += 1;
-  }
-  const reliabilityKnown = onTime + oneToTwo + threePlus;
-  const deliveryReliability = {
-    onTime, oneToTwoDaysLate: oneToTwo, threePlusDaysLate: threePlus, insufficientData: insufficientCount,
-    onTimePct: reliabilityKnown > 0 ? Math.round((onTime / reliabilityKnown) * 1000) / 10 : null,
-  };
-
   const currentProjects = [...new Set(rows.slice(-5).map((r) => r.project).filter((p) => p && p.trim() && p.trim() !== '-'))];
 
   res.json({
@@ -550,12 +424,10 @@ router.get('/:internId', asyncRoute(async (req, res) => {
       currentProjects, completionRate, totalUpdates,
     },
     totalUpdates, completed, pending, completionRate,
-    attentionItems,
     activityTrend,
     projectDistribution,
     activityTypeDistribution,
     recentDeliveries,
-    deliveryReliability,
   });
 }));
 
