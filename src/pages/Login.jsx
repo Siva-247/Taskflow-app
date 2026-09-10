@@ -64,7 +64,7 @@ export default function Login() {
           </div>
         </div>
 
-        <div style={{ background: '#FFFFFF', border: '1px solid var(--border)', borderRadius: 14, boxShadow: 'var(--card-shadow)', padding: '26px 24px' }}>
+        <div className="card-glass anim-scale-in" style={{ borderRadius: 18, padding: '26px 24px' }}>
           {mode === 'login' ? (
             <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <Field label="Email" required>

@@ -273,6 +273,23 @@ export function IconX({ size = 20, color = 'var(--text-primary)' }) {
   );
 }
 
+export function IconSun({ size = 17, color = 'var(--text-secondary)' }) {
+  return (
+    <svg {...base(size)} viewBox="0 0 20 20">
+      <circle cx="10" cy="10" r="3.6" stroke={color} strokeWidth="1.6" />
+      <path d="M10 2v2M10 16v2M18 10h-2M4 10H2M15.5 4.5l-1.4 1.4M5.9 14.1l-1.4 1.4M15.5 15.5l-1.4-1.4M5.9 5.9L4.5 4.5" stroke={color} strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+export function IconMoon({ size = 17, color = 'var(--text-secondary)' }) {
+  return (
+    <svg {...base(size)} viewBox="0 0 20 20">
+      <path d="M17 12.5A7 7 0 118 3a5.5 5.5 0 009 9.5z" stroke={color} strokeWidth="1.6" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 export function IconChat({ size = 17, color = 'var(--text-muted)' }) {
   return (
     <svg {...base(size)} viewBox="0 0 20 20">

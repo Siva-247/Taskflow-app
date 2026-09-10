@@ -67,20 +67,141 @@
   --date-soft: #F7E9F7;
   --date-field-bg: rgba(186, 85, 211, 0.12);
 
+  /* A permanently-dark chip surface (tooltips, the Toast) — decoupled from
+     --heading so it stays dark-on-white-text in both themes instead of
+     flipping to light text-on-light-chip when --heading inverts for dark
+     mode. */
+  --ink: #3B0764;
+
   /* type */
   --font-display: 'Outfit', system-ui, -apple-system, sans-serif;
   --font-body: 'Outfit', system-ui, -apple-system, sans-serif;
+
+  /* shape scale — most components still use one-off px radii (18/14/9/999)
+     picked per element rather than this scale; kept here for new work and
+     as the documented source of truth for "how rounded" this system is. */
+  --radius-sm: 0.5rem;
+  --radius: 1rem;
+  --radius-lg: 1.25rem;
+  --radius-xl: 1.5rem;
+  --radius-2xl: 1.8rem;
+  --radius-4xl: 2.6rem;
+
+  /* an 8-tone categorical palette for open-ended categories (departments,
+     project chips, etc.) — distinct from the semantic status colors above */
+  --cat-1: #6D28D9; --cat-2: #10B981; --cat-3: #F59E0B; --cat-4: #4F7CF0;
+  --cat-5: #E0479E; --cat-6: #0891B2; --cat-7: #F43F5E; --cat-8: #64748B;
+
+  color-scheme: light;
+}
+
+/* ==========================================================================
+   Dark mode — every token redefined independently, not a filter/invert.
+   "system" (no explicit choice) follows prefers-color-scheme; an explicit
+   choice (data-theme, set by the toggle in Header) wins either direction.
+   ========================================================================== */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --accent: #8B5CF6;
+    --accent-dark: #A78BFA;
+    --accent-mid: #A78BFA;
+    --accent-deep: #6D28D9;
+    --accent-soft: rgba(167, 139, 250, .14);
+
+    --heading: #EDE9FE;
+    --text-primary: #E4DEF7;
+    --text-secondary: rgba(228, 222, 247, .68);
+    --text-muted: rgba(228, 222, 247, .46);
+    --deep: var(--heading);
+
+    --border: rgba(167, 139, 250, .22);
+    --line: rgba(167, 139, 250, .16);
+    --track-bg: #2A2145;
+    --surface: rgba(167, 139, 250, .09);
+    --surface-strong: rgba(167, 139, 250, .16);
+    --glass: rgba(38, 27, 66, .72);
+    --glass-border: rgba(167, 139, 250, .18);
+    --neutral-bg: #241C3D;
+    --field-bg: #1E1735;
+
+    --card-shadow: 0 4px 24px rgba(0, 0, 0, .25), 0 0 30px 6px rgba(139, 92, 246, .16);
+
+    --page-bg:
+      radial-gradient(ellipse at top right, rgba(245, 197, 24, .07) 0%, transparent 60%),
+      radial-gradient(ellipse at bottom left, rgba(139, 92, 246, .12) 0%, transparent 60%),
+      #150F27;
+    --bg: #150F27;
+
+    --ink: #2E2350;
+    --date-soft: #2E1F42;
+    --date-accent: #D896E8;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --accent: #8B5CF6;
+  --accent-dark: #A78BFA;
+  --accent-mid: #A78BFA;
+  --accent-deep: #6D28D9;
+  --accent-soft: rgba(167, 139, 250, .14);
+
+  --heading: #EDE9FE;
+  --text-primary: #E4DEF7;
+  --text-secondary: rgba(228, 222, 247, .68);
+  --text-muted: rgba(228, 222, 247, .46);
+  --deep: var(--heading);
+
+  --border: rgba(167, 139, 250, .22);
+  --line: rgba(167, 139, 250, .16);
+  --track-bg: #2A2145;
+  --surface: rgba(167, 139, 250, .09);
+  --surface-strong: rgba(167, 139, 250, .16);
+  --glass: rgba(38, 27, 66, .72);
+  --glass-border: rgba(167, 139, 250, .18);
+  --neutral-bg: #241C3D;
+  --field-bg: #1E1735;
+
+  --card-shadow: 0 4px 24px rgba(0, 0, 0, .25), 0 0 30px 6px rgba(139, 92, 246, .16);
+
+  --page-bg:
+    radial-gradient(ellipse at top right, rgba(245, 197, 24, .07) 0%, transparent 60%),
+    radial-gradient(ellipse at bottom left, rgba(139, 92, 246, .12) 0%, transparent 60%),
+    #150F27;
+  --bg: #150F27;
+
+  --ink: #2E2350;
+  --date-soft: #2E1F42;
+  --date-accent: #D896E8;
+  color-scheme: dark;
 }
 
 * {
   box-sizing: border-box;
 }
 
-html, body, #root {
+html {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+  font-size: 15px;
+}
+
+body, #root {
   margin: 0;
   padding: 0;
   min-height: 100%;
 }
+
+/* Custom scrollbars — thin, tinted to the theme's own border color rather
+   than the browser default, on any element (not just the page) that scrolls. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb { background: var(--border); border-radius: 999px; border: 2px solid transparent; background-clip: padding-box; }
+*::-webkit-scrollbar-thumb:hover { background: var(--muted); background-clip: padding-box; }
 
 body {
   background: var(--page-bg);
@@ -118,7 +239,7 @@ input, select, textarea {
 input:focus, select:focus, textarea:focus {
   outline: none !important;
   border-color: var(--accent) !important;
-  background: #FFFFFF !important;
+  background: var(--field-bg) !important;
   box-shadow: 0 0 0 3px var(--accent-soft), 0 0 16px -4px rgba(124, 58, 237, 0.35) !important;
 }
 
@@ -214,8 +335,12 @@ input:focus, select:focus, textarea:focus {
   background: var(--glass); border: 1px solid var(--glass-border); color: var(--brand);
   box-shadow: 0 1px 2px rgba(59, 30, 112, .06), inset 0 1px 0 rgba(255, 255, 255, .5);
 }
-.btn-glass:hover:not(:disabled) { background: #FFFFFF; border-color: var(--brand); }
+.btn-glass:hover:not(:disabled) { background: var(--field-bg); border-color: var(--brand); }
 .btn-glass:active:not(:disabled) { transform: translateY(1px); }
+
+.btn-ghost { background: transparent; border: 0; color: var(--muted-strong); }
+.btn-ghost:hover:not(:disabled) { background: var(--surface); color: var(--brand); }
+.btn-ghost:active:not(:disabled) { transform: translateY(1px); }
 
 .header-icon-btn { transition: background .12s ease; }
 .header-icon-btn:hover { background: var(--surface); }
@@ -437,7 +562,7 @@ input:focus, select:focus, textarea:focus {
 .chat-row:hover { background: var(--field-bg); }
 .chat-composer-input { transition: border-color 0.15s ease, box-shadow 0.15s ease; }
 .chat-composer-input:focus {
-  outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); background: #FFFFFF;
+  outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); background: var(--field-bg);
 }
 .chat-bubble-row:hover .chat-bubble-toolbar { opacity: 1 !important; }
 .chat-bubble-toolbar button:hover { background: var(--accent-soft) !important; }

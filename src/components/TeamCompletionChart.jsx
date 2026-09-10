@@ -77,7 +77,7 @@ function MemberColumn({ member, max, hovered, onHover }) {
       {hovered && (
         <div style={{
           position: 'absolute', bottom: CHART_HEIGHT + 30, left: '50%', transform: 'translateX(-50%)',
-          background: 'var(--heading)', color: '#FFFFFF', borderRadius: 8, padding: '9px 13px',
+          background: 'var(--ink)', color: '#FFFFFF', borderRadius: 8, padding: '9px 13px',
           whiteSpace: 'nowrap', zIndex: 3, boxShadow: '0 8px 20px -8px rgba(0,0,0,0.4)',
         }}>
           <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 11.5, marginBottom: 5 }}>{member.name}</div>

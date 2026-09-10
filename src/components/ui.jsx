@@ -100,6 +100,7 @@ const BUTTON_VARIANT_CLASS = {
   secondary: 'btn-3d btn-glass',
   accentOutline: 'btn-3d btn-glass',
   danger: 'btn-3d btn-3d-danger',
+  ghost: 'btn-3d btn-ghost',
 };
 
 export function Button({ variant = 'primary', children, onClick, style, type = 'button', disabled, className }) {
@@ -291,7 +292,7 @@ export function Toast({ message }) {
   return (
     <div className="anim-drop-in" style={{
       position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)',
-      background: 'var(--heading)', color: '#FFFFFF', padding: '12px 22px', borderRadius: 999,
+      background: 'var(--ink)', color: '#FFFFFF', padding: '12px 22px', borderRadius: 999,
       fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: 13.5,
       boxShadow: '0 10px 28px -10px rgba(0,0,0,0.35)', zIndex: 1000,
     }}>

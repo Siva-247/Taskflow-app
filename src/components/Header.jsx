@@ -1,10 +1,21 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext.jsx';
-import { IconLogo, IconBell, IconCheckCircle, IconPlusCircle, IconUser, IconMenu, IconAlertTriangle } from './icons.jsx';
+import { IconLogo, IconBell, IconCheckCircle, IconPlusCircle, IconUser, IconMenu, IconAlertTriangle, IconSun, IconMoon } from './icons.jsx';
 import { Avatar } from './ui.jsx';
 import ProfilePanel from './ProfilePanel.jsx';
 import { roleHome, formatDate } from '../utils.js';
+
+// "system" (no stored choice) is read live off the media query each time,
+// so the initial value here only matters for the very first paint — the
+// index.html inline script already stamped data-theme before React mounted
+// if the person had picked one explicitly, avoiding a flash either way.
+function currentIsDark() {
+  const explicit = document.documentElement.getAttribute('data-theme');
+  if (explicit === 'light') return false;
+  if (explicit === 'dark') return true;
+  return window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false;
+}
 
 const NOTIFICATION_ICON = {
   assigned: (color) => <IconPlusCircle size={14} color={color} />,
@@ -21,10 +32,22 @@ export default function Header({ onMenuClick }) {
   const navigate = useNavigate();
   const [profileOpen, setProfileOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
+  const [isDark, setIsDark] = useState(currentIsDark);
 
   if (!currentUser) return null;
 
   const unreadCount = notifications.filter((n) => !n.read).length;
+
+  const toggleTheme = () => {
+    const next = isDark ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    try {
+      localStorage.setItem('theme', next);
+    } catch {
+      // localStorage unavailable — the choice just won't persist across reloads
+    }
+    setIsDark(!isDark);
+  };
 
   const handleNotificationClick = (n) => {
     setNotifOpen(false);
@@ -51,6 +74,14 @@ export default function Header({ onMenuClick }) {
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 18, flexShrink: 0 }}>
+        <div
+          onClick={toggleTheme}
+          className="header-icon-btn"
+          title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+          style={{ width: 34, height: 34, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+        >
+          {isDark ? <IconSun size={17} /> : <IconMoon size={17} />}
+        </div>
         <div style={{ position: 'relative' }}>
           <div
             onClick={() => { setNotifOpen((v) => !v); setProfileOpen(false); }}

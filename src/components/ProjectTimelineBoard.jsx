@@ -24,7 +24,10 @@ const GROUP_HEADER_HEIGHT = 34;
 // First-seen-across-the-dataset order, not alphabetical, so the same
 // project keeps the same color as the date range changes and new/older
 // projects scroll in and out of view.
-const PALETTE = ['#7C3AED', '#2F80ED', '#F2994A', '#27AE60', '#EB5757', '#9B51E0', '#219EBC', '#E85D75', '#0F9D8C', '#C2410C'];
+const PALETTE = [
+  'var(--cat-1)', 'var(--cat-2)', 'var(--cat-3)', 'var(--cat-4)',
+  'var(--cat-5)', 'var(--cat-6)', 'var(--cat-7)', 'var(--cat-8)',
+];
 
 function colorFor(project, colorByProject) {
   if (!colorByProject.has(project)) colorByProject.set(project, PALETTE[colorByProject.size % PALETTE.length]);
@@ -255,7 +258,7 @@ export default function ProjectTimelineBoard({ title, today, groupByDepartment =
       ) : (
         <div style={{ overflowX: 'auto', marginTop: 20, borderTop: '1px solid var(--border)' }}>
           <div style={{ display: 'flex', minWidth: NAME_COL_WIDTH + gridWidth }}>
-            <div style={{ flexShrink: 0, width: NAME_COL_WIDTH, position: 'sticky', left: 0, zIndex: 2, background: '#FFFFFF', boxShadow: '3px 0 8px -4px rgba(23,18,38,0.08)' }}>
+            <div style={{ flexShrink: 0, width: NAME_COL_WIDTH, position: 'sticky', left: 0, zIndex: 2, background: 'var(--glass)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', boxShadow: '3px 0 8px -4px rgba(23,18,38,0.08)' }}>
               <div style={{ height: 40, borderBottom: '1px solid var(--border)' }} />
               {renderItems.map((item, i) => (item.type === 'header' ? (
                 <div key={`h-${item.label}-${i}`} style={{
@@ -330,7 +333,7 @@ export default function ProjectTimelineBoard({ title, today, groupByDepartment =
                         </span>
                         {hoveredSeg === segId && (
                           <div style={{
-                            position: 'absolute', bottom: '100%', left: 0, marginBottom: 8, background: 'var(--heading)', color: '#FFFFFF',
+                            position: 'absolute', bottom: '100%', left: 0, marginBottom: 8, background: 'var(--ink)', color: '#FFFFFF',
                             borderRadius: 9, padding: '9px 13px', whiteSpace: 'nowrap', zIndex: 3, boxShadow: '0 10px 24px -8px rgba(0,0,0,0.45)',
                           }}>
                             <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 11.5, marginBottom: 4 }}>{seg.project}</div>
