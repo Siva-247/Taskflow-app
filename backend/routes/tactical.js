@@ -312,15 +312,14 @@ async function getTeamTacticalAnalytics(user, query) {
     .sort((a, b) => b.count - a.count);
 
   // ---- Team's Current Projects — same project grouping as Work
-  // Distribution above (case/whitespace-normalized, majority-vote display),
-  // but surfaced per-project rather than aggregated: who's contributing,
-  // what the most recent entry says. "Current" means the project has
-  // activity within the selected filters, same as Work Distribution — NOT
-  // gated by the latest entry's status, because on this schema `status` on
-  // a Daily Update row means "today's logged task is done", not "the whole
-  // project is finished"; every project's most recent entry is routinely
-  // Completed while the project itself is still very much ongoing.
-  const userById = new Map(roster.map((u) => [u.id, u]));
+  // Distribution above (case/whitespace-normalized, majority-vote display)
+  // — day-by-day entries per roster member, feeding the calendar/gantt
+  // presentation of Team's Current Projects. Uses the SAME majority-vote
+  // canonical label per project key as projectDistribution above (not each
+  // row's own raw spelling) — the calendar merges consecutive same-project
+  // days into one bar, and two rows that are the same real project but
+  // differently cased ("Develop" one day, "develop" the next) would
+  // otherwise fragment into two bars.
   const projectEntryGroups = new Map(); // normKey -> { displayVotes, entries: [] }
   for (const r of rows) {
     const collapsed = collapseText(r.project);
@@ -331,19 +330,20 @@ async function getTeamTacticalAnalytics(user, query) {
     g.displayVotes.set(display, (g.displayVotes.get(display) || 0) + 1);
     g.entries.push(r);
   }
-  const currentProjects = [...projectEntryGroups.values()]
-    .map((g) => {
-      const label = [...g.displayVotes.entries()].sort((a, b) => b[1] - a[1])[0][0];
-      const sorted = [...g.entries].sort((a, b) => (a.date !== b.date ? (a.date < b.date ? 1 : -1) : b.seq - a.seq));
-      const latest = sorted[0];
-      const contributors = [...new Map(g.entries.map((e) => [e.userId, userById.get(e.userId)?.name || 'Unknown'])).entries()]
-        .map(([id, name]) => ({ id, name }));
-      return {
-        project: label, contributors, updateCount: g.entries.length,
-        latestStatus: latest.status, latestDate: latest.date, latestMilestone: latest.milestone,
-      };
-    })
-    .sort((a, b) => (a.latestDate < b.latestDate ? 1 : a.latestDate > b.latestDate ? -1 : 0));
+  const projectLabelByKey = new Map();
+  for (const [key, g] of projectEntryGroups) {
+    projectLabelByKey.set(key, [...g.displayVotes.entries()].sort((a, b) => b[1] - a[1])[0][0]);
+  }
+  const timeline = roster.map((u) => ({
+    id: u.id, name: u.name, title: u.title, departmentName: u.departmentName,
+    entries: (rowsByUser.get(u.id) || [])
+      .map((r) => {
+        const collapsed = collapseText(r.project);
+        const key = collapsed ? collapsed.toLowerCase() : '__blank__';
+        return { date: r.date, project: projectLabelByKey.get(key), status: r.status };
+      })
+      .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0)),
+  }));
 
   return {
     scope,
@@ -360,7 +360,7 @@ async function getTeamTacticalAnalytics(user, query) {
     memberPerformance,
     activityTrend,
     projectDistribution, activityTypeDistribution,
-    currentProjects,
+    timeline,
   };
 }
 
