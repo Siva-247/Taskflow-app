@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { Avatar } from '../ui.jsx';
 
 // Shared building blocks between the Tactical Meeting Individual and Team
 // views — same visual language (frosted cards, the violet categorical
@@ -168,6 +169,82 @@ export function TrendBarChart({ buckets, series, granularity = 'weekly', height 
                 )}
               </div>
               <span title={b.label} style={{ fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: 10, color: 'var(--text-muted)', textAlign: 'center', lineHeight: 1.25 }}>{b.label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Team Activity Trend, per the reference mock: one paired Total-Entries/
+// Completed bar per TEAM MEMBER (not per time bucket), with that member's
+// avatar, name, and completion rate labelled underneath. Deliberately fed
+// the exact same array Team Performance Overview's table renders
+// (`sortedMembers` — already search-filtered and sorted) so the chart and
+// the table can never disagree about who's shown or in what order.
+const MEMBER_COL_WIDTH = 74;
+export function MemberBarChart({ members, height = 150 }) {
+  const [hovered, setHovered] = useState(null);
+  if (members.length === 0) return <EmptyNote>No members match.</EmptyNote>;
+  const max = Math.max(1, ...members.flatMap((m) => [m.totalEntries, m.completed]));
+  const barAreaHeight = height - 34;
+  const GRID_DIVISIONS = 4;
+  const ticks = [...new Set([...Array(GRID_DIVISIONS + 1)].map((_, i) => Math.round((max * i) / GRID_DIVISIONS)))];
+  const gridBackground = `repeating-linear-gradient(to top, var(--line) 0, var(--line) 1px, transparent 1px, transparent ${barAreaHeight / GRID_DIVISIONS}px)`;
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 10 }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+          <span style={{ width: 8, height: 8, borderRadius: 2, background: 'var(--accent-deep)', flexShrink: 0 }} />
+          <span style={{ fontFamily: 'var(--font-body)', fontSize: 11, color: 'var(--text-secondary)' }}>Total Entries</span>
+        </span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+          <span style={{ width: 8, height: 8, borderRadius: 2, background: 'var(--accent-mid)', flexShrink: 0 }} />
+          <span style={{ fontFamily: 'var(--font-body)', fontSize: 11, color: 'var(--text-secondary)' }}>Completed</span>
+        </span>
+      </div>
+      <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ flexShrink: 0, width: 20, height: barAreaHeight, marginTop: 18, position: 'relative' }}>
+          {ticks.map((t) => (
+            <span key={t} style={{ position: 'absolute', right: 0, bottom: (t / max) * barAreaHeight - 6, fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: 9.5, color: 'var(--text-muted)' }}>{t}</span>
+          ))}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10, overflowX: 'auto', paddingBottom: 2, flex: 1 }}>
+          {members.map((m) => (
+            <div key={m.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, flex: '0 0 auto', width: MEMBER_COL_WIDTH }}>
+              <span style={{ fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: 11, color: 'var(--heading)' }}>{m.totalEntries}</span>
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, height: barAreaHeight, background: gridBackground, position: 'relative' }}>
+                <div
+                  className="anim-scale-in"
+                  onMouseEnter={() => setHovered(m.id)} onMouseLeave={() => setHovered(null)}
+                  style={{ width: 16, height: Math.max(4, (m.totalEntries / max) * barAreaHeight), borderRadius: '5px 5px 2px 2px', background: 'var(--accent-deep)', cursor: 'default' }}
+                />
+                <div
+                  className="anim-scale-in"
+                  onMouseEnter={() => setHovered(m.id)} onMouseLeave={() => setHovered(null)}
+                  style={{ width: 16, height: Math.max(4, (m.completed / max) * barAreaHeight), borderRadius: '5px 5px 2px 2px', background: 'var(--accent-mid)', cursor: 'default' }}
+                />
+                {hovered === m.id && (
+                  <div style={{
+                    position: 'absolute', bottom: '100%', left: '50%', transform: 'translateX(-50%)', marginBottom: 8, zIndex: 5,
+                    background: 'var(--ink)', color: '#FFFFFF', borderRadius: 9, padding: '9px 13px', whiteSpace: 'nowrap',
+                    boxShadow: '0 10px 24px -8px rgba(0,0,0,0.45)',
+                  }}>
+                    <div style={{ fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: 11.5, marginBottom: 4 }}>{m.name}</div>
+                    <div style={{ fontFamily: 'var(--font-body)', fontWeight: 500, fontSize: 11 }}>Total entries: {m.totalEntries}</div>
+                    <div style={{ fontFamily: 'var(--font-body)', fontWeight: 500, fontSize: 11 }}>Completed: {m.completed}</div>
+                    <div style={{ fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: 11, marginTop: 2, color: '#D9CBFB' }}>
+                      {m.totalEntries > 0 ? `${m.completionRate}% completion rate` : 'No entries in this range'}
+                    </div>
+                  </div>
+                )}
+              </div>
+              <Avatar initial={m.name[0]} size={24} gradient />
+              <span title={m.name} style={{ fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: 10.5, color: 'var(--text-primary)', textAlign: 'center', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.name}</span>
+              <span style={{ padding: '2px 8px', borderRadius: 999, background: 'var(--accent-soft)', fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: 10, color: 'var(--brand)', whiteSpace: 'nowrap' }}>
+                {m.totalEntries > 0 ? `${m.completionRate}%` : 'No entries'}
+              </span>
             </div>
           ))}
         </div>

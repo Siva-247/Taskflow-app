@@ -7,7 +7,7 @@ import {
   IconTaskList, IconCheckCircle, IconPending, IconTarget, IconUsersGroup, IconBarChart, IconLayers, IconClipboard,
 } from '../icons.jsx';
 import {
-  CHART_COLORS, periodPresets, FilterField, MultiSelectField, GenericDonut, KpiCard, SectionTitle, EmptyNote, TrendBarChart,
+  CHART_COLORS, periodPresets, FilterField, MultiSelectField, GenericDonut, KpiCard, SectionTitle, EmptyNote, MemberBarChart,
 } from './shared.jsx';
 import TeamProjectCalendar from './TeamProjectCalendar.jsx';
 
@@ -61,7 +61,6 @@ export default function TeamTacticalView({ onSelectMember }) {
   const [periodKey, setPeriodKey] = useState('30d');
   const [customFrom, setCustomFrom] = useState('');
   const [customTo, setCustomTo] = useState('');
-  const [trendGranularityOverride, setTrendGranularityOverride] = useState(null);
   const [search, setSearch] = useState('');
   const [sortKey, setSortKey] = useState('name');
   const [data, setData] = useState(null);
@@ -84,14 +83,13 @@ export default function TeamTacticalView({ onSelectMember }) {
     if (memberMode === 'interns') params.set('titleGroup', 'intern');
     else if (memberMode === 'developers') params.set('titleGroup', 'developer');
     else if (memberMode === 'individual' && individualSelectedIds.length > 0) params.set('memberIds', individualSelectedIds.join(','));
-    if (trendGranularityOverride) params.set('granularity', trendGranularityOverride);
     apiCall(`/tactical/team?${params.toString()}`)
       .then((r) => { if (!cancelled) setData(r); })
       .catch(() => { if (!cancelled) showToast('Could not load the team tactical data'); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [teamFilter, departmentFilter, memberMode, individualSelectedIds, effectiveFrom, effectiveTo, waitingOnCustomRange, trendGranularityOverride]);
+  }, [teamFilter, departmentFilter, memberMode, individualSelectedIds, effectiveFrom, effectiveTo, waitingOnCustomRange]);
 
   // Switching Department (admin only) can strand the Team filter on a team
   // that no longer belongs to it, and strand an Individual selection on
@@ -99,10 +97,6 @@ export default function TeamTacticalView({ onSelectMember }) {
   // silently filtering by ids the new department doesn't recognize.
   useEffect(() => { setTeamFilter('all'); setMemberMode('all'); setIndividualSelectedIds([]); }, [departmentFilter]);
   useEffect(() => { setMemberMode('all'); setIndividualSelectedIds([]); }, [teamFilter]);
-  // A period change invalidates a manually-picked trend granularity (Daily
-  // over "All Time" would render hundreds of bars) — fall back to the
-  // server's own sensible default for the new range.
-  useEffect(() => { setTrendGranularityOverride(null); }, [periodKey]);
 
   const filterRow = (
     <Card style={{ padding: '18px 22px' }}>
@@ -161,11 +155,8 @@ export default function TeamTacticalView({ onSelectMember }) {
 
   const {
     totalInterns, totalEntries, completedEntries, pendingEntries, completionRate,
-    memberPerformance, activityTrend, projectDistribution, activityTypeDistribution, timeline,
+    memberPerformance, projectDistribution, activityTypeDistribution, timeline,
   } = data;
-
-  const activeGranularity = trendGranularityOverride || activityTrend.granularity;
-  const trendBuckets = activityTrend.buckets;
 
   const totalActiveDays = projectDistribution.reduce((s, p) => s + p.activeDays, 0);
   const projectSegments = capDonutSegments(projectDistribution.map((p, i) => ({ label: p.label, count: p.activeDays, pct: p.pct, color: CHART_COLORS[i % CHART_COLORS.length] })));
@@ -250,21 +241,11 @@ export default function TeamTacticalView({ onSelectMember }) {
         </Card>
 
         <Card>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-            <SectionTitle icon={<IconBarChart size={16} color="var(--accent)" />}>Team Activity Trend</SectionTitle>
-            <Select
-              value={activeGranularity} onChange={setTrendGranularityOverride}
-              options={[{ value: 'daily', label: 'Daily' }, { value: 'weekly', label: 'Weekly' }, { value: 'monthly', label: 'Monthly' }]}
-            />
+          <SectionTitle icon={<IconBarChart size={16} color="var(--accent)" />}>Team Activity Trend</SectionTitle>
+          <div style={{ fontFamily: 'var(--font-body)', fontWeight: 500, fontSize: 11.5, color: 'var(--text-muted)', marginTop: 2, marginBottom: 14 }}>
+            One bar pair per team member — same people, same search/sort, as Team Performance Overview.
           </div>
-          <TrendBarChart
-            buckets={trendBuckets}
-            series={[
-              { key: 'total', color: 'var(--accent-deep)', label: 'Total Entries' },
-              { key: 'completed', color: 'var(--accent-mid)', label: 'Completed' },
-            ]}
-            granularity={activeGranularity}
-          />
+          <MemberBarChart members={sortedMembers} />
         </Card>
       </div>
 
