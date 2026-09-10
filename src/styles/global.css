@@ -368,6 +368,16 @@ input:focus, select:focus, textarea:focus {
 .table-glass-head {
   background: var(--brand-grad); color: #FFFFFF;
 }
+/* For the CSS-grid "table" header rows outside Tactical Meeting (Update
+   History, Reviews/Approvals, Blocker Register, My Team, Manager Dashboard,
+   Employees) — a plain div row styled inline as a grid, not a real
+   <table>/<thead>, so it can't take .table-glass-head directly. Same
+   brand-purple gradient as that class, just under its own name since it's
+   applied to a div, not a real <thead>. */
+.table-head-brand {
+  background: var(--brand-grad); color: #FFFFFF;
+}
+.table-head-brand * { color: #FFFFFF !important; }
 .table-glass-row { transition: background .12s ease; border-bottom: 1px solid var(--line); }
 .table-glass-row:hover { background: rgba(124, 58, 237, .12); }
 .table-glass-row.selected { box-shadow: inset 3px 0 0 var(--brand); }

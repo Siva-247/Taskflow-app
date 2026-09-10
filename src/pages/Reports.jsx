@@ -107,7 +107,7 @@ export default function Reports() {
       <Card padded={false}>
         <div style={{ overflowX: 'auto' }}>
           <div style={{ minWidth: 860 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1.8fr 1.1fr 1fr 0.8fr 1.1fr 0.8fr 0.8fr', padding: '12px 22px', background: 'var(--field-bg)', borderBottom: '1px solid var(--border)' }}>
+            <div className="table-head-brand" style={{ display: 'grid', gridTemplateColumns: '1.8fr 1.1fr 1fr 0.8fr 1.1fr 0.8fr 0.8fr', padding: '12px 22px', borderBottom: '1px solid var(--border)' }}>
               {['Task', 'Assignee', 'Team', 'Priority', 'Status', 'Progress', 'Due'].map((h) => (
                 <div key={h} style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 11.5, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>{h}</div>
               ))}

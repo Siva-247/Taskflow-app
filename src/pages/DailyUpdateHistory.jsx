@@ -373,7 +373,7 @@ export default function DailyUpdateHistory() {
         </div>
         <div style={{ overflowX: 'auto' }}>
           <div style={{ minWidth: tableWidth }}>
-            <div style={{ display: 'grid', gridTemplateColumns: gridTemplate, background: 'var(--field-bg)', borderBottom: '2px solid var(--border)' }}>
+            <div className="table-head-brand" style={{ display: 'grid', gridTemplateColumns: gridTemplate, borderBottom: '2px solid var(--border)' }}>
               {COLUMNS.map((col) => (
                 <div
                   key={col.key}

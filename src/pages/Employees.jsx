@@ -204,7 +204,7 @@ export default function Employees() {
               </div>
               <div style={{ overflowX: 'auto' }}>
                 <div style={{ minWidth: 800 }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr 1fr 0.7fr 0.9fr 1.2fr', padding: '10px 22px', marginTop: 8, background: 'var(--field-bg)' }}>
+                  <div className="table-head-brand" style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr 1fr 0.7fr 0.9fr 1.2fr', padding: '10px 22px', marginTop: 8 }}>
                     {['Employee', 'Team', 'Role', 'Assigned', 'Completed', 'Status'].map((h) => (
                       <div key={h} style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 11, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>{h}</div>
                     ))}
@@ -245,7 +245,7 @@ export default function Employees() {
         <Card padded={false}>
           <div style={{ overflowX: 'auto' }}>
             <div style={{ minWidth: 760 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1.1fr 0.9fr 0.8fr 1fr 1fr', padding: '12px 22px', background: 'var(--field-bg)', borderBottom: '1px solid var(--border)' }}>
+              <div className="table-head-brand" style={{ display: 'grid', gridTemplateColumns: '1.6fr 1.1fr 0.9fr 0.8fr 1fr 1fr', padding: '12px 22px', borderBottom: '1px solid var(--border)' }}>
                 {['Employee', 'Team', 'Role', 'Assigned', 'Completed', 'Status'].map((h) => (
                   <div key={h} style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 11.5, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>{h}</div>
                 ))}

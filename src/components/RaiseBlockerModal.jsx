@@ -96,7 +96,15 @@ export default function RaiseBlockerModal({ onClose, blocker }) {
   };
 
   return (
-    <Modal title={isEdit ? 'Update blocker' : 'Raise a blocker'} onClose={onClose} maxWidth={640}>
+    <Modal
+      title={isEdit ? 'Update blocker' : 'Raise a blocker'} onClose={onClose} maxWidth={640}
+      footer={(
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+          <Button variant="secondary" onClick={onClose}>Cancel</Button>
+          <Button variant="primary" onClick={handleSubmit} disabled={saving}>{isEdit ? 'Save changes' : 'Raise blocker'}</Button>
+        </div>
+      )}
+    >
       <Field label="Description" required>
         <TextArea value={description} onChange={setDescription} placeholder="What's blocked, and why?" minHeight={56} />
       </Field>
@@ -179,10 +187,6 @@ export default function RaiseBlockerModal({ onClose, blocker }) {
         </>
       )}
 
-      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 22 }}>
-        <Button variant="secondary" onClick={onClose}>Cancel</Button>
-        <Button variant="primary" onClick={handleSubmit} disabled={saving}>{isEdit ? 'Save changes' : 'Raise blocker'}</Button>
-      </div>
     </Modal>
   );
 }

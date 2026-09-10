@@ -190,7 +190,15 @@ export function Select({ value, onChange, options }) {
   );
 }
 
-export function Modal({ title, children, onClose, maxWidth = 400 }) {
+// `footer` is optional and, when given, is pinned outside the scrolling
+// body (its own row, divided by a hairline) — without it, a form with
+// enough fields to exceed 90vh put its Cancel/Submit buttons inside the
+// same scrollable region as the title and fields, so they could scroll out
+// of view entirely, reading as the dialog "not opening completely" rather
+// than "needs one more scroll". `title` is pinned at the top for the same
+// reason. Callers that don't pass `footer` keep their submit/cancel row as
+// part of `children`, unaffected.
+export function Modal({ title, children, footer, onClose, maxWidth = 400 }) {
   return (
     <div
       onClick={onClose}
@@ -204,11 +212,22 @@ export function Modal({ title, children, onClose, maxWidth = 400 }) {
         onClick={(e) => e.stopPropagation()}
         className="card-glass anim-pop"
         style={{
-          borderRadius: 20, padding: '26px 28px', maxWidth, width: '100%', maxHeight: '90vh', overflowY: 'auto',
+          borderRadius: 20, maxWidth, width: '100%', maxHeight: '90vh', display: 'flex', flexDirection: 'column',
         }}
       >
-        {title && <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 17, color: 'var(--heading)', marginBottom: 10 }}>{title}</div>}
-        {children}
+        {title && (
+          <div style={{ padding: '26px 28px 0', flexShrink: 0, fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 17, color: 'var(--heading)' }}>
+            {title}
+          </div>
+        )}
+        <div style={{ padding: `${title ? 10 : 26}px 28px ${footer ? 16 : 26}px`, overflowY: 'auto', minHeight: 0, flex: '1 1 auto' }}>
+          {children}
+        </div>
+        {footer && (
+          <div style={{ padding: '14px 28px 26px', flexShrink: 0, borderTop: '1px solid var(--line)' }}>
+            {footer}
+          </div>
+        )}
       </div>
     </div>
   );

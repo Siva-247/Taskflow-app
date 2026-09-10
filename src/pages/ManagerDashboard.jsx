@@ -82,7 +82,7 @@ export default function ManagerDashboard() {
         <div style={{ padding: '22px 26px 4px', fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 15.5, color: 'var(--heading)' }}>Team performance</div>
         <div style={{ overflowX: 'auto' }}>
           <div style={{ minWidth: 720 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr 1fr 1fr 1fr 1.2fr', padding: '12px 26px', marginTop: 12, background: 'var(--field-bg)' }}>
+            <div className="table-head-brand" style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr 1fr 1fr 1fr 1.2fr', padding: '12px 26px', marginTop: 12 }}>
               {['Team', 'Team Lead', 'Total Tasks', 'Completed', 'In Progress', 'Completion Rate'].map((h) => (
                 <div key={h} style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 11.5, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>{h}</div>
               ))}

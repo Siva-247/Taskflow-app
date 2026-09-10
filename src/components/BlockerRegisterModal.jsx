@@ -5,7 +5,7 @@ import { canManage } from '../data/hierarchy.js';
 import { Card, Select, Button, Modal, Pagination, PAGE_SIZE } from './ui.jsx';
 import RaiseBlockerModal from './RaiseBlockerModal.jsx';
 import DatePicker from './DatePicker.jsx';
-import { IconSearch, IconDownload, IconAlertTriangle } from './icons.jsx';
+import { IconSearch, IconDownload, IconAlertTriangle, IconX } from './icons.jsx';
 import { formatDate, downloadCsv } from '../utils.js';
 
 const STATUS_OPTIONS = Object.values(BLOCKER_STATUS);
@@ -42,9 +42,12 @@ function BlockerStatusBadge({ status }) {
 
 const friendlyId = (b) => `BLK-${String(b.seq).padStart(4, '0')}`;
 
-// Opens as a popup from anywhere (the Daily Updates button, a notification
-// click) rather than a routed page — see blockerRegisterOpen/openBlockerRegister
-// in AppContext.jsx and its mount point in Layout.jsx. Same
+// Opens as a full-page takeover from anywhere (the Daily Updates button, a
+// notification click) rather than a routed page — see blockerRegisterOpen/
+// openBlockerRegister in AppContext.jsx and its mount point in Layout.jsx.
+// A fixed full-viewport overlay rather than the shared `Modal` (which
+// centers and caps at 90vh/1200px) — the register's own filter bar + wide
+// table genuinely want the whole screen, not a dialog box. Same
 // raise/edit/delete authority throughout: the raiser, the named owner, or
 // anyone in the raiser's management chain (mirrors canManageTask).
 export default function BlockerRegisterModal({ onClose }) {
@@ -149,7 +152,14 @@ export default function BlockerRegisterModal({ onClose }) {
   const gridTemplate = '0.8fr 1fr 1fr 1.1fr 2fr 1fr 0.9fr 0.6fr 0.9fr 0.9fr 0.9fr 1fr';
 
   return (
-    <Modal title="Blocker Register" onClose={onClose} maxWidth={1200}>
+    <div className="anim-fade" style={{ position: 'fixed', inset: 0, zIndex: 2000, background: 'var(--page-bg)', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexShrink: 0, padding: '22px 32px', borderBottom: '1px solid var(--border)' }}>
+        <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 800, fontSize: 20, color: 'var(--heading)' }}>Blocker Register</div>
+        <Button variant="secondary" onClick={onClose}>
+          <IconX size={14} color="var(--text-secondary)" /> Close
+        </Button>
+      </div>
+      <div style={{ flex: '1 1 auto', overflowY: 'auto', padding: '24px 32px 32px' }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
         <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginTop: -4 }}>
           <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 500, fontSize: 13.5, color: 'var(--text-secondary)' }}>
@@ -204,7 +214,7 @@ export default function BlockerRegisterModal({ onClose }) {
         <Card padded={false} style={{ overflow: 'hidden' }}>
           <div style={{ overflowX: 'auto' }}>
             <div style={{ minWidth: 1360 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: gridTemplate, background: 'var(--field-bg)', borderBottom: '2px solid var(--border)' }}>
+              <div className="table-head-brand" style={{ display: 'grid', gridTemplateColumns: gridTemplate, borderBottom: '2px solid var(--border)' }}>
                 {['ID', 'Raised By', 'Project', 'Category', 'Description', 'Owner To Resolve', 'Target Resolution', 'Days', 'Escalation', 'Status', 'Closed Date', ''].map((h) => (
                   <div key={h} style={{ padding: '11px 14px', borderRight: '1px solid var(--border)', fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 11, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>
                     {h}
@@ -276,6 +286,7 @@ export default function BlockerRegisterModal({ onClose }) {
 
         <Pagination page={page} totalItems={sorted.length} onChange={setPage} />
       </div>
+      </div>
 
       {showRaise && <RaiseBlockerModal onClose={() => setShowRaise(false)} />}
       {editingBlocker && <RaiseBlockerModal blocker={editingBlocker} onClose={() => setEditingBlocker(null)} />}
@@ -291,7 +302,7 @@ export default function BlockerRegisterModal({ onClose }) {
           </div>
         </Modal>
       )}
-    </Modal>
+    </div>
   );
 }
 

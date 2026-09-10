@@ -149,7 +149,7 @@ export default function MyTeam() {
         <div style={{ padding: '22px 26px 4px', fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 15.5, color: 'var(--heading)' }}>Team members</div>
         <div style={{ overflowX: 'auto' }}>
           <div style={{ minWidth: 640 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 0.9fr 0.8fr 1fr 1fr', padding: '12px 26px', marginTop: 12, background: 'var(--field-bg)' }}>
+            <div className="table-head-brand" style={{ display: 'grid', gridTemplateColumns: '1.6fr 0.9fr 0.8fr 1fr 1fr', padding: '12px 26px', marginTop: 12 }}>
               {['Employee', 'Role', 'Assigned', 'Completed', 'Status'].map((h) => (
                 <div key={h} style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 11.5, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>{h}</div>
               ))}
