@@ -48,12 +48,12 @@ const MILESTONE_CANON = [
 ];
 // Case/spelling variants collapse into one bucket (per-entry, never
 // invented) — anything not recognized, or genuinely blank, is its own
-// honest "Unclassified" bucket rather than silently dropped or guessed at.
+// honest "Other" bucket rather than silently dropped or guessed at.
 function normalizeMilestone(raw) {
   const v = (raw || '').trim().toLowerCase();
-  if (!v) return 'Unclassified';
+  if (!v) return 'Other';
   const hit = MILESTONE_CANON.find((m) => m.match.some((token) => v === token || v.includes(token)));
-  return hit ? hit.canon : (raw.trim() || 'Unclassified');
+  return hit ? hit.canon : (raw.trim() || 'Other');
 }
 
 function isoWeekStart(dateStr) {
@@ -265,7 +265,7 @@ async function getTeamTacticalAnalytics(user, query) {
   // values (case/whitespace normalized only, see buildFreeTextGroups) —
   // a brand new milestone entered tomorrow appears automatically, no enum
   // to update.
-  const milestoneGroups = buildFreeTextGroups(rows, (r) => r.milestone, 'Unclassified');
+  const milestoneGroups = buildFreeTextGroups(rows, (r) => r.milestone, 'Other');
   const totalForActivityType = rows.length || 1;
   const activityTypeDistribution = milestoneGroups
     .map((gr) => ({ label: gr.label, count: gr.count, pct: Math.round((gr.count / totalForActivityType) * 1000) / 10 }))
@@ -396,19 +396,37 @@ router.get('/:internId', asyncRoute(async (req, res) => {
       .map(([key, count]) => ({ label: key, count, pct: Math.round((count / total) * 1000) / 10 }))
       .sort((a, b) => b.count - a.count);
   }
-  const projectDistribution = distributionOf(rows, (r) => r.project, 'Unknown / Other');
-  const activityTypeDistribution = distributionOf(rows, (r) => normalizeMilestone(r.milestone), 'Unclassified');
+  // Case/whitespace-insensitive grouping, same rule (and helper) as Team
+  // View's own project distribution — "Task Management System" and "Task
+  // Management system" are the same project, not two, and each group
+  // displays under whichever exact spelling occurred most often in it.
+  const projectGroups = buildFreeTextGroups(rows, (r) => r.project, 'Other');
+  const totalForProject = rows.length || 1;
+  const projectDistribution = projectGroups
+    .map((gr) => ({ label: gr.label, count: gr.count, pct: Math.round((gr.count / totalForProject) * 1000) / 10 }))
+    .sort((a, b) => b.count - a.count);
+  const activityTypeDistribution = distributionOf(rows, (r) => normalizeMilestone(r.milestone), 'Other');
 
   // ---- Recent deliveries — most recent first, capped short: this is a
   // "what's fresh" glance, not the full history (Daily Update History
   // already covers that).
   const recentDeliveries = [...rows].reverse().slice(0, 4).map((r) => ({
-    id: r.id, displayId: r.displayId, project: r.project || 'Unknown / Other',
+    id: r.id, displayId: r.displayId, project: r.project || 'Other',
     task: r.taskCompleted, deliverable: r.deliverables, milestone: normalizeMilestone(r.milestone),
     status: r.status, dueDate: r.dueDate, taskId: r.taskId,
   }));
 
-  const currentProjects = [...new Set(rows.slice(-5).map((r) => r.project).filter((p) => p && p.trim() && p.trim() !== '-'))];
+  // Same case-insensitive dedup as the grouping above — otherwise this list
+  // could show "Task Management System" and "Task Management system" as two
+  // separate "current" projects for the exact same real project.
+  const seenProjectKeys = new Set();
+  const currentProjects = rows.slice(-5).map((r) => r.project).filter((p) => p && p.trim() && p.trim() !== '-')
+    .filter((p) => {
+      const key = p.trim().toLowerCase();
+      if (seenProjectKeys.has(key)) return false;
+      seenProjectKeys.add(key);
+      return true;
+    });
 
   res.json({
     profile: {
