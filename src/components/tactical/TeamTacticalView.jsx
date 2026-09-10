@@ -7,7 +7,7 @@ import {
   IconTaskList, IconCheckCircle, IconPending, IconTarget, IconUsersGroup, IconBarChart, IconLayers, IconClipboard,
 } from '../icons.jsx';
 import {
-  CHART_COLORS, periodPresets, FilterField, MultiSelectField, GenericDonut, KpiCard, SectionTitle, EmptyNote, TrendBarChart,
+  CHART_COLORS, periodPresets, FilterField, MultiSelectField, GenericDonut, KpiCard, SectionTitle, EmptyNote, TrendBarChart, DailyStatusPill,
 } from './shared.jsx';
 
 const MEMBER_MODE_OPTIONS = [
@@ -16,6 +16,65 @@ const MEMBER_MODE_OPTIONS = [
   { value: 'developers', label: 'Developers' },
   { value: 'individual', label: 'Individual' },
 ];
+
+function relativeDate(iso, today) {
+  if (!iso) return '';
+  const days = Math.round((new Date(today) - new Date(iso)) / 86400000);
+  if (days <= 0) return 'Updated today';
+  if (days === 1) return 'Updated yesterday';
+  return `Updated ${days} days ago`;
+}
+
+// Same project card shape as the Dashboard's "Current Projects" board, but
+// its own dark-mode-aware styling (that board hard-codes a light-only
+// #FFFFFF background/ring) — every field comes straight off Team View's
+// own already-filtered `rows`, so it stays in lockstep with the Team/
+// Department/Members/Period filters instead of reading a separately-scoped
+// endpoint that wouldn't even see this member's role at all.
+function ProjectMiniCard({ project, today }) {
+  return (
+    <div style={{ position: 'relative', border: '1px solid var(--line)', borderRadius: 12, padding: '14px 16px', background: 'var(--surface)' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
+        <span
+          title={project.project}
+          style={{
+            fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 13.5, color: 'var(--heading)', lineHeight: 1.3,
+            display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+          }}
+        >
+          {project.project}
+        </span>
+        <DailyStatusPill status={project.latestStatus} />
+      </div>
+      {project.latestMilestone && (
+        <div title={project.latestMilestone} style={{ fontFamily: 'var(--font-body)', fontWeight: 500, fontSize: 12, color: 'var(--text-secondary)', marginTop: 8, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          On {project.latestMilestone}
+        </div>
+      )}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 12, gap: 8 }}>
+        <div style={{ display: 'flex' }}>
+          {project.contributors.slice(0, 4).map((c, i) => (
+            <div key={c.id} title={c.name} style={{ marginLeft: i === 0 ? 0 : -8, border: '2px solid var(--surface)', borderRadius: 999 }}>
+              <Avatar initial={c.name?.[0] || '?'} size={22} gradient />
+            </div>
+          ))}
+          {project.contributors.length > 4 && (
+            <div style={{
+              marginLeft: -8, width: 22, height: 22, borderRadius: 999, border: '2px solid var(--surface)', background: 'var(--track-bg)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: 9.5, color: 'var(--text-muted)',
+            }}>
+              +{project.contributors.length - 4}
+            </div>
+          )}
+        </div>
+        <div style={{ textAlign: 'right', fontFamily: 'var(--font-body)', fontWeight: 500, fontSize: 11, color: 'var(--text-muted)', flexShrink: 0 }}>
+          {project.updateCount} update{project.updateCount === 1 ? '' : 's'}
+          <div>{relativeDate(project.latestDate, today)}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // The Team View — a sibling to Individual View, not a rewrite of it. Same
 // shared visual pieces (shared.jsx), its own data source
@@ -144,7 +203,7 @@ export default function TeamTacticalView({ onSelectMember }) {
 
   const {
     totalInterns, totalEntries, completedEntries, pendingEntries, completionRate,
-    memberPerformance, activityTrend, projectDistribution, activityTypeDistribution,
+    memberPerformance, activityTrend, projectDistribution, activityTypeDistribution, currentProjects,
   } = data;
 
   const activeGranularity = trendGranularityOverride || activityTrend.granularity;
@@ -250,6 +309,20 @@ export default function TeamTacticalView({ onSelectMember }) {
           />
         </Card>
       </div>
+
+      {/* Team's Current Projects */}
+      <Card>
+        <SectionTitle icon={<IconLayers size={16} color="var(--accent)" />}>Team's Current Projects</SectionTitle>
+        <div style={{ marginTop: 14 }}>
+          {currentProjects.length === 0 ? (
+            <EmptyNote>No active projects in this range.</EmptyNote>
+          ) : (
+            <div className="responsive-grid" style={{ display: 'grid', '--cols': 'repeat(auto-fill, minmax(220px, 1fr))', gap: 12 }}>
+              {currentProjects.map((p) => <ProjectMiniCard key={p.project} project={p} today={TODAY} />)}
+            </div>
+          )}
+        </div>
+      </Card>
 
       {/* Work Distribution + Activity Type */}
       <div className="responsive-grid" style={{ display: 'grid', '--cols': '1fr 1fr', gap: 16, alignItems: 'stretch' }}>
