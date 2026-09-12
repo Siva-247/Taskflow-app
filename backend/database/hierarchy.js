@@ -130,17 +130,32 @@ export function canManageBlocker(actor, blocker) {
 // as the primary reviewer (narrow, "the one nearest person"), so a 6-tier
 // chain doesn't spam every present rung on every action. `submitterRank` is
 // a rankIndex() number, not a role string.
+//
+// "Vacant" means more than just an unset lead_id/assistant_manager_id — a
+// deactivated team lead or assistant manager can't log in to act on
+// anything either (routes/auth.js rejects their login outright), so a
+// notification addressed to them would sit unseen forever even though
+// canReviewTask would still happily let a manager or admin step in. Every
+// rung here is re-checked against is_active so a deactivated (or deleted —
+// same query, just zero rows) person is treated exactly like a vacant one
+// and the search continues up the chain instead of silently stalling.
 export async function resolveReviewer(teamId, submitterRank) {
   const team = await prepare('SELECT department_id, lead_id, assistant_manager_id FROM teams WHERE id = ?').get(teamId);
   if (!team) return SUPER_ADMIN_ID;
 
-  if (submitterRank > rankIndex('team_lead') && team.lead_id) return team.lead_id;
-  if (submitterRank > rankIndex('assistant_manager') && team.assistant_manager_id) return team.assistant_manager_id;
+  if (submitterRank > rankIndex('team_lead') && team.lead_id) {
+    const lead = await prepare('SELECT id FROM users WHERE id = ? AND is_active = 1').get(team.lead_id);
+    if (lead?.id) return lead.id;
+  }
+  if (submitterRank > rankIndex('assistant_manager') && team.assistant_manager_id) {
+    const assistantManager = await prepare('SELECT id FROM users WHERE id = ? AND is_active = 1').get(team.assistant_manager_id);
+    if (assistantManager?.id) return assistantManager.id;
+  }
   if (submitterRank > rankIndex('manager')) {
-    const manager = await prepare("SELECT id FROM users WHERE role = 'manager' AND department_id = ?").get(team.department_id);
+    const manager = await prepare("SELECT id FROM users WHERE role = 'manager' AND department_id = ? AND is_active = 1").get(team.department_id);
     if (manager?.id) return manager.id;
   }
-  const admin = await prepare("SELECT id FROM users WHERE role = 'admin' LIMIT 1").get();
+  const admin = await prepare("SELECT id FROM users WHERE role = 'admin' AND is_active = 1 LIMIT 1").get();
   if (admin?.id) return admin.id;
   return SUPER_ADMIN_ID;
 }

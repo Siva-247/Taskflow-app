@@ -44,11 +44,28 @@ CREATE TABLE IF NOT EXISTS users (
 -- Added after `teams` and `users` already existed live, so CREATE TABLE IF
 -- NOT EXISTS alone (a no-op there) wouldn't apply it — runs every time this
 -- file is applied, itself a no-op once the column is already present. Must
--- come after `users` is created (it references users(id)). Unlike `lead_id`
--- (a legacy plain column with no FK), this one gets a real FK — one
--- Assistant Manager per team, the same granularity as a team's lead,
--- sitting between the team's lead and the department's one manager.
+-- come after `users` is created (it references users(id)). One Assistant
+-- Manager per team, the same granularity as a team's lead, sitting between
+-- the team's lead and the department's one manager.
 ALTER TABLE teams ADD COLUMN IF NOT EXISTS assistant_manager_id TEXT REFERENCES users(id);
+
+-- `lead_id` was a legacy plain column with no FK — a team_lead's DELETE
+-- route had a friendly pre-check for assistant_manager_id's real FK but no
+-- equivalent for lead_id, so deleting a team lead while they were still
+-- their team's lead_id silently left it pointing at a deleted user. That
+-- ghost id then flowed straight out of resolveReviewer as "the reviewer"
+-- for anyone on the team, and the notification insert for it would fail
+-- against notifications.user_id's own real FK — a task stuck in Pending
+-- Approval with nobody ever told about it. Postgres has no `ADD CONSTRAINT
+-- IF NOT EXISTS`; the DO block below is the idiomatic idempotent equivalent
+-- (skip if a constraint by this name already exists), matching this file's
+-- "safe to re-run" contract for every other statement in it.
+DO $$
+BEGIN
+  ALTER TABLE teams ADD CONSTRAINT teams_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES users(id);
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;
 
 -- Short-lived, single-use tokens for the forgot-password flow. token_hash is
 -- a plain SHA-256 digest (not bcrypt) — the raw token already has enough

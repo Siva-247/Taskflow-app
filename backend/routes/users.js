@@ -270,9 +270,17 @@ router.delete('/:id', requireRole('admin', 'super_admin', 'manager', 'assistant_
   if (taskCount > 0 || updateCount > 0 || commentCount > 0) {
     return res.status(400).json({ error: `${target.name} has existing tasks, comments, or daily updates — deactivate their account instead of deleting it, so that history stays intact.` });
   }
-  // teams.assistant_manager_id carries a real FK (unlike lead_id) — a raw
-  // Postgres constraint violation would otherwise surface here instead of
-  // the app's own friendly error.
+  // Both teams.lead_id and teams.assistant_manager_id carry a real FK — a
+  // raw Postgres constraint violation would otherwise surface here instead
+  // of the app's own friendly error. Beyond just a nicer error message,
+  // this is what stops a team from being left with a dangling lead_id/
+  // assistant_manager_id pointing at a deleted user — resolveReviewer would
+  // otherwise still hand that ghost id out as "the reviewer" for anyone on
+  // the team, silently stranding their task's approval notification.
+  if (target.role === 'team_lead') {
+    const staffedTeam = await prepare('SELECT id FROM teams WHERE lead_id = ?').get(req.params.id);
+    if (staffedTeam) return res.status(400).json({ error: `${target.name} is still that team's lead — reassign or clear that role first.` });
+  }
   if (target.role === 'assistant_manager') {
     const staffedTeam = await prepare('SELECT id FROM teams WHERE assistant_manager_id = ?').get(req.params.id);
     if (staffedTeam) return res.status(400).json({ error: `${target.name} is still that team's assistant manager — reassign or clear that role first.` });
