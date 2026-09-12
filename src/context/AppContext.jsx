@@ -81,15 +81,11 @@ export function AppProvider({ children }) {
   // picker (unlike `users`, which is department-scoped for non-admins) —
   // loaded once, not polled, since it only needs to be roughly fresh.
   const [blockerDirectory, setBlockerDirectory] = useState([]);
-  // "Currently working projects" for the Team Lead/Assistant
-  // Manager/Manager/Admin dashboards — pre-scoped and pre-grouped
-  // server-side (see GET /daily-updates/projects), not derived from
-  // `dailyUpdates` here, since that array is itself already scoped narrower
-  // than this widget needs for an Assistant Manager (team, not department).
-  const [currentProjects, setCurrentProjects] = useState([]);
   // Per-person daily-update completion counts for the Team Lead/Assistant
-  // Manager/Manager dashboards' completion chart — same server-side scoping
-  // rationale as currentProjects above (see GET /daily-updates/member-stats).
+  // Manager/Manager dashboards' completion chart — pre-scoped server-side
+  // (see GET /daily-updates/member-stats), not derived from `dailyUpdates`
+  // here, since that array is itself already scoped narrower than this
+  // widget needs for an Assistant Manager (team, not department).
   const [memberStats, setMemberStats] = useState([]);
   // Blockers open as a popup (BlockerRegisterModal, mounted once in
   // Layout.jsx) rather than a routed page, so opening it needs to work from
@@ -231,7 +227,7 @@ export function AppProvider({ children }) {
     (async () => {
       setDataReady(false);
       try {
-        const [userList, departmentList, teamList, taskList, updateList, activityList, notificationList, blockerList, blockerDirectoryList, projectsResult, memberStatsResult] = await Promise.all([
+        const [userList, departmentList, teamList, taskList, updateList, activityList, notificationList, blockerList, blockerDirectoryList, memberStatsResult] = await Promise.all([
           apiRequest('/users', {}, token),
           apiRequest('/departments', {}, token),
           apiRequest('/teams', {}, token),
@@ -241,7 +237,6 @@ export function AppProvider({ children }) {
           apiRequest('/notifications', {}, token),
           apiRequest('/blockers', {}, token),
           apiRequest('/blockers/directory', {}, token),
-          apiRequest('/daily-updates/projects', {}, token),
           apiRequest('/daily-updates/member-stats', {}, token),
         ]);
         if (cancelled) return;
@@ -254,7 +249,6 @@ export function AppProvider({ children }) {
         setNotifications(notificationList);
         setBlockers(blockerList);
         setBlockerDirectory(blockerDirectoryList);
-        setCurrentProjects(projectsResult.projects || []);
         setMemberStats(memberStatsResult.members || []);
       } catch (err) {
         console.error('Failed to load TaskFlow data from the backend:', err);
@@ -291,7 +285,6 @@ export function AppProvider({ children }) {
       apiRequest('/tasks', {}, token).then(setTasks).catch(() => {});
       apiRequest('/daily-updates', {}, token).then(setDailyUpdates).catch(() => {});
       apiRequest('/blockers', {}, token).then(setBlockers).catch(() => {});
-      apiRequest('/daily-updates/projects', {}, token).then((r) => setCurrentProjects(r.projects || [])).catch(() => {});
       apiRequest('/daily-updates/member-stats', {}, token).then((r) => setMemberStats(r.members || [])).catch(() => {});
     }, 15000);
     return () => window.clearInterval(interval);
@@ -829,7 +822,7 @@ export function AppProvider({ children }) {
     users, teams, departments, TODAY, token, apiCall: call,
     currentUser, login, signup, fetchSignupDepartments, addSignupDepartment, logout, dataReady, authPending, sessionRestoring,
     mustChangePassword, changePassword, requestPasswordReset, resetPassword,
-    tasks, dailyUpdates, activity, notifications, blockers, blockerDirectory, blockerRegisterOpen, openBlockerRegister, closeBlockerRegister, currentProjects, memberStats,
+    tasks, dailyUpdates, activity, notifications, blockers, blockerDirectory, blockerRegisterOpen, openBlockerRegister, closeBlockerRegister, memberStats,
     scopedTasks, scopedDailyUpdates, statsFor, bucketOf, myDrafts,
     createTask, updateTask, deleteTask, publishDraft, refreshTask, setTaskProgress, setTaskStatus, requestChanges, submitForReview, approveTask, approveTaskCreation, rejectTaskCreation, reassignTask, requestExtension, approveExtension, rejectExtension, setTaskMarks, toggleSubtask,
     addComment, editComment, deleteComment, addDailyUpdate, editDailyUpdate, deleteDailyUpdate, reviewDailyUpdate, addBlocker, editBlocker, deleteBlocker, addTeamMember, addManager, addTeam, addDepartment, editUser, deleteUser, resetUserPassword, setUserActive,

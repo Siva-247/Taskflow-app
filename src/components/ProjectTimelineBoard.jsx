@@ -13,9 +13,9 @@ import { formatDate } from '../utils.js';
 // Every teammate in scope gets a row, even one who's logged nothing at all
 // this range (see GET /daily-updates/timeline's scopedRoster) — a manager
 // should be able to see who's quiet, not just who's active. Entirely
-// self-fetching since the date range lives inside this component, unlike
-// CurrentProjectsBoard/TeamCompletionChart which take their default data
-// from AppContext.
+// self-fetching since the date range (and, for Admin/Super Admin, the
+// department filter) live inside this component, unlike TeamCompletionChart
+// which takes its default data from AppContext.
 const DAY_WIDTH = 60;
 const NAME_COL_WIDTH = 176;
 const ROW_HEIGHT = 46;
@@ -122,12 +122,19 @@ function FilterField({ label, children }) {
   );
 }
 
-export default function ProjectTimelineBoard({ title, today, groupByDepartment = false }) {
+export default function ProjectTimelineBoard({ title, today, groupByDepartment = false, departments = [] }) {
   const { apiCall, showToast } = useApp();
   const [rangeKey, setRangeKey] = useState('month');
   const [customFrom, setCustomFrom] = useState('');
   const [customTo, setCustomTo] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
+  // Only ever passed in (and only ever rendered) for the Admin/Super Admin
+  // dashboard's company-wide board — every other dashboard already scopes
+  // this widget to one department/team server-side, so there's nothing to
+  // filter there. Sourced from AppContext's live `departments` list, which
+  // already refetches on login and reflects any department added since —
+  // no separate lookup or hardcoded list to go stale.
+  const [departmentFilter, setDepartmentFilter] = useState('all');
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [hoveredSeg, setHoveredSeg] = useState(null);
@@ -141,7 +148,10 @@ export default function ProjectTimelineBoard({ title, today, groupByDepartment =
   useEffect(() => {
     if (waitingOnCustomRange) return undefined;
     let cancelled = false;
-    const query = effectiveFrom && effectiveTo ? `?from=${effectiveFrom}&to=${effectiveTo}` : '';
+    const params = new URLSearchParams();
+    if (effectiveFrom && effectiveTo) { params.set('from', effectiveFrom); params.set('to', effectiveTo); }
+    if (departmentFilter !== 'all') params.set('departmentId', departmentFilter);
+    const query = params.toString() ? `?${params.toString()}` : '';
     const fetchTimeline = (showSpinner) => {
       if (showSpinner) setLoading(true);
       return apiCall(`/daily-updates/timeline${query}`)
@@ -158,7 +168,7 @@ export default function ProjectTimelineBoard({ title, today, groupByDepartment =
     const interval = window.setInterval(() => fetchTimeline(false), 15000);
     return () => { cancelled = true; window.clearInterval(interval); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [effectiveFrom, effectiveTo, waitingOnCustomRange]);
+  }, [effectiveFrom, effectiveTo, waitingOnCustomRange, departmentFilter]);
 
   // Role dropdown options come from the full roster, not the
   // currently-filtered set, so the list itself doesn't shuffle/shrink as
@@ -205,6 +215,16 @@ export default function ProjectTimelineBoard({ title, today, groupByDepartment =
         </div>
 
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 18, marginTop: 18, paddingTop: 16, borderTop: '1px solid var(--border)', alignItems: 'flex-end' }}>
+          {departments.length > 0 && (
+            <FilterField label="Department">
+              <Select
+                value={departmentFilter}
+                onChange={setDepartmentFilter}
+                options={[{ value: 'all', label: 'All departments' }, ...departments.map((d) => ({ value: d.id, label: d.name }))]}
+              />
+            </FilterField>
+          )}
+
           <FilterField label="Role">
             <Select
               value={roleFilter}

@@ -6,13 +6,12 @@ import StatBar, { defaultStatItems, orgStatItems } from '../components/StatBar.j
 import { Card } from '../components/ui.jsx';
 import { IconPlusCircle, IconUser, IconCheckCircle } from '../components/icons.jsx';
 import Donut from '../components/Donut.jsx';
-import CurrentProjectsBoard from '../components/CurrentProjectsBoard.jsx';
 import ProjectTimelineBoard from '../components/ProjectTimelineBoard.jsx';
 import TeamCompletionChart from '../components/TeamCompletionChart.jsx';
 import { useRoleGuard } from '../hooks/useRoleGuard.js';
 
 export default function AdminDashboard() {
-  const { currentUser, users, tasks, departments, statsFor, activity, currentProjects, memberStats, TODAY } = useApp();
+  const { currentUser, users, tasks, departments, statsFor, activity, memberStats, TODAY } = useApp();
   const navigate = useNavigate();
   const allowed = useRoleGuard([ROLES.SUPER_ADMIN, ROLES.ADMIN]);
   if (!allowed) return null;
@@ -42,9 +41,7 @@ export default function AdminDashboard() {
       <StatBar items={orgStatItems({ totalEmployees, totalDepartments: departments.length })} />
       <StatBar items={defaultStatItems(stats, 'Total Tasks')} />
 
-      <CurrentProjectsBoard title="Current projects by department" projects={currentProjects} today={TODAY} groupByDepartment />
-
-      <ProjectTimelineBoard title="Project timeline by department" today={TODAY} groupByDepartment />
+      <ProjectTimelineBoard title="Project timeline by department" today={TODAY} groupByDepartment departments={departments} />
 
       <TeamCompletionChart title="Daily update completion by department" members={memberStats} today={TODAY} groupByDepartment />
 
