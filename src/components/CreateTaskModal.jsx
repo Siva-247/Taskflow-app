@@ -17,9 +17,19 @@ export default function CreateTaskModal({ onClose }) {
 
   const needsApproval = currentUser.role === ROLES.TEAM_LEAD || currentUser.role === ROLES.EMPLOYEE;
 
+  // Mirrors CreateTask.jsx (the full-page /tasks/new flow) exactly — an
+  // Employee can only ever create a task for themselves, and a Team Lead
+  // gets that same self-assignment option layered on top of their normal
+  // team rather than in place of it. This modal and that page are two
+  // separate entry points to the same "create a task" action (this one a
+  // popup from the Tasks page, that one the full-page draft/resume flow),
+  // so this list has to stay in lockstep with theirs or a Team Lead sees
+  // themselves as assignable from one place and not the other.
   const assignableUsers = currentUser.role === ROLES.EMPLOYEE
     ? users.filter((u) => u.id === currentUser.id)
-    : assignableTargets(currentUser, users);
+    : currentUser.role === ROLES.TEAM_LEAD
+      ? [currentUser, ...assignableTargets(currentUser, users)]
+      : assignableTargets(currentUser, users);
 
   const allCategories = useMemo(
     () => [...new Set([...CATEGORIES, ...tasks.map((t) => t.category).filter(Boolean)])],
@@ -123,7 +133,7 @@ export default function CreateTaskModal({ onClose }) {
         {currentUser.role !== ROLES.EMPLOYEE && (
           <Field label="Assign to" required>
             <div style={{ ...(errors.assigneeId ? { borderRadius: 9, border: '1px solid var(--amber-fill)' } : {}) }}>
-              <Select value={assigneeId} onChange={setAssigneeId} options={assignableUsers.map((u) => ({ value: u.id, label: `${u.name} · ${u.title}` }))} />
+              <Select value={assigneeId} onChange={setAssigneeId} options={assignableUsers.map((u) => ({ value: u.id, label: u.id === currentUser.id ? `${u.name} (You)` : `${u.name} · ${u.title}` }))} />
             </div>
           </Field>
         )}
