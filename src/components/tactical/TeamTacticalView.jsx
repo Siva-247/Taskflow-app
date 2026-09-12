@@ -21,20 +21,6 @@ const MEMBER_MODE_OPTIONS = [
   { value: 'individual', label: 'Individual' },
 ];
 
-const PROJECT_STATUS_TONE = {
-  'On Track': { bg: 'var(--accent-soft)', fg: 'var(--green-deep)' },
-  'At Risk': { bg: 'var(--amber-bg)', fg: 'var(--amber-text)' },
-  Delayed: { bg: 'rgba(225,29,72,.08)', fg: 'var(--red-deep)' },
-  'Not Started': { bg: 'var(--surface)', fg: 'var(--text-muted)' },
-  Completed: { bg: 'var(--accent-soft)', fg: 'var(--green-deep)' },
-};
-
-function Pill({ tone, children }) {
-  return (
-    <span style={{ padding: '3px 9px', borderRadius: 999, background: tone.bg, color: tone.fg, fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: 10.5, whiteSpace: 'nowrap' }}>{children}</span>
-  );
-}
-
 // A donut with 20+ tiny slivers (this app's real Milestone/Project data runs
 // that long-tailed — one typo-variant milestone can be its own 1-entry
 // category) reads as noise, not a chart. Caps to the top MAX_DONUT_SEGMENTS-1
@@ -164,7 +150,6 @@ function ActionItemsPanel({ departmentId, canManage }) {
 const QUICK_NAV = [
   { id: 'section-team-performance', label: 'Team' },
   { id: 'section-kpi-scorecard', label: 'KPI / Scorecard' },
-  { id: 'section-project-health', label: 'Projects' },
   { id: 'section-blockers', label: 'Blockers' },
 ];
 
@@ -287,7 +272,7 @@ export default function TeamTacticalView({ onSelectMember }) {
     totalInterns, totalEntries, completedEntries, pendingEntries, completionRate,
     overdueCount, notDueCount, delayedCount, taskGap,
     memberPerformance, projectDistribution, activityTypeDistribution, timeline,
-    roleComparison, projectHealth, milestoneBreakdown, workloadStatus, deliveryTrend,
+    roleComparison, workloadStatus, deliveryTrend,
     whoNeedsAttention, blockerSummary, keyInsights, focusAreas,
   } = data;
 
@@ -469,11 +454,7 @@ export default function TeamTacticalView({ onSelectMember }) {
 
             <div className="responsive-grid" style={{ display: 'grid', '--cols': '1fr 1fr', gap: 14 }}>
               {visibleScorecards.map((s) => (
-                <KpiScorecard
-                  key={s.userId} scorecard={s} periodFrom={effectiveFrom} periodTo={effectiveTo}
-                  canEdit={canSelectOthers && s.userId !== currentUser.id}
-                  onManualEntrySaved={reloadKpiScorecards}
-                />
+                <KpiScorecard key={s.userId} scorecard={s} />
               ))}
             </div>
           </Card>
@@ -501,65 +482,8 @@ export default function TeamTacticalView({ onSelectMember }) {
         </Card>
       </div>
 
-      {/* Project Health + Blockers & Escalations */}
-      <div className="responsive-grid" style={{ display: 'grid', '--cols': '1.4fr 1fr', gap: 16, alignItems: 'start' }}>
-        <Card id="section-project-health" padded={false}>
-          <div style={{ padding: '20px 22px 0' }}>
-            <SectionTitle icon={<IconLayers size={16} color="var(--accent)" />}>Project Health</SectionTitle>
-            <div style={{ fontFamily: 'var(--font-body)', fontWeight: 500, fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
-              There's no dedicated Project record in this app — Expected/Actual End are the latest due/close dates logged under that project name, and Status is a dashboard-derived signal, not an official field.
-            </div>
-          </div>
-          <div className="table-scroll" style={{ marginTop: 14 }}>
-            {projectHealth.length === 0 ? (
-              <div style={{ padding: '0 22px 20px' }}><EmptyNote>No project data in this range.</EmptyNote></div>
-            ) : (
-              <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 480 }}>
-                <thead>
-                  <tr className="table-glass-head">
-                    {['Project', 'Total', 'Completed', '% Done', 'Expected End', 'Actual End', 'Status'].map((h) => (
-                      <th key={h} style={{ textAlign: 'left', padding: '9px 14px', fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: 10.5, letterSpacing: '0.04em', textTransform: 'uppercase' }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {projectHealth.map((p) => (
-                    <tr key={p.project} className="table-glass-row" style={{ borderBottom: '1px solid var(--line)' }}>
-                      <td title={p.project} style={{ padding: '10px 14px', fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: 12.5, color: 'var(--text-primary)', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.project}</td>
-                      <td style={{ padding: '10px 14px', fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: 12.5, color: 'var(--text-primary)' }}>{p.total}</td>
-                      <td style={{ padding: '10px 14px', fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: 12.5, color: 'var(--green-deep)' }}>{p.completed}</td>
-                      <td style={{ padding: '10px 14px', fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: 12.5, color: 'var(--heading)' }}>{p.pctDone}%</td>
-                      <td style={{ padding: '10px 14px', fontFamily: 'var(--font-body)', fontWeight: 500, fontSize: 12, color: 'var(--text-secondary)' }}>{p.expectedEnd || '—'}</td>
-                      <td style={{ padding: '10px 14px', fontFamily: 'var(--font-body)', fontWeight: 500, fontSize: 12, color: 'var(--text-secondary)' }}>{p.actualEnd || '—'}</td>
-                      <td style={{ padding: '10px 14px' }}><Pill tone={PROJECT_STATUS_TONE[p.status] || PROJECT_STATUS_TONE['Not Started']}>{p.status}</Pill></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
-          {milestoneBreakdown.length > 0 && (
-            <div style={{ padding: '18px 22px 22px' }}>
-              <SectionTitle icon={<IconLayers size={14} color="var(--accent)" />}>Project / Milestone Breakdown</SectionTitle>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 12 }}>
-                {milestoneBreakdown.map((pm) => (
-                  <div key={pm.project}>
-                    <div style={{ fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: 12, color: 'var(--text-primary)', marginBottom: 6 }}>{pm.project}</div>
-                    {pm.milestones.map((m) => (
-                      <div key={m.label} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '4px 0 4px 12px' }}>
-                        <span style={{ flex: 1, fontFamily: 'var(--font-body)', fontWeight: 500, fontSize: 11.5, color: 'var(--text-secondary)' }}>{m.label}</span>
-                        <span style={{ fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: 11, color: 'var(--text-muted)' }}>{m.completed} / {m.total}</span>
-                        <span style={{ fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: 11.5, color: 'var(--heading)', width: 42, textAlign: 'right' }}>{m.achievementPct}%</span>
-                      </div>
-                    ))}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </Card>
-
-        <Card id="section-blockers" padded={false}>
+      {/* Blockers & Escalations */}
+      <Card id="section-blockers" padded={false}>
           <div style={{ padding: '20px 22px 0' }}>
             <SectionTitle icon={<IconBlock size={16} />}>Blockers & Escalations</SectionTitle>
           </div>
@@ -598,7 +522,6 @@ export default function TeamTacticalView({ onSelectMember }) {
             )}
           </div>
         </Card>
-      </div>
 
       {/* Key Insights + Focus Areas — auto-generated strings, built only
           from numbers already computed above. */}
