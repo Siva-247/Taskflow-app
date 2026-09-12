@@ -10,6 +10,7 @@ import {
   CHART_COLORS, periodPresets, FilterField, MultiSelectField, GenericDonut, KpiCard, SectionTitle, EmptyNote, MemberBarChart,
 } from './shared.jsx';
 import TeamProjectCalendar from './TeamProjectCalendar.jsx';
+import KpiScorecard from './KpiScorecard.jsx';
 
 const MEMBER_MODE_OPTIONS = [
   { value: 'all', label: 'All Members' },
@@ -65,6 +66,11 @@ export default function TeamTacticalView({ onSelectMember }) {
   const [sortKey, setSortKey] = useState('name');
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  // AI department KPI scorecards — fetched independently of the roster
+  // filters above (the endpoint always covers its own fixed 8-person
+  // roster, see kpiRoster.js), then narrowed below to whichever of those 8
+  // people fall inside the roster this page is currently showing.
+  const [kpiData, setKpiData] = useState(null);
 
   const presets = useMemo(() => periodPresets(TODAY), [TODAY]);
   const preset = presets.find((p) => p.key === periodKey);
@@ -90,6 +96,17 @@ export default function TeamTacticalView({ onSelectMember }) {
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [teamFilter, departmentFilter, memberMode, individualSelectedIds, effectiveFrom, effectiveTo, waitingOnCustomRange]);
+
+  const reloadKpiScorecards = () => {
+    if (!effectiveFrom || !effectiveTo) return;
+    apiCall(`/tactical/kpi-scorecard?from=${effectiveFrom}&to=${effectiveTo}`)
+      .then((r) => setKpiData(r))
+      .catch(() => showToast('Could not load KPI scorecards'));
+  };
+  useEffect(() => {
+    reloadKpiScorecards();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [effectiveFrom, effectiveTo]);
 
   // Switching Department (admin only) can strand the Team filter on a team
   // that no longer belongs to it, and strand an Individual selection on
@@ -251,6 +268,34 @@ export default function TeamTacticalView({ onSelectMember }) {
           <MemberBarChart members={sortedMembers} />
         </Card>
       </div>
+
+      {/* AI department KPI Scorecards — only ever shows people from the
+          fixed 8-person KPI roster (see kpiRoster.js) who also fall inside
+          whatever this page's own Department/Team/Individual filters are
+          currently showing; the whole section disappears outside the AI
+          department rather than showing an empty shell. */}
+      {(() => {
+        const visibleMemberIds = new Set(data.availableMembers.map((m) => m.id));
+        const visibleScorecards = (kpiData?.scorecards || []).filter((s) => visibleMemberIds.has(s.userId));
+        if (visibleScorecards.length === 0) return null;
+        return (
+          <Card>
+            <SectionTitle icon={<IconTarget size={16} color="var(--accent)" />}>KPI Scorecards</SectionTitle>
+            <div style={{ fontFamily: 'var(--font-body)', fontWeight: 500, fontSize: 11.5, color: 'var(--text-muted)', marginTop: 2, marginBottom: 14 }}>
+              Role-weighted scorecards for the selected period — "% of weight measured" shows how much of the formula has real data behind it.
+            </div>
+            <div className="responsive-grid" style={{ display: 'grid', '--cols': '1fr 1fr', gap: 14 }}>
+              {visibleScorecards.map((s) => (
+                <KpiScorecard
+                  key={s.userId} scorecard={s} periodFrom={effectiveFrom} periodTo={effectiveTo}
+                  canEdit={canSelectOthers && s.userId !== currentUser.id}
+                  onManualEntrySaved={reloadKpiScorecards}
+                />
+              ))}
+            </div>
+          </Card>
+        );
+      })()}
 
       {/* Team's Current Projects — calendar/gantt only, driven entirely by
           this page's own Department/Team/Intern-Developer/Period filters

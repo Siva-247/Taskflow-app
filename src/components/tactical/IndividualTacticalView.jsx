@@ -12,6 +12,7 @@ import { formatDate } from '../../utils.js';
 import {
   CHART_COLORS, periodPresets, FilterField, GenericDonut, KpiCard, SectionTitle, EmptyNote, DailyStatusPill, TrendBarChart,
 } from './shared.jsx';
+import KpiScorecard from './KpiScorecard.jsx';
 
 // The Individual View — built first, and deliberately self-contained (reads
 // currentUser itself rather than taking it as a prop) so the page shell
@@ -35,6 +36,10 @@ export default function IndividualTacticalView({ initialSelectedId, onBackToTeam
   const [trendGranularity, setTrendGranularity] = useState('weekly');
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  // AI department KPI scorecard for whichever person is currently selected
+  // — only ever populated for the fixed 8-person KPI roster (kpiRoster.js);
+  // stays null for everyone else, and the section below simply doesn't render.
+  const [kpiScorecard, setKpiScorecard] = useState(null);
 
   const presets = useMemo(() => periodPresets(TODAY), [TODAY]);
   const preset = presets.find((p) => p.key === periodKey);
@@ -83,6 +88,17 @@ export default function IndividualTacticalView({ initialSelectedId, onBackToTeam
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedId, effectiveFrom, effectiveTo, waitingOnCustomRange]);
+
+  const reloadKpiScorecard = () => {
+    if (!effectiveFrom || !effectiveTo) return;
+    apiCall(`/tactical/kpi-scorecard?from=${effectiveFrom}&to=${effectiveTo}`)
+      .then((r) => setKpiScorecard((r.scorecards || []).find((s) => s.userId === selectedId) || null))
+      .catch(() => showToast('Could not load the KPI scorecard'));
+  };
+  useEffect(() => {
+    reloadKpiScorecard();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedId, effectiveFrom, effectiveTo]);
 
   const backLink = onBackToTeamView && (
     <button
@@ -280,6 +296,20 @@ export default function IndividualTacticalView({ initialSelectedId, onBackToTeam
           </div>
         </Card>
       </div>
+
+      {kpiScorecard && (
+        <Card>
+          <SectionTitle icon={<IconTarget size={16} color="var(--accent)" />}>My KPI Scorecard</SectionTitle>
+          <div style={{ fontFamily: 'var(--font-body)', fontWeight: 500, fontSize: 11.5, color: 'var(--text-muted)', marginTop: 2, marginBottom: 14 }}>
+            Role-weighted scorecard for the selected period — "% of weight measured" shows how much of the formula has real data behind it.
+          </div>
+          <KpiScorecard
+            scorecard={kpiScorecard} periodFrom={effectiveFrom} periodTo={effectiveTo}
+            canEdit={canSelectOthers && selectedId !== currentUser.id}
+            onManualEntrySaved={reloadKpiScorecard}
+          />
+        </Card>
+      )}
     </div>
   );
 }
