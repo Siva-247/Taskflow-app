@@ -59,6 +59,25 @@ function notifyOutsideApp(message, users, onClick) {
 
 export function ChatProvider({ children }) {
   const { currentUser, token, showToast } = useApp();
+  // Chrome (and most modern browsers) treats `Notification.requestPermission()`
+  // as low-quality/"abusive" the moment it's called without a direct user
+  // gesture behind it — calling it automatically on login (the old behavior
+  // here) gets silently downgraded to a barely-visible address-bar icon
+  // instead of the real prompt, so most people never noticed it and never
+  // actually granted anything. Tracking the current permission as state
+  // (rather than reading `Notification.permission` inline wherever needed)
+  // lets NotificationPermissionBanner re-render the instant someone answers
+  // the prompt, and requestNotificationPermission below is only ever meant
+  // to be called from that banner's own button click — a real gesture.
+  const [notificationPermission, setNotificationPermission] = useState(
+    () => (typeof Notification !== 'undefined' ? Notification.permission : 'unsupported'),
+  );
+  const requestNotificationPermission = useCallback(async () => {
+    if (typeof Notification === 'undefined') return 'unsupported';
+    const result = await Notification.requestPermission();
+    setNotificationPermission(result);
+    return result;
+  }, []);
   const [conversations, setConversations] = useState([]);
   // The app-wide `users` list is department-scoped, which hides admin from
   // everyone but themself — fine for the Teams/Employees pages, wrong for
@@ -110,14 +129,12 @@ export function ChatProvider({ children }) {
 
     loadConversations();
 
-    // Asked once per signed-in session rather than the moment the Chat page
-    // itself loads — that way a message can trigger a real notification
-    // even the first time someone gets one while on a different page.
-    // Silently does nothing if the browser doesn't support the API, or the
-    // person already granted/denied it previously.
-    if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
-      Notification.requestPermission().catch(() => {});
-    }
+    // No automatic requestPermission() call here any more — see
+    // notificationPermission's own comment above for why. Just keep the
+    // tracked state in sync with reality on login (someone may have changed
+    // the site's notification permission in their browser settings between
+    // sessions without ever touching NotificationPermissionBanner's button).
+    if (typeof Notification !== 'undefined') setNotificationPermission(Notification.permission);
 
     const socket = io(SOCKET_URL, { auth: { token } });
     socketRef.current = socket;
@@ -327,6 +344,7 @@ export function ChatProvider({ children }) {
     messagesByConversation, typingByConversation, connected, onlineUserIds,
     loadMessages, sendMessage, editMessage, deleteMessage, uploadImage, uploadAudio, toggleReaction,
     createGroup, startDM, addMember, removeMember, markRead, setTyping,
+    notificationPermission, requestNotificationPermission,
   };
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;

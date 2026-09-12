@@ -5,6 +5,7 @@ import Header from './Header.jsx';
 import Sidebar from './Sidebar.jsx';
 import { Toast } from './ui.jsx';
 import BlockerRegisterModal from './BlockerRegisterModal.jsx';
+import NotificationPermissionBanner from './NotificationPermissionBanner.jsx';
 
 const COLLAPSE_KEY = 'sidebarCollapsed';
 
@@ -49,6 +50,7 @@ export default function Layout() {
   return (
     <div className={sidebarCollapsed ? 'is-collapsed' : ''} style={{ width: '100%', minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--page-bg)' }}>
       <Header onMenuClick={() => setSidebarOpen((v) => !v)} />
+      <NotificationPermissionBanner />
       <div style={{ flex: 1, display: 'flex', minWidth: 0 }}>
         <div className={`sidebar-backdrop${sidebarOpen ? ' open' : ''}`} onClick={() => setSidebarOpen(false)} />
         <Sidebar open={sidebarOpen} onNavigate={() => setSidebarOpen(false)} collapsed={sidebarCollapsed} onToggleCollapse={toggleCollapsed} />
