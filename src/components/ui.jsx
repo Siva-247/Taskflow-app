@@ -117,10 +117,10 @@ export function Button({ variant = 'primary', children, onClick, style, type = '
   );
 }
 
-export function Card({ children, style, padded = true, className, animate = true }) {
+export function Card({ children, style, padded = true, className, animate = true, id }) {
   const classes = ['card-glass', animate ? 'anim-scale-in' : '', className].filter(Boolean).join(' ');
   return (
-    <div className={classes} style={{
+    <div id={id} className={classes} style={{
       borderRadius: 18, padding: padded ? '24px 26px' : 0, ...style,
     }}>
       {children}
