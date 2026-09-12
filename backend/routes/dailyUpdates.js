@@ -34,35 +34,6 @@ router.get('/', asyncRoute(async (req, res) => {
   res.json(await scopeDailyUpdates(req.user, all));
 }));
 
-const ACTIVE_STATUSES = ['Open', 'Inprogress', 'Pending', 'Hold', 'Interested'];
-
-// Given a set of daily_update rows and a lookup of their authors, decides
-// which rows `user` is allowed to see for the two dashboard widgets below
-// (projects, member-stats) and what to call that scope. Deliberately its own
-// scoping here rather than scopeDailyUpdates: that function keeps
-// assistant_manager at team scope (matching the main Daily Update History
-// page), but these widgets specifically need assistant_manager to see their
-// whole department, same as manager — widening scopeDailyUpdates itself
-// would also widen History, which nobody asked for.
-function scopeRowsForDashboard(user, rows, userById) {
-  if (user.role === 'super_admin' || user.role === 'admin') return { scope: 'all', rows };
-  if (user.role === 'manager' || user.role === 'assistant_manager') {
-    return { scope: 'department', rows: rows.filter((r) => userById.get(r.userId)?.departmentId === user.department_id) };
-  }
-  if (user.role === 'team_lead') {
-    return { scope: 'team', rows: rows.filter((r) => userById.get(r.userId)?.teamId === user.team_id) };
-  }
-  return { scope: 'self', rows: rows.filter((r) => r.userId === user.id) };
-}
-
-async function userLookup(rows) {
-  const userIds = [...new Set(rows.map((r) => r.userId))];
-  if (userIds.length === 0) return new Map();
-  const placeholders = userIds.map(() => '?').join(', ');
-  const userRows = await prepare(`SELECT id, name, title, team_id as "teamId", department_id as "departmentId" FROM users WHERE id IN (${placeholders})`).all(...userIds);
-  return new Map(userRows.map((u) => [u.id, u]));
-}
-
 // Every teammate in scope, regardless of whether they've logged anything —
 // unlike scopeRowsForDashboard above (which only ever surfaces whoever
 // already has a daily_update row), this IS the roster: /member-stats and
@@ -97,66 +68,6 @@ export async function scopedRoster(user) {
     users: users.filter((u) => u.id !== user.id).map((u) => ({ ...u, departmentName: deptNameById.get(u.departmentId) || null })),
   };
 }
-
-// "Currently working projects" for the dashboards — grouped by the free-text
-// `project` field (there's no formal Project entity, see schema.postgres.sql),
-// one group per department+project pair so the same project name in two
-// departments never gets merged into one. A bare "-" is excluded the same
-// as blank/null everywhere below (here, /timeline, and /member-stats'
-// sibling filter isn't needed since it doesn't group by project) — some
-// spreadsheet-imported rows use it as a placeholder for "not filled in",
-// not as an actual project name, and it would otherwise show up as its own
-// nonsense project card.
-router.get('/projects', asyncRoute(async (req, res) => {
-  const user = req.user;
-  const rows = await prepare(
-    `SELECT user_id as "userId", seq, date, status, milestone, project, department_id as "departmentId"
-     FROM daily_updates WHERE project IS NOT NULL AND TRIM(project) NOT IN ('', '-')`,
-  ).all();
-
-  const userById = await userLookup(rows);
-  const { scope, rows: scoped } = scopeRowsForDashboard(user, rows, userById);
-
-  const groups = new Map();
-  for (const r of scoped) {
-    const deptId = r.departmentId || userById.get(r.userId)?.departmentId || null;
-    const name = r.project.trim();
-    const key = `${deptId}::${name}`;
-    if (!groups.has(key)) groups.set(key, { departmentId: deptId, project: name, entries: [] });
-    groups.get(key).entries.push(r);
-  }
-
-  const departmentRows = await prepare('SELECT id, name FROM departments').all();
-  const deptNameById = new Map(departmentRows.map((d) => [d.id, d.name]));
-
-  const projects = [...groups.values()]
-    .map((g) => {
-      // Most recent entry wins for "current" status/milestone — sorted by
-      // date, then by seq as a same-day tiebreaker (seq is strictly
-      // increasing insert order, unlike date).
-      const sorted = [...g.entries].sort((a, b) => (a.date !== b.date ? (a.date < b.date ? 1 : -1) : b.seq - a.seq));
-      const latest = sorted[0];
-      const contributors = [...new Map(g.entries.map((e) => [e.userId, userById.get(e.userId)?.name || 'Unknown'])).entries()]
-        .map(([id, name]) => ({ id, name }));
-      const milestoneCounts = {};
-      for (const e of g.entries) milestoneCounts[e.milestone || 'Other'] = (milestoneCounts[e.milestone || 'Other'] || 0) + 1;
-      return {
-        project: g.project,
-        departmentId: g.departmentId,
-        departmentName: deptNameById.get(g.departmentId) || null,
-        contributors,
-        updateCount: g.entries.length,
-        latestStatus: latest.status,
-        latestDate: latest.date,
-        latestMilestone: latest.milestone,
-        milestoneCounts,
-      };
-    })
-    .filter((p) => ACTIVE_STATUSES.includes(p.latestStatus))
-    .sort((a, b) => (a.latestDate < b.latestDate ? 1 : a.latestDate > b.latestDate ? -1 : 0));
-
-  res.json({ scope, projects });
-}));
 
 // Per-person "how many daily entries, how many of those Completed" —
 // replaces the Team Lead/Assistant Manager dashboards' old Team Members
@@ -205,11 +116,15 @@ router.get('/member-stats', asyncRoute(async (req, res) => {
 // is visible exactly where it actually happened). Same full-roster shape as
 // member-stats — someone with nothing logged still gets a row, just an
 // empty one. Same optional ?from=&to= as member-stats; omitting both
-// returns every dated entry ever logged.
+// returns every dated entry ever logged. `departmentId` only ever NARROWS
+// the roster scopedRoster already authorized (matters for admin/super_admin,
+// whose scope is company-wide) — every other role already sees at most their
+// own department/team, so this is a no-op filter for them, never a widening.
 router.get('/timeline', asyncRoute(async (req, res) => {
   const user = req.user;
-  const { from, to } = req.query;
-  const { scope, users: roster } = await scopedRoster(user);
+  const { from, to, departmentId } = req.query;
+  const { scope, users: fullRoster } = await scopedRoster(user);
+  const roster = departmentId ? fullRoster.filter((u) => u.departmentId === departmentId) : fullRoster;
 
   const byUser = new Map();
   if (roster.length > 0) {
