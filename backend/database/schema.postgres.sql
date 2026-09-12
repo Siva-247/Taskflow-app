@@ -336,3 +336,25 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_daily_updates_user_date ON daily_updates(u
 
 -- Case-insensitive email uniqueness, replacing SQLite's COLLATE NOCASE.
 CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email_lower ON users(LOWER(email));
+
+-- One manually-scored value per (person, period, metric) for the AI
+-- department's KPI scorecard (see backend/database/kpiMatrix.js) — mirrors
+-- the source spreadsheet's own `_KPI Entries` tab shape (Period / Member /
+-- Metric / Value) almost exactly. Only metrics marked compute: 'manual' in
+-- the matrix ever get a row here; 'auto' metrics are computed fresh from
+-- tasks/daily_updates/blockers on every request, never cached here.
+CREATE TABLE IF NOT EXISTS kpi_manual_entries (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES users(id),
+  period_from TEXT NOT NULL,
+  period_to TEXT NOT NULL,
+  metric_key TEXT NOT NULL,
+  value NUMERIC NOT NULL,
+  entered_by TEXT NOT NULL REFERENCES users(id),
+  entered_at TEXT NOT NULL,
+  seq BIGSERIAL
+);
+-- Re-entering the same person/period/metric updates the existing score
+-- rather than piling up history — the scorecard only ever wants the
+-- current value for a period, not an edit trail.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_kpi_manual_entries_unique ON kpi_manual_entries(user_id, period_from, period_to, metric_key);

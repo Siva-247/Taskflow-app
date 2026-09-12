@@ -1,8 +1,12 @@
 import { Router } from 'express';
+import { randomUUID } from 'node:crypto';
 import { prepare } from '../database/db.js';
 import { TODAY } from '../database/constants.js';
 import { canManage } from '../database/hierarchy.js';
 import { scopedRoster } from './dailyUpdates.js';
+import { CLOSED_STATUSES } from './blockers.js';
+import { KPI_ROSTER, kpiRosterEntry } from '../database/kpiRoster.js';
+import { kpiMatrixFor } from '../database/kpiMatrix.js';
 import { requireAuth } from '../middleware/auth.js';
 import { asyncRoute } from '../middleware/asyncRoute.js';
 
@@ -325,6 +329,226 @@ async function getTeamTacticalAnalytics(user, query) {
 
 router.get('/team', asyncRoute(async (req, res) => {
   res.json(await getTeamTacticalAnalytics(req.user, req.query));
+}));
+
+// ---- AI department KPI scorecards -----------------------------------------
+// Ported from the AI department manager's spreadsheet (`KPI TARGETS` sheet):
+// a role-based, weighted formula per person, scored over a chosen date
+// range. Deliberately scoped to the exact 8 people in KPI_ROSTER (see that
+// file's own comment for why), not "everyone in the AI department" — a 9th
+// person joining the app doesn't silently get a scorecard, and someone
+// leaving the roster config doesn't need a schema change either.
+//
+// Auto metrics are computed from data this app already collects — daily
+// updates (the same Task/Project/Due Date/Actual Close Date/Status shape the
+// spreadsheet's own per-person sheets track) for completion/on-time
+// formulas, and `blockers` for closure/escalation formulas — never from the
+// separate `tasks` workflow table, which models TaskFlow's own
+// assign/review pipeline, a different concept from "planned deliverables in
+// this period". Manual metrics (Code Review, Testing, Docs, Prod Response,
+// etc.) have no such proxy and are typed in by a reviewer, stored in
+// kpi_manual_entries — see POST /kpi-scorecard/manual-entry below. Metrics
+// marked 'unavailable' in kpiMatrix.js (Resource Utilization, SOP
+// Compliance, Mentoring, ...) have no data source or entry field at all and
+// are always returned as `actual: null` — never guessed, never zero.
+
+async function dailyUpdateCompletionStats(userIds, from, to) {
+  if (userIds.length === 0) return { total: 0, completed: 0, onTimeEligible: 0, onTime: 0 };
+  const placeholders = userIds.map(() => '?').join(', ');
+  const rows = await prepare(
+    `SELECT status, due_date as "dueDate", actual_close_date as "actualCloseDate"
+     FROM daily_updates WHERE user_id IN (${placeholders}) AND due_date IS NOT NULL AND due_date >= ? AND due_date <= ?`,
+  ).all(...userIds, from, to);
+  const total = rows.length;
+  const completedRows = rows.filter((r) => normalizeStatusKey(r.status) === 'completed');
+  // "On-time" can only be judged for completed rows that actually recorded a
+  // close date — a completed row with no actual_close_date logged is neither
+  // counted as on-time nor as late, it's simply excluded from this rate's
+  // denominator (never silently treated as either).
+  const closedRows = completedRows.filter((r) => r.actualCloseDate);
+  const onTime = closedRows.filter((r) => r.actualCloseDate <= r.dueDate).length;
+  return { total, completed: completedRows.length, onTimeEligible: closedRows.length, onTime };
+}
+
+async function blockerResolutionStats(userIds, from, to) {
+  if (userIds.length === 0) return { total: 0, resolvedOnTime: 0 };
+  const placeholders = userIds.map(() => '?').join(', ');
+  const rows = await prepare(
+    `SELECT status, target_resolution as "targetResolution", closed_date as "closedDate"
+     FROM blockers WHERE raised_by IN (${placeholders}) AND target_resolution IS NOT NULL AND target_resolution >= ? AND target_resolution <= ?`,
+  ).all(...userIds, from, to);
+  const total = rows.length;
+  const resolvedOnTime = rows.filter((r) => CLOSED_STATUSES.includes(r.status) && r.closedDate && r.closedDate <= r.targetResolution).length;
+  return { total, resolvedOnTime };
+}
+
+// Every 'auto' metric key across all four KPI roles reduces to one of these
+// three underlying rates — the app's data model doesn't distinguish
+// "project milestone" from "team milestone" from "task" the way the
+// spreadsheet's own vocabulary does (see kpiRoster.js/kpiMatrix.js comments),
+// so several distinct metric keys deliberately share the same computed
+// actual, scored against that metric's own EPI/MPI/LPI bands.
+function actualForMetric(metricKey, dayStats, blockerStats) {
+  switch (metricKey) {
+    case 'project_milestone_achievement':
+    case 'team_milestone_achievement':
+    case 'team_task_completion':
+    case 'assigned_deliverable_completion':
+    case 'assigned_task_deliverable_completion':
+      return dayStats.total > 0 ? Math.round((dayStats.completed / dayStats.total) * 1000) / 10 : null;
+    case 'on_time_delivery':
+    case 'team_on_time_delivery':
+    case 'estimation_planning_accuracy':
+    case 'task_planning_accuracy':
+      return dayStats.onTimeEligible > 0 ? Math.round((dayStats.onTime / dayStats.onTimeEligible) * 1000) / 10 : null;
+    case 'risk_blocker_closure':
+    case 'blocker_resolution':
+    case 'blocker_resolution_escalation':
+    case 'blocker_escalation':
+      return blockerStats.total > 0 ? Math.round((blockerStats.resolvedOnTime / blockerStats.total) * 1000) / 10 : null;
+    default:
+      return null; // manual/unavailable metrics are never computed here
+  }
+}
+
+function parseNumbers(str) {
+  if (typeof str !== 'string') return [];
+  return (str.match(/[\d.]+/g) || []).map(Number);
+}
+
+// The one metric in the whole matrix where a LOWER number is better (Bug /
+// Rework Control, target "≤5%") — everything else is "higher percentage is
+// better", inferred from its own EPI target string rather than hardcoded per
+// metric key, so a future lower-is-better metric added to kpiMatrix.js is
+// handled automatically.
+function metricDirection(metric) {
+  return typeof metric.epiTarget === 'string' && metric.epiTarget.trim().startsWith('≤') ? 'down' : 'up';
+}
+
+function bandFor(metric, actual) {
+  if (!Number.isFinite(actual)) return null;
+  const epiNums = parseNumbers(metric.epiTarget);
+  if (epiNums.length === 0) return null;
+  const epi = epiNums[0];
+  const mpiNums = parseNumbers(metric.mpiRange);
+  if (metricDirection(metric) === 'down') {
+    if (actual <= epi) return 'EPI';
+    const mpiCeiling = mpiNums.length ? Math.max(...mpiNums) : epi;
+    return actual <= mpiCeiling ? 'MPI' : 'LPI';
+  }
+  if (actual >= epi) return 'EPI';
+  const mpiFloor = mpiNums.length ? Math.min(...mpiNums) : epi;
+  return actual >= mpiFloor ? 'MPI' : 'LPI';
+}
+
+// Normalizes a metric's raw `actual` into a 0-100 "how good" score so the
+// weighted average below is always summing in the same direction — a 3%
+// bug/rework rate (great) must contribute a HIGH score, not drag the
+// composite down the way averaging the raw 3% would.
+function scorePctFor(metric, actual) {
+  if (!Number.isFinite(actual)) return null;
+  const raw = metricDirection(metric) === 'down' ? 100 - actual : actual;
+  return Math.max(0, Math.min(100, Math.round(raw * 10) / 10));
+}
+
+router.get('/kpi-scorecard', asyncRoute(async (req, res) => {
+  const { from, to } = req.query;
+  if (!from || !to) return res.status(400).json({ error: 'from and to query parameters are required (YYYY-MM-DD)' });
+
+  const rosterIds = KPI_ROSTER.map((r) => r.userId);
+  const rosterPlaceholders = rosterIds.map(() => '?').join(', ');
+  const userRows = await prepare(`SELECT id, name FROM users WHERE id IN (${rosterPlaceholders}) AND is_active = 1`).all(...rosterIds);
+  const userById = new Map(userRows.map((u) => [u.id, u]));
+
+  const manualRows = await prepare(
+    `SELECT user_id as "userId", metric_key as "metricKey", value FROM kpi_manual_entries
+     WHERE period_from = ? AND period_to = ? AND user_id IN (${rosterPlaceholders})`,
+  ).all(from, to, ...rosterIds);
+  const manualByKey = new Map(manualRows.map((m) => [`${m.userId}:${m.metricKey}`, Number(m.value)]));
+
+  const scorecards = [];
+  for (const entry of KPI_ROSTER) {
+    const person = userById.get(entry.userId);
+    if (!person) continue; // deactivated/removed since the roster was configured — never fabricate a card for them
+
+    const matrix = kpiMatrixFor(entry.kpiRole);
+    // A Manager/Team Lead is scored on their reports' work; an individual
+    // contributor is scored on their own — same "reports.length ? reports :
+    // self" shape resolveReviewer already uses elsewhere in this app.
+    const scopeIds = entry.reports.length > 0 ? entry.reports : [entry.userId];
+    const [dayStats, blockerStats] = await Promise.all([
+      dailyUpdateCompletionStats(scopeIds, from, to),
+      blockerResolutionStats(scopeIds, from, to),
+    ]);
+
+    let weightedSum = 0;
+    let weightMeasured = 0;
+    const metrics = matrix.map((metric) => {
+      let actual = null;
+      if (metric.compute === 'auto') {
+        actual = actualForMetric(metric.key, dayStats, blockerStats);
+      } else if (metric.compute === 'manual') {
+        const stored = manualByKey.get(`${entry.userId}:${metric.key}`);
+        actual = Number.isFinite(stored) ? stored : null;
+      }
+      const scorePct = metric.compute === 'unavailable' ? null : scorePctFor(metric, actual);
+      const band = metric.compute === 'unavailable' ? null : bandFor(metric, actual);
+      if (scorePct !== null) {
+        weightedSum += metric.weight * scorePct;
+        weightMeasured += metric.weight;
+      }
+      return {
+        key: metric.key, label: metric.label, type: metric.type, weight: metric.weight,
+        epiTarget: metric.epiTarget, mpiRange: metric.mpiRange, lpiRange: metric.lpiRange,
+        formula: metric.formula, compute: metric.compute,
+        actual, scorePct, band,
+      };
+    });
+
+    scorecards.push({
+      userId: entry.userId,
+      name: person.name,
+      kpiRole: entry.kpiRole,
+      metrics,
+      weightedScore: weightMeasured > 0 ? Math.round((weightedSum / weightMeasured) * 10) / 10 : null,
+      weightMeasuredPct: Math.round(weightMeasured * 1000) / 10,
+    });
+  }
+
+  res.json({ from, to, scorecards });
+}));
+
+router.post('/kpi-scorecard/manual-entry', asyncRoute(async (req, res) => {
+  const { userId, periodFrom, periodTo, metricKey, value } = req.body;
+  if (!userId || !periodFrom || !periodTo || !metricKey || value === undefined || value === null || value === '') {
+    return res.status(400).json({ error: 'userId, periodFrom, periodTo, metricKey and value are required' });
+  }
+  const numericValue = Number(value);
+  if (!Number.isFinite(numericValue)) return res.status(400).json({ error: 'value must be a number' });
+
+  const rosterEntry = kpiRosterEntry(userId);
+  if (!rosterEntry) return res.status(404).json({ error: 'That person is not on the KPI scorecard roster' });
+
+  const target = await prepare('SELECT * FROM users WHERE id = ?').get(userId);
+  // canManage already refuses actor.id === target.id, so this also rules out
+  // someone entering their own score — this is a reviewer-typed value by
+  // design, mirroring the spreadsheet's own _KPI Entries tab.
+  if (!target || !canManage(req.user, target)) {
+    return res.status(403).json({ error: 'You do not have permission to enter a KPI score for this person' });
+  }
+
+  const metric = kpiMatrixFor(rosterEntry.kpiRole).find((m) => m.key === metricKey);
+  if (!metric) return res.status(400).json({ error: 'Unknown metric for this person\'s KPI role' });
+  if (metric.compute !== 'manual') return res.status(400).json({ error: 'This metric is not manually entered' });
+
+  await prepare(
+    `INSERT INTO kpi_manual_entries (id, user_id, period_from, period_to, metric_key, value, entered_by, entered_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT (user_id, period_from, period_to, metric_key)
+     DO UPDATE SET value = EXCLUDED.value, entered_by = EXCLUDED.entered_by, entered_at = EXCLUDED.entered_at`,
+  ).run(`kpi-${randomUUID()}`, userId, periodFrom, periodTo, metricKey, numericValue, req.user.id, new Date().toISOString());
+
+  res.json({ ok: true });
 }));
 
 router.get('/:internId', asyncRoute(async (req, res) => {

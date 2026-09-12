@@ -10,7 +10,7 @@ import { asyncRoute } from '../middleware/asyncRoute.js';
 const router = Router();
 router.use(requireAuth);
 
-const CLOSED_STATUSES = ['Resolved', 'Closed'];
+export const CLOSED_STATUSES = ['Resolved', 'Closed'];
 
 const SELECT_COLUMNS = `id, linked_task_id as "linkedTaskId", linked_task_title as "linkedTaskTitle", raised_by as "raisedBy", project, raised_date as "raisedDate",
   category, description, blocking_what as "blockingWhat", owner_to_resolve_id as "ownerToResolveId",
