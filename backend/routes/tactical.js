@@ -129,6 +129,50 @@ function normalizeStatusKey(raw) {
   return collapsed ? collapsed.toLowerCase() : 'not recorded';
 }
 
+// ---- Overdue / Delayed / Dashboard Risk Rule -------------------------------
+// "Overdue" (still unfinished, past due) and "Delayed" (finished, but after
+// its target date) are deliberately distinct concepts, per spec. Both read a
+// row's own due/close dates, independent of whatever date-range filter is
+// active — a task logged last month can still be overdue today. The target
+// a completed row is judged against is the 2nd Close Date when one was set
+// (task got reworked and given a revised target), same rule as the KPI
+// on-time formula in dailyUpdateCompletionStats below.
+function isOverdueRow(r) {
+  return normalizeStatusKey(r.status) !== 'completed' && !!r.dueDate && r.dueDate < TODAY;
+}
+function isDelayedRow(r) {
+  if (normalizeStatusKey(r.status) !== 'completed' || !r.actualCloseDate || !r.dueDate) return false;
+  return r.actualCloseDate > (r.secondCloseDate || r.dueDate);
+}
+const DUE_SOON_DAYS = 7;
+function isDueSoonRow(r) {
+  return normalizeStatusKey(r.status) !== 'completed' && !!r.dueDate && r.dueDate >= TODAY && r.dueDate <= addDaysISO(TODAY, DUE_SOON_DAYS);
+}
+
+// Derived purely from aggregating this same project's own rows' due/actual
+// dates — there is no dedicated Project record anywhere in this app (project
+// is a free-text field), so this is inference over real task-level dates,
+// not an authoritative project-management field. Disclosed as such in the
+// UI, same spirit as the Dashboard Risk Rule below.
+function deriveProjectStatus({ total, completed, hasOverdue, dueSoon }) {
+  if (total > 0 && completed === total) return 'Completed';
+  if (completed === 0) return 'Not Started';
+  if (hasOverdue) return 'Delayed';
+  if (dueSoon) return 'At Risk';
+  return 'On Track';
+}
+
+// A transparent, disclosed scoring heuristic for "who/what needs
+// attention" — explicitly NOT an official company KPI, always labeled
+// "Dashboard Risk Rule" wherever it's shown. Bands: 0-2 Low, 3-5 Medium,
+// 6-8 High, 9+ Critical.
+function riskBand(score) {
+  if (score >= 9) return 'Critical';
+  if (score >= 6) return 'High';
+  if (score >= 3) return 'Medium';
+  return 'Low';
+}
+
 // Team View's roster is scoped by TEAM MEMBERSHIP, not management authority
 // — unlike scopedRoster (built for "who do I manage", empty for an
 // employee), everyone should be able to see their own team's tactical
@@ -221,8 +265,8 @@ async function getTeamTacticalAnalytics(user, query) {
     const dateParams = (from && to) ? [from, to] : [];
     const rowsRaw = await prepare(
       `SELECT id, user_id as "userId", task_id as "taskId", custom_task_id as "customTaskId", seq, date, status, task_completed as "taskCompleted",
-        milestone, project, deliverables, resources, priority, due_date as "dueDate", actual_close_date as "actualCloseDate"
-       FROM daily_updates WHERE user_id IN (${placeholders}) ${dateClause} ORDER BY date ASC, seq ASC`,
+        milestone, project, deliverables, resources, priority, due_date as "dueDate", second_close_date as "secondCloseDate", actual_close_date as "actualCloseDate"
+       FROM tactical_daily_updates WHERE user_id IN (${placeholders}) ${dateClause} ORDER BY date ASC, seq ASC`,
     ).all(...roster.map((u) => u.id), ...dateParams);
     rows = rowsRaw.map((r) => ({ ...r, displayId: r.customTaskId || `DU-${String(r.seq).padStart(4, '0')}` }));
   }
@@ -234,6 +278,21 @@ async function getTeamTacticalAnalytics(user, query) {
   const completedEntries = rows.filter((r) => normalizeStatusKey(r.status) === 'completed').length;
   const pendingEntries = rows.filter((r) => normalizeStatusKey(r.status) === 'pending').length;
   const completionRate = totalEntries > 0 ? Math.round((completedEntries / totalEntries) * 1000) / 10 : 0;
+  // Overdue (still unfinished, past due) and Delayed (finished, but after
+  // its target) are distinct — see isOverdueRow/isDelayedRow. "Not Due" is
+  // the mirror image of overdue: not yet finished, but its due date hasn't
+  // arrived yet either, so it isn't a problem (yet). Task Gap is simply
+  // everything not completed, which for a period with nothing "not due"
+  // reduces to the overdue count — matches the source spreadsheet's own
+  // "TEAM EFFICIENCY" table exactly (verified against its real numbers for
+  // 2026-09-01..11: 78 total / 72 actual / 92.3% efficiency).
+  const overdueRows = rows.filter(isOverdueRow);
+  const notDueRows = rows.filter((r) => normalizeStatusKey(r.status) !== 'completed' && !!r.dueDate && r.dueDate > TODAY);
+  const delayedRows = rows.filter(isDelayedRow);
+  const overdueCount = overdueRows.length;
+  const notDueCount = notDueRows.length;
+  const delayedCount = delayedRows.length;
+  const taskGap = totalEntries - completedEntries;
 
   // ---- Member performance — one row per roster member, even at 0/0 (an
   // employee with nothing logged still exists and still belongs here), no
@@ -247,12 +306,42 @@ async function getTeamTacticalAnalytics(user, query) {
     const uRows = rowsByUser.get(u.id) || [];
     const uCompleted = uRows.filter((r) => normalizeStatusKey(r.status) === 'completed').length;
     const uPending = uRows.filter((r) => normalizeStatusKey(r.status) === 'pending').length;
+    const uOverdue = uRows.filter(isOverdueRow).length;
+    const uDelayed = uRows.filter(isDelayedRow).length;
+    const uCompletedWithClose = uRows.filter((r) => normalizeStatusKey(r.status) === 'completed' && r.actualCloseDate);
+    const uOnTime = uCompletedWithClose.filter((r) => r.actualCloseDate <= (r.secondCloseDate || r.dueDate)).length;
     return {
       id: u.id, name: u.name, title: u.title, departmentName: u.departmentName, teamName: u.teamName,
-      totalEntries: uRows.length, completed: uCompleted, pending: uPending,
+      kpiRole: kpiRosterEntry(u.id)?.kpiRole || null,
+      totalEntries: uRows.length, completed: uCompleted, pending: uPending, overdue: uOverdue, delayed: uDelayed,
       completionRate: uRows.length > 0 ? Math.round((uCompleted / uRows.length) * 1000) / 10 : 0,
+      onTimeRate: uCompletedWithClose.length > 0 ? Math.round((uOnTime / uCompletedWithClose.length) * 1000) / 10 : null,
     };
   }).sort((a, b) => a.name.localeCompare(b.name));
+
+  // ---- Team Lead vs Developer (etc.) comparison — grouped by the same
+  // kpiRole tagging the KPI Scorecard feature already uses (kpiRoster.js),
+  // averaging each role's real completion/on-time rates. Only roster
+  // members who are actually in KPI_ROSTER get a role bucket; everyone
+  // else is grouped under "Other" rather than silently dropped.
+  const roleGroups = new Map(); // role -> { completionSum, onTimeSum, onTimeCount, memberCount }
+  const KPI_ROLE_LABEL = { manager: 'Manager', team_lead: 'Team Lead', senior_developer: 'Senior Developer', junior_developer: 'Junior Developer' };
+  for (const m of memberPerformance) {
+    const role = m.kpiRole || 'other';
+    if (!roleGroups.has(role)) roleGroups.set(role, { completionSum: 0, onTimeSum: 0, onTimeCount: 0, memberCount: 0 });
+    const g = roleGroups.get(role);
+    g.completionSum += m.completionRate;
+    g.memberCount += 1;
+    if (m.onTimeRate !== null) { g.onTimeSum += m.onTimeRate; g.onTimeCount += 1; }
+  }
+  const roleComparison = [...roleGroups.entries()]
+    .filter(([role]) => role !== 'other')
+    .map(([role, g]) => ({
+      role, label: KPI_ROLE_LABEL[role] || role,
+      memberCount: g.memberCount,
+      avgCompletionRate: g.memberCount > 0 ? Math.round((g.completionSum / g.memberCount) * 10) / 10 : 0,
+      avgOnTimeRate: g.onTimeCount > 0 ? Math.round((g.onTimeSum / g.onTimeCount) * 10) / 10 : null,
+    }));
 
   // ---- Work Distribution by Project — "how many days did the team actually
   // record work against each project", not "how many rows exist": counts
@@ -284,15 +373,38 @@ async function getTeamTacticalAnalytics(user, query) {
   // days into one bar, and two rows that are the same real project but
   // differently cased ("Develop" one day, "develop" the next) would
   // otherwise fragment into two bars.
-  const projectEntryGroups = new Map(); // normKey -> { displayVotes, entries: [] }
+  const projectEntryGroups = new Map(); // normKey -> { displayVotes, entries, total, completed, maxDueDate, maxActualCloseDate, hasOverdue, dueSoon, milestones }
   for (const r of rows) {
     const collapsed = collapseText(r.project);
     const key = collapsed ? collapsed.toLowerCase() : '__blank__';
     const display = collapsed || 'Project Not Recorded';
-    if (!projectEntryGroups.has(key)) projectEntryGroups.set(key, { displayVotes: new Map(), entries: [] });
+    if (!projectEntryGroups.has(key)) {
+      projectEntryGroups.set(key, {
+        displayVotes: new Map(), entries: [], total: 0, completed: 0,
+        maxDueDate: null, maxActualCloseDate: null, hasOverdue: false, dueSoon: false, milestones: new Map(),
+      });
+    }
     const g = projectEntryGroups.get(key);
     g.displayVotes.set(display, (g.displayVotes.get(display) || 0) + 1);
     g.entries.push(r);
+    g.total += 1;
+    const isCompleted = normalizeStatusKey(r.status) === 'completed';
+    if (isCompleted) g.completed += 1;
+    if (r.dueDate && (!g.maxDueDate || r.dueDate > g.maxDueDate)) g.maxDueDate = r.dueDate;
+    if (isCompleted && r.actualCloseDate && (!g.maxActualCloseDate || r.actualCloseDate > g.maxActualCloseDate)) g.maxActualCloseDate = r.actualCloseDate;
+    if (isOverdueRow(r)) g.hasOverdue = true;
+    if (isDueSoonRow(r)) g.dueSoon = true;
+
+    // Nested milestone breakdown within this project — same free-text
+    // grouping rule, one level deeper.
+    const mCollapsed = collapseText(r.milestone);
+    const mKey = mCollapsed ? mCollapsed.toLowerCase() : '__blank__';
+    const mDisplay = mCollapsed || 'Other';
+    if (!g.milestones.has(mKey)) g.milestones.set(mKey, { displayVotes: new Map(), total: 0, completed: 0 });
+    const mg = g.milestones.get(mKey);
+    mg.displayVotes.set(mDisplay, (mg.displayVotes.get(mDisplay) || 0) + 1);
+    mg.total += 1;
+    if (isCompleted) mg.completed += 1;
   }
   const projectLabelByKey = new Map();
   for (const [key, g] of projectEntryGroups) {
@@ -309,10 +421,155 @@ async function getTeamTacticalAnalytics(user, query) {
       .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0)),
   }));
 
+  // ---- Project Health — derived by aggregating this same project
+  // grouping's own due/actual-close dates; there is no dedicated Project
+  // record in this app (see file-level notes), so "Expected End"/"Actual
+  // End" are the latest due date / latest actual close date logged under
+  // that project name, not a field from a real project row. `status` is
+  // the Dashboard-derived rule (deriveProjectStatus), not an authoritative
+  // field either — both disclosed as such in the frontend.
+  const projectHealth = [...projectEntryGroups.entries()].map(([key, g]) => ({
+    project: projectLabelByKey.get(key),
+    total: g.total,
+    completed: g.completed,
+    pctDone: g.total > 0 ? Math.round((g.completed / g.total) * 1000) / 10 : 0,
+    expectedEnd: g.maxDueDate,
+    actualEnd: g.maxActualCloseDate,
+    status: deriveProjectStatus({ total: g.total, completed: g.completed, hasOverdue: g.hasOverdue, dueSoon: g.dueSoon }),
+  })).sort((a, b) => a.pctDone - b.pctDone);
+
+  const milestoneBreakdown = [...projectEntryGroups.entries()]
+    .filter(([, g]) => g.total > 0)
+    .map(([key, g]) => ({
+      project: projectLabelByKey.get(key),
+      milestones: [...g.milestones.values()]
+        .map((mg) => ({
+          label: [...mg.displayVotes.entries()].sort((a, b) => b[1] - a[1])[0][0],
+          total: mg.total,
+          completed: mg.completed,
+          achievementPct: mg.total > 0 ? Math.round((mg.completed / mg.total) * 1000) / 10 : 0,
+        }))
+        .sort((a, b) => b.total - a.total),
+    }));
+
+  // ---- Workload / Status — counts by the row's own raw status value,
+  // never a fixed enum (see buildFreeTextGroups) — a brand new status value
+  // shows up as its own honest category instead of being dropped.
+  const workloadGroups = buildFreeTextGroups(rows, (r) => r.status, 'Not Recorded');
+  const workloadTotalForPct = rows.length || 1;
+  const workloadStatus = workloadGroups
+    .map((gr) => ({ label: gr.label, count: gr.count, pct: Math.round((gr.count / workloadTotalForPct) * 1000) / 10 }))
+    .sort((a, b) => b.count - a.count);
+
+  // ---- Delivery Trend — weekly buckets (daily would be unreadable across
+  // a period spanning months). "Created" = logged that day, "Completed" =
+  // actually closed that day, "Overdue" = due that day and still not
+  // completed as of right now — a real but deliberately simplified
+  // definition (not a full day-by-day historical snapshot recomputation).
+  const trendBuckets = new Map(); // weekStartISO -> { created, completed, overdue }
+  const ensureBucket = (weekStart) => {
+    if (!trendBuckets.has(weekStart)) trendBuckets.set(weekStart, { created: 0, completed: 0, overdue: 0 });
+    return trendBuckets.get(weekStart);
+  };
+  for (const r of rows) {
+    ensureBucket(isoWeekStart(r.date)).created += 1;
+    if (normalizeStatusKey(r.status) === 'completed' && r.actualCloseDate) ensureBucket(isoWeekStart(r.actualCloseDate)).completed += 1;
+    if (isOverdueRow(r) && r.dueDate) ensureBucket(isoWeekStart(r.dueDate)).overdue += 1;
+  }
+  const deliveryTrend = [...trendBuckets.entries()]
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+    .map(([weekStart, v]) => ({ key: weekStart, label: weekRangeLabel(weekStart, addDaysISO(weekStart, 6)), ...v }));
+
+  // ---- Blockers & Escalations — scoped to blockers raised by this same
+  // roster, filtered by raised_date in the same range as everything else
+  // on this page.
+  const rosterIds = roster.map((u) => u.id);
+  const nameById = new Map(roster.map((u) => [u.id, u.name]));
+  let blockerRows = [];
+  if (rosterIds.length > 0) {
+    const bPlaceholders = rosterIds.map(() => '?').join(', ');
+    const bDateClause = (from && to) ? 'AND raised_date >= ? AND raised_date <= ?' : '';
+    const bDateParams = (from && to) ? [from, to] : [];
+    blockerRows = await prepare(
+      `SELECT id, project, raised_by as "raisedBy", raised_date as "raisedDate", blocking_what as "blockingWhat",
+        owner_to_resolve_id as "ownerToResolveId", escalation_level as "escalationLevel", status, closed_date as "closedDate"
+       FROM blockers WHERE raised_by IN (${bPlaceholders}) ${bDateClause}`,
+    ).all(...rosterIds, ...bDateParams);
+  }
+  const openBlockerRows = blockerRows.filter((b) => !CLOSED_STATUSES.includes(b.status));
+  const escalationCounts = new Map();
+  for (const b of openBlockerRows) escalationCounts.set(b.escalationLevel, (escalationCounts.get(b.escalationLevel) || 0) + 1);
+  const blockerSummary = {
+    openCount: openBlockerRows.length,
+    byEscalation: [...escalationCounts.entries()].map(([level, count]) => ({ level, count })),
+    blockers: blockerRows.map((b) => ({
+      id: b.id,
+      project: b.project,
+      memberName: nameById.get(b.raisedBy) || b.raisedBy,
+      blockingWhat: b.blockingWhat,
+      ownerName: b.ownerToResolveId ? (nameById.get(b.ownerToResolveId) || b.ownerToResolveId) : '—',
+      escalationLevel: b.escalationLevel,
+      status: b.status,
+      // Same days-open formula already used client-side in
+      // BlockerRegisterModal.jsx:79-83 — computed here too so a
+      // server-driven dashboard table doesn't need its own copy.
+      daysOpen: Math.max(0, Math.round((new Date(`${b.closedDate || TODAY}T00:00:00`) - new Date(`${b.raisedDate}T00:00:00`)) / 86400000)),
+    })),
+  };
+  const openBlockersByRaiser = new Map();
+  for (const b of openBlockerRows) openBlockersByRaiser.set(b.raisedBy, (openBlockersByRaiser.get(b.raisedBy) || 0) + 1);
+
+  // ---- Who Needs Attention — Dashboard Risk Rule (disclosed, not an
+  // official KPI): +3 per overdue item, +3 per open blocker they raised,
+  // +2 if their completion rate trails the team average by 20pts or more,
+  // +1 per pending item. Only people who score above 0 show up, worst
+  // first, capped to a manageable list for a meeting.
+  const teamAvgCompletionRate = memberPerformance.length > 0
+    ? memberPerformance.reduce((sum, m) => sum + m.completionRate, 0) / memberPerformance.length
+    : 0;
+  const whoNeedsAttention = memberPerformance
+    .map((m) => {
+      const openBlockers = openBlockersByRaiser.get(m.id) || 0;
+      const attainmentGap = teamAvgCompletionRate - m.completionRate;
+      const score = m.overdue * 3 + openBlockers * 3 + m.pending * 1 + (attainmentGap >= 20 ? 2 : 0);
+      const issues = [];
+      if (m.overdue > 0) issues.push(`${m.overdue} overdue`);
+      if (m.delayed > 0) issues.push(`${m.delayed} delayed`);
+      if (openBlockers > 0) issues.push(`${openBlockers} open blocker${openBlockers > 1 ? 's' : ''}`);
+      if (attainmentGap >= 20) issues.push(`${m.completionRate}% vs team avg ${Math.round(teamAvgCompletionRate * 10) / 10}%`);
+      return {
+        id: m.id, name: m.name, score, band: riskBand(score),
+        issue: issues.length > 0 ? issues.join(', ') : null,
+        targetAttainment: m.completionRate,
+      };
+    })
+    .filter((m) => m.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 8);
+
+  // ---- Key Insights / Focus Areas — formatted strings built ONLY from the
+  // numbers already computed above; never a hand-typed observation.
+  const delayedProjects = projectHealth.filter((p) => p.status === 'Delayed');
+  const worstMember = whoNeedsAttention[0] || null;
+  const keyInsights = [];
+  if (overdueCount > 0) keyInsights.push(`${overdueCount} task${overdueCount > 1 ? 's are' : ' is'} currently overdue across the team.`);
+  if (delayedProjects.length > 0) keyInsights.push(`${delayedProjects.map((p) => p.project).join(', ')} ${delayedProjects.length > 1 ? 'are' : 'is'} behind schedule.`);
+  if (blockerSummary.openCount > 0) keyInsights.push(`${blockerSummary.openCount} blocker${blockerSummary.openCount > 1 ? 's are' : ' is'} currently open.`);
+  if (worstMember) keyInsights.push(`${worstMember.name} needs the most attention right now (${worstMember.issue}).`);
+  if (keyInsights.length === 0) keyInsights.push('No overdue work, open blockers, or at-risk projects in this period.');
+
+  const focusAreas = [];
+  if (delayedProjects.length > 0) focusAreas.push(`Resolve delayed work on ${delayedProjects[0].project}.`);
+  if (blockerSummary.openCount > 0) focusAreas.push(`Close ${blockerSummary.openCount} open blocker${blockerSummary.openCount > 1 ? 's' : ''}.`);
+  if (worstMember) focusAreas.push(`Review ${worstMember.name}'s workload and blockers.`);
+  if (taskGap > 0) focusAreas.push(`Confirm a plan for the remaining ${taskGap} incomplete item${taskGap > 1 ? 's' : ''}.`);
+  focusAreas.push('Confirm targets for the next period.');
+
   return {
     scope,
     totalInterns: roster.length,
     totalEntries, completedEntries, pendingEntries, completionRate,
+    overdueCount, notDueCount, delayedCount, taskGap,
     availableDepartments: availableDepartments.map((d) => ({ id: d.id, name: d.name })),
     availableTeams: availableTeams.map((t) => ({ id: t.id, name: t.name })),
     // `title` lets the frontend offer "Interns"/"Developers" as one-click
@@ -321,6 +578,9 @@ async function getTeamTacticalAnalytics(user, query) {
     // (team leads, managers, or a custom title) — same free-text-normalize
     // rule as everywhere else in this file, no fixed role enum involved.
     availableMembers: fullRoster.map((u) => ({ id: u.id, name: u.name, title: u.title })).sort((a, b) => a.name.localeCompare(b.name)),
+    roleComparison,
+    projectHealth, milestoneBreakdown, workloadStatus, deliveryTrend,
+    whoNeedsAttention, blockerSummary, keyInsights, focusAreas,
     memberPerformance,
     projectDistribution, activityTypeDistribution,
     timeline,
@@ -356,17 +616,19 @@ async function dailyUpdateCompletionStats(userIds, from, to) {
   if (userIds.length === 0) return { total: 0, completed: 0, onTimeEligible: 0, onTime: 0 };
   const placeholders = userIds.map(() => '?').join(', ');
   const rows = await prepare(
-    `SELECT status, due_date as "dueDate", actual_close_date as "actualCloseDate"
-     FROM daily_updates WHERE user_id IN (${placeholders}) AND due_date IS NOT NULL AND due_date >= ? AND due_date <= ?`,
+    `SELECT status, due_date as "dueDate", second_close_date as "secondCloseDate", actual_close_date as "actualCloseDate"
+     FROM tactical_daily_updates WHERE user_id IN (${placeholders}) AND due_date IS NOT NULL AND due_date >= ? AND due_date <= ?`,
   ).all(...userIds, from, to);
   const total = rows.length;
   const completedRows = rows.filter((r) => normalizeStatusKey(r.status) === 'completed');
   // "On-time" can only be judged for completed rows that actually recorded a
   // close date — a completed row with no actual_close_date logged is neither
   // counted as on-time nor as late, it's simply excluded from this rate's
-  // denominator (never silently treated as either).
+  // denominator (never silently treated as either). The target it's judged
+  // against is the 2nd Close Date when one was set (the task got reworked
+  // and given a revised target), otherwise the original due date.
   const closedRows = completedRows.filter((r) => r.actualCloseDate);
-  const onTime = closedRows.filter((r) => r.actualCloseDate <= r.dueDate).length;
+  const onTime = closedRows.filter((r) => r.actualCloseDate <= (r.secondCloseDate || r.dueDate)).length;
   return { total, completed: completedRows.length, onTimeEligible: closedRows.length, onTime };
 }
 
@@ -551,6 +813,78 @@ router.post('/kpi-scorecard/manual-entry', asyncRoute(async (req, res) => {
   res.json({ ok: true });
 }));
 
+// ---- Tactical Meeting Action Items -----------------------------------------
+// A lightweight, real tracking table (see schema.postgres.sql) — there is no
+// meeting-notes/follow-up feature anywhere else in this app, so this starts
+// empty and only ever holds items someone actually logs going forward.
+// Simple owner/due-date/status only, no workflow/approval chain.
+const DASHBOARD_MANAGER_ROLES = ['super_admin', 'admin', 'manager', 'assistant_manager', 'team_lead'];
+
+router.get('/action-items', asyncRoute(async (req, res) => {
+  const { departmentId } = req.query;
+  const conditions = [];
+  const params = [];
+  if (departmentId) { conditions.push('ai.department_id = ?'); params.push(departmentId); }
+  const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+  const items = await prepare(
+    `SELECT ai.id, ai.department_id as "departmentId", ai.owner_id as "ownerId", u.name as "ownerName",
+      ai.action, ai.due_date as "dueDate", ai.status, ai.created_at as "createdAt", ai.updated_at as "updatedAt"
+     FROM tactical_action_items ai LEFT JOIN users u ON u.id = ai.owner_id
+     ${where} ORDER BY ai.seq DESC`,
+  ).all(...params);
+  res.json({ items });
+}));
+
+router.post('/action-items', asyncRoute(async (req, res) => {
+  if (!DASHBOARD_MANAGER_ROLES.includes(req.user.role)) {
+    return res.status(403).json({ error: 'You do not have permission to add action items' });
+  }
+  const { departmentId, ownerId, action, dueDate } = req.body;
+  const trimmedAction = (action || '').trim();
+  if (!trimmedAction) return res.status(400).json({ error: 'Action text is required' });
+
+  const now = new Date().toISOString();
+  const id = `action-${randomUUID()}`;
+  await prepare(
+    `INSERT INTO tactical_action_items (id, department_id, owner_id, action, due_date, status, created_by, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, 'Open', ?, ?, ?)`,
+  ).run(id, departmentId || req.user.department_id || null, ownerId || null, trimmedAction, dueDate || null, req.user.id, now, now);
+
+  const item = await prepare(
+    `SELECT ai.id, ai.department_id as "departmentId", ai.owner_id as "ownerId", u.name as "ownerName",
+      ai.action, ai.due_date as "dueDate", ai.status, ai.created_at as "createdAt", ai.updated_at as "updatedAt"
+     FROM tactical_action_items ai LEFT JOIN users u ON u.id = ai.owner_id WHERE ai.id = ?`,
+  ).get(id);
+  res.status(201).json({ item });
+}));
+
+router.patch('/action-items/:id', asyncRoute(async (req, res) => {
+  if (!DASHBOARD_MANAGER_ROLES.includes(req.user.role)) {
+    return res.status(403).json({ error: 'You do not have permission to update action items' });
+  }
+  const existing = await prepare('SELECT * FROM tactical_action_items WHERE id = ?').get(req.params.id);
+  if (!existing) return res.status(404).json({ error: 'Action item not found' });
+
+  const { ownerId, action, dueDate, status } = req.body;
+  await prepare(
+    `UPDATE tactical_action_items SET owner_id = ?, action = ?, due_date = ?, status = ?, updated_at = ? WHERE id = ?`,
+  ).run(
+    ownerId !== undefined ? ownerId : existing.owner_id,
+    action !== undefined ? (action || '').trim() || existing.action : existing.action,
+    dueDate !== undefined ? dueDate : existing.due_date,
+    status !== undefined ? status : existing.status,
+    new Date().toISOString(),
+    req.params.id,
+  );
+
+  const item = await prepare(
+    `SELECT ai.id, ai.department_id as "departmentId", ai.owner_id as "ownerId", u.name as "ownerName",
+      ai.action, ai.due_date as "dueDate", ai.status, ai.created_at as "createdAt", ai.updated_at as "updatedAt"
+     FROM tactical_action_items ai LEFT JOIN users u ON u.id = ai.owner_id WHERE ai.id = ?`,
+  ).get(req.params.id);
+  res.json({ item });
+}));
+
 router.get('/:internId', asyncRoute(async (req, res) => {
   const target = await resolveAuthorizedTarget(req, res);
   if (!target) return;
@@ -567,13 +901,13 @@ router.get('/:internId', asyncRoute(async (req, res) => {
       `SELECT id, task_id as "taskId", custom_task_id as "customTaskId", seq, date, status, task_completed as "taskCompleted",
         milestone, project, deliverables, resources, priority, due_date as "dueDate", actual_close_date as "actualCloseDate",
         bdm_remarks as "bdmRemarks", bdm_remarks_by as "bdmRemarksBy"
-       FROM daily_updates WHERE user_id = ? AND date >= ? AND date <= ? ORDER BY date ASC, seq ASC`,
+       FROM tactical_daily_updates WHERE user_id = ? AND date >= ? AND date <= ? ORDER BY date ASC, seq ASC`,
     ).all(target.id, from, to)
     : await prepare(
       `SELECT id, task_id as "taskId", custom_task_id as "customTaskId", seq, date, status, task_completed as "taskCompleted",
         milestone, project, deliverables, resources, priority, due_date as "dueDate", actual_close_date as "actualCloseDate",
         bdm_remarks as "bdmRemarks", bdm_remarks_by as "bdmRemarksBy"
-       FROM daily_updates WHERE user_id = ? ORDER BY date ASC, seq ASC`,
+       FROM tactical_daily_updates WHERE user_id = ? ORDER BY date ASC, seq ASC`,
     ).all(target.id);
 
   const rows = rowsRaw.map((r) => ({ ...r, displayId: r.customTaskId || `DU-${String(r.seq).padStart(4, '0')}` }));

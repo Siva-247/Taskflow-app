@@ -358,3 +358,86 @@ CREATE TABLE IF NOT EXISTS kpi_manual_entries (
 -- rather than piling up history — the scorecard only ever wants the
 -- current value for a period, not an edit trail.
 CREATE UNIQUE INDEX IF NOT EXISTS idx_kpi_manual_entries_unique ON kpi_manual_entries(user_id, period_from, period_to, metric_key);
+
+-- A task that got sent back and reworked can get a revised target date
+-- distinct from its original Due Date — mirrors the AI department's old
+-- spreadsheet tracker's own "2nd Close Date" column. On-time is judged
+-- against this when present, falling back to due_date otherwise (see
+-- tactical.js's dailyUpdateCompletionStats). Nullable and author-supplied,
+-- same as due_date — there's no automatic trigger event that would let the
+-- server stamp it itself.
+ALTER TABLE daily_updates ADD COLUMN IF NOT EXISTS second_close_date TEXT;
+
+-- One-time historical backfill of the AI department's real pre-app task
+-- history (from `AI Team projects Tracker (1).xlsx`'s per-person sheets) —
+-- deliberately a SEPARATE table from daily_updates, not more rows in it:
+-- the spreadsheet logs one row per individual task (many per person per
+-- day), but daily_updates enforces one row per person per day
+-- (idx_daily_updates_user_date) for the live day-to-day submission
+-- workflow real employees use. Importing into daily_updates itself would
+-- either violate that constraint or force collapsing many real tasks into
+-- one row, destroying the per-task detail the KPI formulas need. This
+-- table holds that detail untouched; the live Daily Updates page and its
+-- one-per-day rule are completely unaffected. source_sheet/source_sn are
+-- traceability-only (which spreadsheet row a record came from) — never
+-- read by any calculation.
+CREATE TABLE IF NOT EXISTS historical_daily_updates (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES users(id),
+  date TEXT NOT NULL,
+  status TEXT NOT NULL,
+  milestone TEXT,
+  project TEXT,
+  task_title TEXT NOT NULL DEFAULT '',
+  deliverables TEXT,
+  resources TEXT,
+  due_date TEXT,
+  second_close_date TEXT,
+  actual_close_date TEXT,
+  task_start_date TEXT,
+  department_id TEXT REFERENCES departments(id),
+  source_sheet TEXT,
+  source_sn INTEGER,
+  seq BIGSERIAL
+);
+CREATE INDEX IF NOT EXISTS idx_historical_daily_updates_user ON historical_daily_updates(user_id);
+
+-- The single read surface every Tactical Meeting reporting query uses
+-- (Team View, Individual View, KPI Scorecards) — a live row and a
+-- historical-import row look identical to every one of those queries, so
+-- the union logic lives in exactly this one place rather than being
+-- repeated at every call site. The live CRUD routes in dailyUpdates.js
+-- (the actual Daily Updates page people submit/edit/export from) read
+-- daily_updates directly, never this view — historical rows are
+-- deliberately invisible there.
+CREATE OR REPLACE VIEW tactical_daily_updates AS
+  SELECT id, user_id, task_id, custom_task_id, seq, date, status, task_completed,
+         milestone, project, deliverables, resources, priority, due_date, second_close_date,
+         actual_close_date, bdm_remarks, bdm_remarks_by
+  FROM daily_updates
+  UNION ALL
+  SELECT id, user_id, NULL, NULL, seq, date, status, NULL,
+         milestone, project, deliverables, resources, NULL, due_date, second_close_date,
+         actual_close_date, NULL, NULL
+  FROM historical_daily_updates;
+
+-- A lightweight, real tracking table for the Tactical Meeting Dashboard's
+-- "Action Items" panel — there is no meeting-notes/follow-up feature
+-- anywhere else in this app to repurpose, and fabricating history for this
+-- would violate the dashboard's own no-invented-data rule, so this starts
+-- empty and only ever holds items a manager actually logs going forward.
+-- No workflow/approval chain — this is a simple owner/due-date/status
+-- tracker, not a Task.
+CREATE TABLE IF NOT EXISTS tactical_action_items (
+  id TEXT PRIMARY KEY,
+  department_id TEXT REFERENCES departments(id),
+  owner_id TEXT REFERENCES users(id),
+  action TEXT NOT NULL,
+  due_date TEXT,
+  status TEXT NOT NULL DEFAULT 'Open',
+  created_by TEXT NOT NULL REFERENCES users(id),
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  seq BIGSERIAL
+);
+CREATE INDEX IF NOT EXISTS idx_tactical_action_items_department ON tactical_action_items(department_id);
