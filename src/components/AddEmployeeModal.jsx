@@ -90,11 +90,9 @@ export default function AddEmployeeModal({ user, onClose }) {
     }
     if (deptSelection === OTHER_DEPT && !customDept.trim()) e.customDept = true;
     if (role === 'other' && !customTitle.trim()) e.customTitle = true;
-    // Team is optional — the only thing that still needs validating here is
-    // the "+ New team" text field itself, if that's the path they're on;
-    // simply not picking an existing team is a valid, deliberate "no team
-    // yet" choice, not an incomplete form.
-    if (needsTeam && needsNewTeamField && !customTeam.trim()) e.customTeam = true;
+    // Team is optional, full stop — including the "+ New team" text field:
+    // leaving it blank isn't an incomplete form, it just means the person
+    // ends up on no team, exactly as if "No team" had been picked instead.
     return e;
   };
 
@@ -122,8 +120,7 @@ export default function AddEmployeeModal({ user, onClose }) {
           } else {
             let teamId = teamSelection;
             if (needsNewTeamField) {
-              const team = await addTeam({ name: customTeam.trim(), departmentId });
-              teamId = team.id;
+              teamId = customTeam.trim() ? (await addTeam({ name: customTeam.trim(), departmentId })).id : undefined;
             }
             payload.role = 'employee';
             payload.teamId = teamId || undefined;
@@ -147,8 +144,7 @@ export default function AddEmployeeModal({ user, onClose }) {
       } else {
         let teamId = teamSelection;
         if (needsNewTeamField) {
-          const team = await addTeam({ name: customTeam.trim(), departmentId });
-          teamId = team.id;
+          teamId = customTeam.trim() ? (await addTeam({ name: customTeam.trim(), departmentId })).id : undefined;
         }
         const title = role === 'intern' ? 'Intern' : role === 'employee' ? 'Developer' : customTitle.trim();
         // departmentId always goes along for the ride now, not just when a
@@ -264,11 +260,10 @@ export default function AddEmployeeModal({ user, onClose }) {
               </Field>
             )}
             {needsNewTeamField && (
-              <Field label="New team name" required>
-                <TextInput value={customTeam} onChange={setCustomTeam} placeholder="e.g. Operations Team" />
+              <Field label="New team name (optional)">
+                <TextInput value={customTeam} onChange={setCustomTeam} placeholder="e.g. Operations Team — leave blank for no team" />
               </Field>
             )}
-            {errors.customTeam && <ErrorText>Enter the new team's name.</ErrorText>}
           </>
         )}
 
