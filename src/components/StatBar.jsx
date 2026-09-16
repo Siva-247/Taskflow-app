@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { IconTaskList, IconCheckCircle, IconClock, IconAlertTriangle, IconPending, IconUsersGroup, IconBuilding } from './icons.jsx';
+import { IconTaskList, IconCheckCircle, IconClock, IconAlertTriangle, IconPending, IconUsersGroup, IconBuilding, IconLayers } from './icons.jsx';
 
 export function defaultStatItems(stats, totalLabel = 'Total', completedBadge) {
   return [
@@ -16,6 +16,18 @@ export function orgStatItems({ totalEmployees, totalDepartments }) {
   return [
     { icon: <IconUsersGroup size={19} color="var(--accent)" />, value: totalEmployees, label: 'Total Employees', to: '/employees' },
     { icon: <IconBuilding size={19} color="var(--accent-dark)" />, value: totalDepartments, label: 'Total Departments', to: '/employees' },
+  ];
+}
+
+// Settings' Organization Structure summary strip — same stat-card look as
+// orgStatItems above, extended with Teams and Active Members and without
+// the `to` navigation (the structure is already right there on the page).
+export function organizationStatItems({ totalMembers, totalDepartments, totalTeams, activeMembers }) {
+  return [
+    { icon: <IconUsersGroup size={19} color="var(--accent)" />, value: totalMembers, label: 'Total Members' },
+    { icon: <IconBuilding size={19} color="var(--accent-dark)" />, value: totalDepartments, label: 'Departments' },
+    { icon: <IconLayers size={19} color="var(--accent-mid)" />, value: totalTeams, label: 'Teams' },
+    { icon: <IconCheckCircle size={19} color="var(--green-deep, #059669)" />, value: activeMembers, label: 'Active Members' },
   ];
 }
 

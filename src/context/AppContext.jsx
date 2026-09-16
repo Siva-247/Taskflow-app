@@ -764,6 +764,56 @@ export function AppProvider({ children }) {
     }
   }, [call, showToast]);
 
+  const editDepartment = useCallback(async (id, data) => {
+    try {
+      const result = await call(`/departments/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
+      setDepartments((prev) => prev.map((d) => (d.id === id ? result.department : d)));
+      showToast('Department updated');
+      return result.department;
+    } catch (err) {
+      showToast(err.message || 'Could not update department');
+      throw err;
+    }
+  }, [call, showToast]);
+
+  // Backend blocks this while the department still has any team or member on
+  // it and returns a friendly count-based error message — surfaced as-is.
+  const deleteDepartment = useCallback(async (id) => {
+    try {
+      await call(`/departments/${id}`, { method: 'DELETE' });
+      setDepartments((prev) => prev.filter((d) => d.id !== id));
+      showToast('Department removed');
+    } catch (err) {
+      showToast(err.message || 'Could not remove department');
+      throw err;
+    }
+  }, [call, showToast]);
+
+  const editTeam = useCallback(async (id, data) => {
+    try {
+      const result = await call(`/teams/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
+      setTeams((prev) => prev.map((t) => (t.id === id ? result.team : t)));
+      showToast('Team updated');
+      return result.team;
+    } catch (err) {
+      showToast(err.message || 'Could not update team');
+      throw err;
+    }
+  }, [call, showToast, setTeams]);
+
+  // Backend blocks this while the team still has any member or task on it
+  // and returns a friendly count-based error message — surfaced as-is.
+  const deleteTeam = useCallback(async (id) => {
+    try {
+      await call(`/teams/${id}`, { method: 'DELETE' });
+      setTeams((prev) => prev.filter((t) => t.id !== id));
+      showToast('Team removed');
+    } catch (err) {
+      showToast(err.message || 'Could not remove team');
+      throw err;
+    }
+  }, [call, showToast, setTeams]);
+
   const editUser = useCallback(async (id, data) => {
     try {
       const result = await call(`/users/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
@@ -825,7 +875,7 @@ export function AppProvider({ children }) {
     tasks, dailyUpdates, activity, notifications, blockers, blockerDirectory, blockerRegisterOpen, openBlockerRegister, closeBlockerRegister, memberStats,
     scopedTasks, scopedDailyUpdates, statsFor, bucketOf, myDrafts,
     createTask, updateTask, deleteTask, publishDraft, refreshTask, setTaskProgress, setTaskStatus, requestChanges, submitForReview, approveTask, approveTaskCreation, rejectTaskCreation, reassignTask, requestExtension, approveExtension, rejectExtension, setTaskMarks, toggleSubtask,
-    addComment, editComment, deleteComment, addDailyUpdate, editDailyUpdate, deleteDailyUpdate, reviewDailyUpdate, addBlocker, editBlocker, deleteBlocker, addTeamMember, addManager, addTeam, addDepartment, editUser, deleteUser, resetUserPassword, setUserActive,
+    addComment, editComment, deleteComment, addDailyUpdate, editDailyUpdate, deleteDailyUpdate, reviewDailyUpdate, addBlocker, editBlocker, deleteBlocker, addTeamMember, addManager, addTeam, editTeam, deleteTeam, addDepartment, editDepartment, deleteDepartment, editUser, deleteUser, resetUserPassword, setUserActive,
     markNotificationRead, markAllNotificationsRead,
     toast, showToast,
   };
