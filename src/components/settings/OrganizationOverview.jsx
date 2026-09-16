@@ -6,13 +6,13 @@ import DepartmentCard from './DepartmentCard.jsx';
 import { IconPlusCircle } from '../icons.jsx';
 
 // Overview tab: the company-wide stat strip plus the full department -> team
-// structure. Filtering (search + department/lead/status) all happens in the
-// parent (Settings.jsx owns the department/team data), this just lays out
-// whatever rollup list it's handed.
+// structure. Filtering (search + department/role) all happens in the parent
+// (Settings.jsx owns the department/team data), this just lays out whatever
+// rollup list it's handed.
 export default function OrganizationOverview({
   statItems, visibleRollups, collapsed, onToggleDept,
   search, onSearchChange, departmentOptions, departmentFilter, onDepartmentFilterChange,
-  leadOptions, leadFilter, onLeadFilterChange, statusOptions, statusFilter, onStatusFilterChange,
+  roleOptions, roleFilter, onRoleFilterChange,
   onAddDepartment, onAddTeam, onEditDept, onDeleteDept, onEditTeam, onDeleteTeam, onViewTeam,
   hasAnyDepartments,
 }) {
@@ -43,8 +43,7 @@ export default function OrganizationOverview({
         placeholder="Search departments or teams..."
         filters={[
           { value: departmentFilter, onChange: onDepartmentFilterChange, options: departmentOptions },
-          { value: leadFilter, onChange: onLeadFilterChange, options: leadOptions },
-          { value: statusFilter, onChange: onStatusFilterChange, options: statusOptions },
+          { value: roleFilter, onChange: onRoleFilterChange, options: roleOptions },
         ]}
       />
 

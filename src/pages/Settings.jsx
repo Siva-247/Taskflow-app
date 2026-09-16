@@ -44,12 +44,11 @@ export default function Settings() {
 
   const [activeTab, setActiveTab] = useState('overview');
 
-  // ---- Overview tab: search + department/lead/status filters ----
+  // ---- Overview tab: search + department/role filters ----
   const [search, setSearch] = useState('');
   const [collapsed, setCollapsed] = useState(() => new Set());
   const [departmentFilter, setDepartmentFilter] = useState('all');
-  const [leadFilter, setLeadFilter] = useState('all');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [roleFilter, setRoleFilter] = useState('all');
 
   // ---- Departments / Teams tabs: their own independent search ----
   const [deptTabSearch, setDeptTabSearch] = useState('');
@@ -116,40 +115,47 @@ export default function Settings() {
     };
   }), [departments, teams, users]);
 
+  // "Employee" and "Intern" aren't distinct entries in the ROLES enum — an
+  // intern is role 'employee' with title 'Employee' — same UI convenience
+  // split AddEmployeeModal's own Role field already uses, mirrored here so
+  // this filter offers the same five categories that form does.
+  const personMatchesRoleFilter = (user, filter) => {
+    if (filter === 'all') return true;
+    if (filter === 'employee') return user.role === ROLES.EMPLOYEE && user.title !== 'Intern';
+    if (filter === 'intern') return user.role === ROLES.EMPLOYEE && user.title === 'Intern';
+    return user.role === filter;
+  };
+
   const q = search.trim().toLowerCase();
-  const teamFilterActive = leadFilter !== 'all' || statusFilter !== 'all';
+  const roleFilterActive = roleFilter !== 'all';
+  // Manager is department-scoped, not team-scoped (a manager has no team_id
+  // at all) — so filtering by it narrows which DEPARTMENTS show, leaving
+  // their teams untouched, while every other role narrows which TEAMS show
+  // within a department (team membership already includes that team's own
+  // lead/assistant manager, since they share the same team_id).
   const visibleRollups = useMemo(() => rollups
     .filter((r) => departmentFilter === 'all' || r.dept.id === departmentFilter)
     .map((r) => {
-      if (!teamFilterActive) return r;
-      const filteredTeams = r.teamRows.filter((t) => {
-        if (leadFilter !== 'all' && t.lead?.id !== leadFilter) return false;
-        if (statusFilter === 'has-lead' && !t.lead) return false;
-        if (statusFilter === 'no-lead' && t.lead) return false;
-        return true;
-      });
+      if (!roleFilterActive || roleFilter === ROLES.MANAGER) return r;
+      const filteredTeams = r.teamRows.filter((t) => t.members.some((m) => personMatchesRoleFilter(m, roleFilter)));
       return { ...r, teamRows: filteredTeams };
     })
-    .filter((r) => (teamFilterActive ? r.teamRows.length > 0 : true))
+    .filter((r) => {
+      if (!roleFilterActive) return true;
+      if (roleFilter === ROLES.MANAGER) return users.some((u) => u.role === ROLES.MANAGER && u.departmentId === r.dept.id);
+      return r.teamRows.length > 0;
+    })
     .filter((r) => !q || r.dept.name.toLowerCase().includes(q) || r.teamRows.some((t) => t.team.name.toLowerCase().includes(q))),
-  [rollups, q, departmentFilter, leadFilter, statusFilter, teamFilterActive]);
-
-  const allLeads = useMemo(() => {
-    const seen = new Map();
-    teams.forEach((t) => {
-      if (!t.leadId) return;
-      const lead = users.find((u) => u.id === t.leadId);
-      if (lead && !seen.has(lead.id)) seen.set(lead.id, lead);
-    });
-    return [...seen.values()];
-  }, [teams, users]);
+  [rollups, q, departmentFilter, roleFilter, roleFilterActive, users]);
 
   const departmentOptions = useMemo(() => [{ value: 'all', label: 'All Departments' }, ...departments.map((d) => ({ value: d.id, label: d.name }))], [departments]);
-  const leadOptions = useMemo(() => [{ value: 'all', label: 'All Team Leads' }, ...allLeads.map((l) => ({ value: l.id, label: l.name }))], [allLeads]);
-  const statusOptions = [
-    { value: 'all', label: 'All Statuses' },
-    { value: 'has-lead', label: 'Has Team Lead' },
-    { value: 'no-lead', label: 'No Team Lead' },
+  const roleOptions = [
+    { value: 'all', label: 'All Roles' },
+    { value: ROLES.MANAGER, label: 'Manager' },
+    { value: ROLES.ASSISTANT_MANAGER, label: 'Assistant Manager' },
+    { value: ROLES.TEAM_LEAD, label: 'Team Lead' },
+    { value: 'employee', label: 'Employee' },
+    { value: 'intern', label: 'Intern' },
   ];
 
   // Company-wide roster grouped by department — the same shape Employees.jsx's
@@ -337,12 +343,9 @@ export default function Settings() {
           departmentOptions={departmentOptions}
           departmentFilter={departmentFilter}
           onDepartmentFilterChange={setDepartmentFilter}
-          leadOptions={leadOptions}
-          leadFilter={leadFilter}
-          onLeadFilterChange={setLeadFilter}
-          statusOptions={statusOptions}
-          statusFilter={statusFilter}
-          onStatusFilterChange={setStatusFilter}
+          roleOptions={roleOptions}
+          roleFilter={roleFilter}
+          onRoleFilterChange={setRoleFilter}
           onAddDepartment={() => { setNewDeptName(''); setNewDeptError(''); setShowAddDept(true); }}
           onAddTeam={openAddTeam}
           onEditDept={startEditDept}
