@@ -1,6 +1,8 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
 import { STATUS, PRIORITY } from '../data/mockData.js';
+import { downloadCsv } from '../utils.js';
+import { IconDownload } from './icons.jsx';
 
 export function Avatar({ initial, size = 32, gradient = false }) {
   return (
@@ -302,6 +304,50 @@ export function Pagination({ page, totalItems, pageSize = PAGE_SIZE, onChange })
         </span>
         <button type="button" className="btn-3d btn-glass" disabled={page >= pageCount} onClick={() => onChange(page + 1)} style={btnStyle(page >= pageCount)}>Next →</button>
       </div>
+    </div>
+  );
+}
+
+const EXPORT_COUNT_STEPS = [10, 25, 50, 100];
+
+// One shared "Export CSV" control for every page that builds a CSV from a
+// filtered list (Reports, Daily Update History, Blocker Register) — `rows`
+// is always the FULL filtered/sorted array, never the on-screen paginated
+// slice, so "All" genuinely means everything matching the current filters
+// rather than just what's visible. Defaults to "All"; the row-count picker
+// only appears once there's more than one meaningful choice (i.e. more rows
+// than the smallest step), and never offers a step at or above the total —
+// a 12-row set only ever sees "All (12)".
+export function ExportCsvButton({ rows, columns, filename, disabled, label = 'Export CSV', variant = 'primary', iconColor }) {
+  const [count, setCount] = React.useState('all');
+  const total = rows.length;
+  const steps = EXPORT_COUNT_STEPS.filter((n) => n < total);
+  const countOptions = [...steps.map((n) => ({ value: String(n), label: `${n} rows` })), { value: 'all', label: `All (${total})` }];
+  const isDisabled = disabled || total === 0;
+
+  const handleExport = () => {
+    const selected = count === 'all' ? rows : rows.slice(0, Number(count));
+    downloadCsv(filename, selected, columns);
+  };
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      {steps.length > 0 && (
+        <select
+          value={count}
+          onChange={(e) => setCount(e.target.value)}
+          disabled={isDisabled}
+          aria-label="Rows to export"
+          style={{ ...inputStyle, width: 'auto', padding: '9px 12px', fontSize: 13, appearance: 'none', cursor: isDisabled ? 'not-allowed' : 'pointer', opacity: isDisabled ? 0.6 : 1 }}
+        >
+          {countOptions.map((opt) => (
+            <option key={opt.value} value={opt.value}>{opt.label}</option>
+          ))}
+        </select>
+      )}
+      <Button variant={variant} onClick={handleExport} disabled={isDisabled}>
+        <IconDownload size={14} color={iconColor || (variant === 'primary' ? '#FFFFFF' : 'var(--text-secondary)')} /> {label}
+      </Button>
     </div>
   );
 }

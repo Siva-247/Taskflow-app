@@ -1,11 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useApp } from '../context/AppContext.jsx';
 import { STATUS, PRIORITY, ROLES, teamById } from '../data/mockData.js';
-import { Card, Select, TextInput, Button, StatusBadge, Pagination, PAGE_SIZE } from '../components/ui.jsx';
+import { Card, Select, TextInput, StatusBadge, Pagination, PAGE_SIZE, ExportCsvButton } from '../components/ui.jsx';
 import DatePicker from '../components/DatePicker.jsx';
-import { IconDownload } from '../components/icons.jsx';
 import { useRoleGuard } from '../hooks/useRoleGuard.js';
-import { formatDate, downloadCsv } from '../utils.js';
+import { formatDate } from '../utils.js';
 
 const STATUS_OPTIONS = [STATUS.PENDING_APPROVAL, STATUS.TODO, STATUS.IN_PROGRESS, STATUS.IN_REVIEW, STATUS.COMPLETED];
 
@@ -50,20 +49,18 @@ export default function Reports() {
     [ROLES.TEAM_LEAD]: 'Team report',
   }[currentUser.role];
 
-  const handleExport = () => {
-    downloadCsv(`taskflow-report-${TODAY}.csv`, filtered, [
-      { label: 'Task', value: (t) => t.title },
-      { label: 'Assignee', value: (t) => users.find((u) => u.id === t.assigneeId)?.name || '' },
-      { label: 'Assigned By', value: (t) => users.find((u) => u.id === t.createdBy)?.name || '' },
-      { label: 'Team', value: (t) => teamById(t.teamId)?.name || '' },
-      { label: 'Priority', value: (t) => t.priority },
-      { label: 'Status', value: (t) => t.status },
-      { label: 'Progress', value: (t) => `${t.progress}%` },
-      { label: 'Start Date', value: (t) => t.startDate },
-      { label: 'Due Date', value: (t) => t.dueDate },
-      { label: 'Overdue', value: (t) => (bucketOf(t) === 'overdue' ? 'Yes' : 'No') },
-    ]);
-  };
+  const exportColumns = [
+    { label: 'Task', value: (t) => t.title },
+    { label: 'Assignee', value: (t) => users.find((u) => u.id === t.assigneeId)?.name || '' },
+    { label: 'Assigned By', value: (t) => users.find((u) => u.id === t.createdBy)?.name || '' },
+    { label: 'Team', value: (t) => teamById(t.teamId)?.name || '' },
+    { label: 'Priority', value: (t) => t.priority },
+    { label: 'Status', value: (t) => t.status },
+    { label: 'Progress', value: (t) => `${t.progress}%` },
+    { label: 'Start Date', value: (t) => t.startDate },
+    { label: 'Due Date', value: (t) => t.dueDate },
+    { label: 'Overdue', value: (t) => (bucketOf(t) === 'overdue' ? 'Yes' : 'No') },
+  ];
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
@@ -72,9 +69,7 @@ export default function Reports() {
           <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 24, color: 'var(--heading)' }}>Reports</div>
           <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 500, fontSize: 14, color: 'var(--text-secondary)', marginTop: 4 }}>{scopeLabel}</div>
         </div>
-        <Button onClick={handleExport} disabled={filtered.length === 0}>
-          <IconDownload size={14} color="#FFFFFF" /> Export CSV
-        </Button>
+        <ExportCsvButton rows={filtered} columns={exportColumns} filename={`taskflow-report-${TODAY}.csv`} />
       </div>
 
       <div className="responsive-grid" style={{ display: 'grid', '--cols': 'repeat(5,1fr)', gap: 14 }}>

@@ -1,11 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useApp } from '../context/AppContext.jsx';
 import { ROLES, BLOCKER_STATUS, BLOCKER_CATEGORIES, ESCALATION_LEVELS } from '../data/mockData.js';
-import { Card, Select, Button, Modal, Pagination, PAGE_SIZE } from './ui.jsx';
+import { Card, Select, Button, Modal, Pagination, PAGE_SIZE, ExportCsvButton } from './ui.jsx';
 import RaiseBlockerModal from './RaiseBlockerModal.jsx';
 import DatePicker from './DatePicker.jsx';
-import { IconSearch, IconDownload, IconAlertTriangle, IconX } from './icons.jsx';
-import { formatDate, downloadCsv } from '../utils.js';
+import { IconSearch, IconAlertTriangle, IconX } from './icons.jsx';
+import { formatDate } from '../utils.js';
 
 const STATUS_OPTIONS = Object.values(BLOCKER_STATUS);
 const BLOCKER_MANAGER_ROLES = [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.MANAGER, ROLES.ASSISTANT_MANAGER, ROLES.TEAM_LEAD];
@@ -121,26 +121,24 @@ export default function BlockerRegisterModal({ onClose }) {
     setSearch(''); setStatusFilter('all'); setCategoryFilter('all'); setEscalationFilter('all'); setDateFrom(''); setDateTo('');
   };
 
-  const handleExport = () => {
-    downloadCsv(`blocker-register-${TODAY}.csv`, sorted, [
-      { label: 'Blocker ID', value: friendlyId },
-      { label: 'Linked Task S/N', value: (b) => b.linkedTaskTitle || '' },
-      { label: 'Member Tab', value: (b) => userById(b.raisedBy)?.name || '' },
-      { label: 'Project', value: (b) => b.project },
-      { label: 'Raised By', value: (b) => userById(b.raisedBy)?.name || '' },
-      { label: 'Raised Date', value: (b) => b.raisedDate },
-      { label: 'Category', value: (b) => b.category },
-      { label: 'Description', value: (b) => b.description },
-      { label: 'Blocking What', value: (b) => b.blockingWhat },
-      { label: 'Owner To Resolve', value: (b) => userById(b.ownerToResolveId)?.name || '' },
-      { label: 'Target Resolution', value: (b) => b.targetResolution || '' },
-      { label: 'Days', value: daysOpen },
-      { label: 'Escalation Level', value: (b) => b.escalationLevel },
-      { label: 'Status', value: (b) => b.status },
-      { label: 'Closed Date', value: (b) => b.closedDate || '' },
-      { label: 'Resolution Note', value: (b) => b.resolutionNote || '' },
-    ]);
-  };
+  const exportColumns = [
+    { label: 'Blocker ID', value: friendlyId },
+    { label: 'Linked Task S/N', value: (b) => b.linkedTaskTitle || '' },
+    { label: 'Member Tab', value: (b) => userById(b.raisedBy)?.name || '' },
+    { label: 'Project', value: (b) => b.project },
+    { label: 'Raised By', value: (b) => userById(b.raisedBy)?.name || '' },
+    { label: 'Raised Date', value: (b) => b.raisedDate },
+    { label: 'Category', value: (b) => b.category },
+    { label: 'Description', value: (b) => b.description },
+    { label: 'Blocking What', value: (b) => b.blockingWhat },
+    { label: 'Owner To Resolve', value: (b) => userById(b.ownerToResolveId)?.name || '' },
+    { label: 'Target Resolution', value: (b) => b.targetResolution || '' },
+    { label: 'Days', value: daysOpen },
+    { label: 'Escalation Level', value: (b) => b.escalationLevel },
+    { label: 'Status', value: (b) => b.status },
+    { label: 'Closed Date', value: (b) => b.closedDate || '' },
+    { label: 'Resolution Note', value: (b) => b.resolutionNote || '' },
+  ];
 
   const handleConfirmDelete = async () => {
     setDeleting(true);
@@ -172,9 +170,7 @@ export default function BlockerRegisterModal({ onClose }) {
             <Button onClick={() => setShowRaise(true)}>
               <IconAlertTriangle size={14} color="#FFFFFF" /> Raise a blocker
             </Button>
-            <Button variant="secondary" onClick={handleExport} disabled={sorted.length === 0}>
-              <IconDownload size={14} color="var(--text-secondary)" /> Export CSV
-            </Button>
+            <ExportCsvButton rows={sorted} columns={exportColumns} filename={`blocker-register-${TODAY}.csv`} variant="secondary" />
           </div>
         </div>
 

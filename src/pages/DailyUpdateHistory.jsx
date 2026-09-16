@@ -3,11 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext.jsx';
 import { ROLES, DAILY_MILESTONES, DAILY_UPDATE_STATUSES, BLOCKER_STATUS } from '../data/mockData.js';
 import { canManage } from '../data/hierarchy.js';
-import { Card, Avatar, PriorityDot, Select, Field, TextArea, Button, Modal, Pagination, PAGE_SIZE, DailyStatusBadge } from '../components/ui.jsx';
+import { Card, Avatar, PriorityDot, Select, Field, TextArea, Button, Modal, Pagination, PAGE_SIZE, DailyStatusBadge, ExportCsvButton } from '../components/ui.jsx';
 import DailyUpdateForm from '../components/DailyUpdateForm.jsx';
 import DatePicker from '../components/DatePicker.jsx';
-import { IconSearch, IconArrowRight, IconDownload, IconAlertTriangle } from '../components/icons.jsx';
-import { formatDate, downloadCsv } from '../utils.js';
+import { IconSearch, IconArrowRight, IconAlertTriangle } from '../components/icons.jsx';
+import { formatDate } from '../utils.js';
 
 const OPEN_BLOCKER_STATUSES = [BLOCKER_STATUS.RESOLVED, BLOCKER_STATUS.CLOSED];
 
@@ -270,26 +270,24 @@ export default function DailyUpdateHistory() {
     await reviewDailyUpdate(updateId, remarks);
   };
 
-  const handleExport = () => {
-    downloadCsv(`daily-updates-${TODAY}.csv`, updates, [
-      { label: 'Task ID', value: (u) => friendlyDuId(u) },
-      { label: 'Department', value: (u) => departmentById(u.departmentId)?.name || '' },
-      { label: 'Project', value: (u) => u.project || '' },
-      { label: 'Milestone', value: (u) => u.milestone || '' },
-      { label: 'Task', value: (u) => u.taskCompleted },
-      { label: 'Deliverable', value: (u) => u.deliverables || '' },
-      { label: 'Assignee', value: (u) => u.employeeName },
-      { label: 'Priority', value: (u) => u.priority || '' },
-      { label: 'Start Date', value: (u) => u.taskStartDate || '' },
-      { label: 'Due Date', value: (u) => u.dueDate || '' },
-      { label: 'Status', value: (u) => u.status },
-      { label: 'Actual Close Date', value: (u) => u.actualCloseDate || '' },
-      { label: 'Blocker', value: (u) => { const b = openBlockerForTask(u.taskId); return b ? friendlyBlockerId(b) : ''; } },
-      { label: 'Resources', value: (u) => resourceLink(u) },
-      { label: 'BDM Remarks', value: (u) => u.bdmRemarks || '' },
-      { label: 'Reviewed By', value: (u) => userById(u.bdmRemarksBy)?.name || '' },
-    ]);
-  };
+  const exportColumns = [
+    { label: 'Task ID', value: (u) => friendlyDuId(u) },
+    { label: 'Department', value: (u) => departmentById(u.departmentId)?.name || '' },
+    { label: 'Project', value: (u) => u.project || '' },
+    { label: 'Milestone', value: (u) => u.milestone || '' },
+    { label: 'Task', value: (u) => u.taskCompleted },
+    { label: 'Deliverable', value: (u) => u.deliverables || '' },
+    { label: 'Assignee', value: (u) => u.employeeName },
+    { label: 'Priority', value: (u) => u.priority || '' },
+    { label: 'Start Date', value: (u) => u.taskStartDate || '' },
+    { label: 'Due Date', value: (u) => u.dueDate || '' },
+    { label: 'Status', value: (u) => u.status },
+    { label: 'Actual Close Date', value: (u) => u.actualCloseDate || '' },
+    { label: 'Blocker', value: (u) => { const b = openBlockerForTask(u.taskId); return b ? friendlyBlockerId(b) : ''; } },
+    { label: 'Resources', value: (u) => resourceLink(u) },
+    { label: 'BDM Remarks', value: (u) => u.bdmRemarks || '' },
+    { label: 'Reviewed By', value: (u) => userById(u.bdmRemarksBy)?.name || '' },
+  ];
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
@@ -307,9 +305,7 @@ export default function DailyUpdateHistory() {
           <Button variant="secondary" onClick={openBlockerRegister}>
             <IconAlertTriangle size={14} color="var(--amber-text)" /> Blocker Register
           </Button>
-          <Button onClick={handleExport} disabled={updates.length === 0}>
-            <IconDownload size={14} color="#FFFFFF" /> Export CSV
-          </Button>
+          <ExportCsvButton rows={updates} columns={exportColumns} filename={`daily-updates-${TODAY}.csv`} />
         </div>
       </div>
 
