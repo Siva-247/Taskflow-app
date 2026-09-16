@@ -8,6 +8,18 @@ import { IconPlusCircle } from '../components/icons.jsx';
 import { useRoleGuard } from '../hooks/useRoleGuard.js';
 
 const TITLE_OPTIONS = ['Intern', 'Developer'];
+const OTHER_TITLE = '__other_title__';
+const titleSelectOptions = [...TITLE_OPTIONS.map((t) => ({ value: t, label: t })), { value: OTHER_TITLE, label: 'Other' }];
+
+// A team lead/assistant manager's own team is fixed to their own team and
+// department — hierarchy.canManage never lets them place anyone elsewhere,
+// so unlike AddEmployeeModal (used by admin/manager) there's no team or
+// department picker here at all, just the role/title itself. Mirrors
+// AddEmployeeModal's roleSelectionFor: fall back to "Other" (with the real
+// title preserved as free text) for anything outside the two fixed options.
+function titleSelectionFor(user) {
+  return TITLE_OPTIONS.includes(user.title) ? user.title : OTHER_TITLE;
+}
 
 export default function MyTeam() {
   const { currentUser, users, departments, scopedTasks, statsFor, addTeamMember, setUserActive, deleteUser, editUser, resetUserPassword } = useApp();
@@ -18,7 +30,8 @@ export default function MyTeam() {
   const [newName, setNewName] = useState('');
   const [newEmail, setNewEmail] = useState('');
   const [newPassword, setNewPassword] = useState('');
-  const [newTitle, setNewTitle] = useState('Intern');
+  const [newTitleOption, setNewTitleOption] = useState('Intern');
+  const [newCustomTitle, setNewCustomTitle] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [created, setCreated] = useState(null);
@@ -28,7 +41,8 @@ export default function MyTeam() {
   const [deleting, setDeleting] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [editName, setEditName] = useState('');
-  const [editTitle, setEditTitle] = useState('');
+  const [editTitleOption, setEditTitleOption] = useState('Intern');
+  const [editCustomTitle, setEditCustomTitle] = useState('');
   const [editEmail, setEditEmail] = useState('');
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState('');
@@ -59,7 +73,7 @@ export default function MyTeam() {
   const pageRows = rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const resetAddForm = () => {
-    setShowAdd(false); setNewName(''); setNewEmail(''); setNewPassword(''); setNewTitle('Intern'); setError(''); setCreated(null);
+    setShowAdd(false); setNewName(''); setNewEmail(''); setNewPassword(''); setNewTitleOption('Intern'); setNewCustomTitle(''); setError(''); setCreated(null);
   };
 
   const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -68,10 +82,12 @@ export default function MyTeam() {
     if (!newName.trim()) { setError('Name is required.'); return; }
     if (!EMAIL_RE.test(newEmail.trim())) { setError('Enter a valid email address.'); return; }
     if (newPassword && newPassword.length < 8) { setError('Password must be at least 8 characters.'); return; }
+    if (newTitleOption === OTHER_TITLE && !newCustomTitle.trim()) { setError('Describe the role.'); return; }
     setSaving(true);
     try {
+      const title = newTitleOption === OTHER_TITLE ? newCustomTitle.trim() : newTitleOption;
       const result = await addTeamMember({
-        name: newName.trim(), email: newEmail.trim(), title: newTitle,
+        name: newName.trim(), email: newEmail.trim(), title,
         ...(newPassword ? { password: newPassword } : {}),
       });
       setCreated(result);
@@ -95,15 +111,25 @@ export default function MyTeam() {
     }
   };
 
-  const startEdit = (user) => { setEditingUser(user); setEditName(user.name); setEditTitle(user.title || ''); setEditEmail(user.email || ''); setEditError(''); };
-  const resetEdit = () => { setEditingUser(null); setEditName(''); setEditTitle(''); setEditEmail(''); setEditError(''); };
+  const startEdit = (user) => {
+    setEditingUser(user);
+    setEditName(user.name);
+    const opt = titleSelectionFor(user);
+    setEditTitleOption(opt);
+    setEditCustomTitle(opt === OTHER_TITLE ? (user.title || '') : '');
+    setEditEmail(user.email || '');
+    setEditError('');
+  };
+  const resetEdit = () => { setEditingUser(null); setEditName(''); setEditTitleOption('Intern'); setEditCustomTitle(''); setEditEmail(''); setEditError(''); };
 
   const handleSaveEdit = async () => {
     if (!editName.trim()) { setEditError('Name is required.'); return; }
     if (!EMAIL_RE.test(editEmail.trim())) { setEditError('Enter a valid email address.'); return; }
+    if (editTitleOption === OTHER_TITLE && !editCustomTitle.trim()) { setEditError('Describe the role.'); return; }
     setEditSaving(true);
     try {
-      await editUser(editingUser.id, { name: editName.trim(), title: editTitle.trim(), email: editEmail.trim() });
+      const title = editTitleOption === OTHER_TITLE ? editCustomTitle.trim() : editTitleOption;
+      await editUser(editingUser.id, { name: editName.trim(), title, email: editEmail.trim() });
       resetEdit();
     } catch (err) {
       setEditError(err.message || 'Could not save changes');
@@ -208,8 +234,13 @@ export default function MyTeam() {
               <TextInput value={newEmail} onChange={setNewEmail} placeholder="name@company.com" />
             </Field>
             <Field label="Title" required>
-              <Select value={newTitle} onChange={setNewTitle} options={TITLE_OPTIONS.map((t) => ({ value: t, label: t }))} />
+              <Select value={newTitleOption} onChange={setNewTitleOption} options={titleSelectOptions} />
             </Field>
+            {newTitleOption === OTHER_TITLE && (
+              <Field label="Describe the role" required>
+                <TextInput value={newCustomTitle} onChange={setNewCustomTitle} placeholder="e.g. QA Lead" />
+              </Field>
+            )}
             <Field label="Password (optional)">
               <TextInput value={newPassword} onChange={setNewPassword} placeholder="Leave blank to auto-generate one" type="password" />
             </Field>
@@ -279,8 +310,13 @@ export default function MyTeam() {
               <TextInput value={editName} onChange={setEditName} placeholder="Full name" />
             </Field>
             <Field label="Title">
-              <Select value={editTitle} onChange={setEditTitle} options={TITLE_OPTIONS.map((t) => ({ value: t, label: t }))} />
+              <Select value={editTitleOption} onChange={setEditTitleOption} options={titleSelectOptions} />
             </Field>
+            {editTitleOption === OTHER_TITLE && (
+              <Field label="Describe the role" required>
+                <TextInput value={editCustomTitle} onChange={setEditCustomTitle} placeholder="e.g. QA Lead" />
+              </Field>
+            )}
             <Field label="Email" required>
               <TextInput value={editEmail} onChange={setEditEmail} placeholder="name@company.com" />
             </Field>
