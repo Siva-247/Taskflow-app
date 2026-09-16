@@ -14,6 +14,18 @@ import {
 } from './shared.jsx';
 import KpiScorecard from './KpiScorecard.jsx';
 
+// Mirrors Team View's own MEMBER_MODE_OPTIONS category concept (same two
+// real title values, "Intern"/"Developer") — but unlike Team View, which
+// pairs this with a whole separate multi-select "Individual" mode, this
+// view always shows exactly one person, so the category only ever narrows
+// which names the (still-single-select) Name dropdown below it offers.
+const CATEGORY_OPTIONS = [
+  { value: 'all', label: 'All' },
+  { value: 'interns', label: 'Interns' },
+  { value: 'developers', label: 'Developers' },
+];
+const CATEGORY_TITLE_MATCH = { interns: 'intern', developers: 'developer' };
+
 // The Individual View — built first, and deliberately self-contained (reads
 // currentUser itself rather than taking it as a prop) so the page shell
 // (TacticalMeeting.jsx) can mount it with zero wiring. Team View was added
@@ -25,6 +37,7 @@ export default function IndividualTacticalView({ initialSelectedId, onBackToTeam
 
   const [roster, setRoster] = useState([]);
   const [teamFilter, setTeamFilter] = useState('all');
+  const [categoryFilter, setCategoryFilter] = useState('all');
   // initialSelectedId arrives from Team View's "click a member" hand-off
   // (see TacticalMeeting.jsx) — this component remounts fresh each time the
   // Individual/Team toggle switches, so the prop is only ever read once per
@@ -67,14 +80,23 @@ export default function IndividualTacticalView({ initialSelectedId, onBackToTeam
   const teamOptions = useMemo(() => [...new Set(roster.map((u) => u.teamId).filter(Boolean))], [roster]);
   const filteredRoster = teamFilter === 'all' ? roster : roster.filter((u) => u.teamId === teamFilter);
 
-  // Narrowing the Team filter can drop the currently-selected person out of
-  // the list entirely — fall forward to the new list's first person rather
-  // than leaving the dropdown pointed at someone it can no longer show.
+  // Same free-text, case/whitespace-only normalization Team View's own
+  // titleGroup filter uses server-side (tactical.js) — "Intern"/"intern " /
+  // "INTERN" all count, but this stays a plain exact match rather than a
+  // fixed enum so a genuinely different title never gets silently folded in.
+  const categoryFilteredRoster = categoryFilter === 'all'
+    ? filteredRoster
+    : filteredRoster.filter((u) => (u.title || '').trim().toLowerCase() === CATEGORY_TITLE_MATCH[categoryFilter]);
+
+  // Narrowing the Team or Intern/Developer filter can drop the
+  // currently-selected person out of the list entirely — fall forward to
+  // the new list's first person rather than leaving the dropdown pointed at
+  // someone it can no longer show.
   useEffect(() => {
-    if (!canSelectOthers || filteredRoster.length === 0) return;
-    if (!filteredRoster.some((u) => u.id === selectedId)) setSelectedId(filteredRoster[0].id);
+    if (!canSelectOthers || categoryFilteredRoster.length === 0) return;
+    if (!categoryFilteredRoster.some((u) => u.id === selectedId)) setSelectedId(categoryFilteredRoster[0].id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [teamFilter, filteredRoster.length]);
+  }, [teamFilter, categoryFilter, categoryFilteredRoster.length]);
 
   useEffect(() => {
     if (waitingOnCustomRange) return undefined;
@@ -125,10 +147,13 @@ export default function IndividualTacticalView({ initialSelectedId, onBackToTeam
               </FilterField>
             )}
             <FilterField label="Intern / Developer">
+              <Select value={categoryFilter} onChange={setCategoryFilter} options={CATEGORY_OPTIONS} />
+            </FilterField>
+            <FilterField label="Name">
               <Select
                 value={selectedId}
                 onChange={setSelectedId}
-                options={filteredRoster.map((u) => ({ value: u.id, label: `${u.name}${u.title ? ' · ' + u.title : ''}` }))}
+                options={categoryFilteredRoster.map((u) => ({ value: u.id, label: `${u.name}${u.title ? ' · ' + u.title : ''}` }))}
               />
             </FilterField>
           </>
