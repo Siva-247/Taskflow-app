@@ -5,7 +5,7 @@ import { useChat } from '../context/ChatContext.jsx';
 import { ROLES } from '../data/mockData.js';
 import {
   IconGrid, IconUsers, IconChecklist, IconBarChart, IconGear,
-  IconEye, IconCalendar, IconChat, IconChevronDown, IconTarget, IconBell,
+  IconEye, IconCalendar, IconChat, IconChevronDown, IconTarget,
 } from './icons.jsx';
 import { Avatar } from './ui.jsx';
 
@@ -16,7 +16,6 @@ const ADMIN_NAV = [
   { label: 'Daily Updates', icon: IconCalendar, to: '/daily-updates' },
   { label: 'Tactical Meeting', icon: IconTarget, to: '/tactical-meeting' },
   { label: 'Reports', icon: IconBarChart, to: '/reports' },
-  { label: 'Notifications', icon: IconBell, to: '/notifications' },
   { label: 'Settings', icon: IconGear, to: '/settings' },
 ];
 
@@ -31,7 +30,6 @@ const NAV_BY_ROLE = {
     { label: 'Daily Updates', icon: IconCalendar, to: '/daily-updates' },
     { label: 'Tactical Meeting', icon: IconTarget, to: '/tactical-meeting' },
     { label: 'Reports', icon: IconBarChart, to: '/reports' },
-    { label: 'Notifications', icon: IconBell, to: '/notifications' },
     { label: 'Settings', icon: IconGear, to: '/settings' },
   ],
   [ROLES.ASSISTANT_MANAGER]: [
@@ -43,7 +41,6 @@ const NAV_BY_ROLE = {
     { label: 'Daily Updates', icon: IconCalendar, to: '/daily-updates' },
     { label: 'Tactical Meeting', icon: IconTarget, to: '/tactical-meeting' },
     { label: 'Reports', icon: IconBarChart, to: '/reports' },
-    { label: 'Notifications', icon: IconBell, to: '/notifications' },
   ],
   [ROLES.TEAM_LEAD]: [
     { label: 'Dashboard', icon: IconGrid, to: '/team-lead' },
@@ -54,7 +51,6 @@ const NAV_BY_ROLE = {
     { label: 'Daily Updates', icon: IconCalendar, to: '/daily-updates' },
     { label: 'Tactical Meeting', icon: IconTarget, to: '/tactical-meeting' },
     { label: 'Reports', icon: IconBarChart, to: '/reports' },
-    { label: 'Notifications', icon: IconBell, to: '/notifications' },
   ],
   [ROLES.EMPLOYEE]: [
     { label: 'Dashboard', icon: IconGrid, to: '/employee' },
@@ -62,7 +58,6 @@ const NAV_BY_ROLE = {
     { label: 'Chat', icon: IconChat, to: '/chat' },
     { label: 'Update History', icon: IconBarChart, to: '/daily-updates' },
     { label: 'Tactical Meeting', icon: IconTarget, to: '/tactical-meeting' },
-    { label: 'Notifications', icon: IconBell, to: '/notifications' },
   ],
 };
 
@@ -96,7 +91,7 @@ function loadStoredWidth(defaultWidth) {
 // fully CSS-driven (`!important`), so the drag-resize handle below is hidden
 // rather than fighting it.
 export default function Sidebar({ open = false, onNavigate, collapsed = false, onToggleCollapse }) {
-  const { currentUser, notifications, showToast } = useApp();
+  const { currentUser, showToast } = useApp();
   const { conversations } = useChat();
   const navigate = useNavigate();
   const location = useLocation();
@@ -142,7 +137,6 @@ export default function Sidebar({ open = false, onNavigate, collapsed = false, o
   // someone else, not a running total of every message, so reading a chat
   // always drops it by exactly the 1 that chat was contributing.
   const unreadChatCount = conversations.filter((c) => c.lastMessageAt && (!c.lastReadAt || c.lastMessageAt > c.lastReadAt) && c.lastMessageSenderId !== currentUser.id).length;
-  const unreadNotifCount = notifications.filter((n) => !n.read).length;
 
   const go = (to) => {
     navigate(to);
@@ -189,15 +183,6 @@ export default function Sidebar({ open = false, onNavigate, collapsed = false, o
                 fontWeight: 700, fontSize: 10.5, color: '#FFFFFF', flexShrink: 0,
               }}>
                 {unreadChatCount > 9 ? '9+' : unreadChatCount}
-              </span>
-            )}
-            {item.to === '/notifications' && unreadNotifCount > 0 && (
-              <span className="label anim-badge-pop" style={{
-                minWidth: 18, height: 18, padding: '0 5px', borderRadius: 999, background: 'var(--amber-fill)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontWeight: 700, fontSize: 10.5, color: '#FFFFFF', flexShrink: 0,
-              }}>
-                {unreadNotifCount > 9 ? '9+' : unreadNotifCount}
               </span>
             )}
           </div>
