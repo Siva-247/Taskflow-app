@@ -48,32 +48,41 @@ function nameCandidates(rawName) {
 
 // The signup form's Role dropdown, mapped to how that role is actually
 // stored (team leads/employees/interns all share the `title` column for
-// finer distinctions the `role` column alone doesn't carry).
+// finer distinctions the `role` column alone doesn't carry). Signup only
+// ever claims a name that's already seeded in `users` (see the seedMatch
+// lookup below) — it can't manufacture a brand-new account for a name that
+// isn't already on file — so 'admin' here lets someone whose admin account
+// was pre-seeded (by another admin or setup-admin.mjs) set their own
+// email/password, the same claim mechanism every other role already uses.
 //
-// Deliberately NO 'admin' and NO 'super_admin' entry: admin is never
-// claimable through public signup (see setup-admin.mjs for the one seeded
-// admin account), and Super Admin is never claimable at all — its
-// credentials come only from .env, provisioned by
+// Still deliberately NO 'super_admin' entry: that account is never
+// claimable at all — its credentials come only from .env, provisioned by
 // database/seed-super-admin.mjs, never through this form.
 const ROLE_DROPDOWN = {
+  admin: { role: 'admin', label: 'Admin' },
   manager: { role: 'manager', label: 'Manager' },
   'assistant-manager': { role: 'assistant_manager', label: 'Assistant Manager' },
   lead: { role: 'team_lead', label: 'Team Lead' },
-  employee: { role: 'employee', excludeTitle: 'Intern', label: 'Employee' },
+  employee: { role: 'employee', title: 'Developer', label: 'Employee' },
   intern: { role: 'employee', title: 'Intern', label: 'Intern' },
+  other: { role: 'employee', excludeTitles: ['Developer', 'Intern'], label: 'Other' },
 };
 
 function roleMatches(user, roleConfig) {
   if (user.role !== roleConfig.role) return false;
   if (roleConfig.title) return user.title === roleConfig.title;
-  if (roleConfig.excludeTitle) return user.title !== roleConfig.excludeTitle;
+  if (roleConfig.excludeTitles) return !roleConfig.excludeTitles.includes(user.title);
   return true;
 }
 
 function describeRole(user) {
   if (user.role === 'super_admin') return 'Super Admin';
   if (user.role === 'admin') return 'Admin';
-  if (user.role === 'employee') return user.title === 'Intern' ? 'Intern' : 'Employee';
+  if (user.role === 'employee') {
+    if (user.title === 'Intern') return 'Intern';
+    if (user.title === 'Developer') return 'Employee';
+    return 'Other';
+  }
   const found = Object.values(ROLE_DROPDOWN).find((r) => r.role === user.role);
   return found ? found.label : user.role;
 }

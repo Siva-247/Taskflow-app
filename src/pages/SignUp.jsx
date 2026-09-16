@@ -4,15 +4,19 @@ import { useApp } from '../context/AppContext.jsx';
 import { Field, TextInput, Select, Button } from '../components/ui.jsx';
 import { IconLogo } from '../components/icons.jsx';
 
-// No 'admin' option — the admin account is never claimable through public
-// signup (see backend/routes/auth.js and backend/database/setup-admin.mjs).
+// Mirrors backend/routes/auth.js's ROLE_DROPDOWN exactly — signup only ever
+// claims a name that's already seeded in `users`, so 'admin' here lets a
+// pre-seeded admin account be claimed the same way every other role is, not
+// a way to manufacture a brand-new admin out of thin air.
 const ROLE_OPTIONS = [
   { value: '', label: 'Select your role' },
+  { value: 'admin', label: 'Admin' },
   { value: 'manager', label: 'Manager' },
   { value: 'assistant-manager', label: 'Assistant Manager' },
   { value: 'lead', label: 'Team Lead' },
   { value: 'employee', label: 'Employee' },
   { value: 'intern', label: 'Intern' },
+  { value: 'other', label: 'Other' },
 ];
 
 const OTHER_DEPARTMENT = '__other__';
