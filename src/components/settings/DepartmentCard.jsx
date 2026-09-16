@@ -37,6 +37,7 @@ export default function DepartmentCard({
   dept, color, memberCount, teamRows, expandable = true, isCollapsed, onToggle,
   onAddTeam, onEdit, onDelete, onEditTeam, onDeleteTeam, onViewTeam, onViewDepartment,
   canEdit = true, canDelete = true, canEditTeam = true, canDeleteTeam = true,
+  emptyTeamsTitle = 'No teams created yet', emptyTeamsSubtitle = 'Create a team to start organizing members.', emptyTeamsShowCreate = true,
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
@@ -118,13 +119,15 @@ export default function DepartmentCard({
           ))}
           {teamRows.length === 0 && (
             <div style={{ marginLeft: 54, padding: '14px 16px', background: 'var(--field-bg)', border: '1px dashed var(--border)', borderRadius: 10 }}>
-              <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 13, color: 'var(--text-primary)' }}>No teams created yet</div>
-              <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 500, fontSize: 12, color: 'var(--text-muted)', marginTop: 3, marginBottom: 10 }}>
-                Create a team to start organizing members.
+              <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 13, color: 'var(--text-primary)' }}>{emptyTeamsTitle}</div>
+              <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 500, fontSize: 12, color: 'var(--text-muted)', marginTop: 3, marginBottom: emptyTeamsShowCreate ? 10 : 0 }}>
+                {emptyTeamsSubtitle}
               </div>
-              <Button variant="secondary" style={{ padding: '7px 14px', fontSize: 12.5 }} onClick={onAddTeam}>
-                <IconPlusCircle size={13} color="var(--accent-dark)" /> Create Team
-              </Button>
+              {emptyTeamsShowCreate && (
+                <Button variant="secondary" style={{ padding: '7px 14px', fontSize: 12.5 }} onClick={onAddTeam}>
+                  <IconPlusCircle size={13} color="var(--accent-dark)" /> Create Team
+                </Button>
+              )}
             </div>
           )}
         </div>

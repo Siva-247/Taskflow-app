@@ -150,14 +150,16 @@ export default function Settings() {
   const q = search.trim().toLowerCase();
   const roleFilterActive = roleFilter !== 'all';
   // Manager is department-scoped, not team-scoped (a manager has no team_id
-  // at all) — so filtering by it narrows which DEPARTMENTS show, leaving
-  // their teams untouched, while every other role narrows which TEAMS show
-  // within a department (team membership already includes that team's own
-  // lead/assistant manager, since they share the same team_id).
+  // at all), so no team's member list can ever contain one — team-level
+  // filtering has to run the same way for every role option (including
+  // Manager, which will always empty a team's row out) for "Manager" to mean
+  // "show me managers" rather than "show me this manager's whole roster". A
+  // department itself still passes the filter as long as it truly has a
+  // manager assigned, even though that manager never appears inside a team.
   const visibleRollups = useMemo(() => rollups
     .filter((r) => departmentFilter === 'all' || r.dept.id === departmentFilter)
     .map((r) => {
-      if (!roleFilterActive || roleFilter === ROLES.MANAGER) return r;
+      if (!roleFilterActive) return r;
       const filteredTeams = r.teamRows.filter((t) => t.members.some((m) => personMatchesRoleFilter(m, roleFilter)));
       return { ...r, teamRows: filteredTeams };
     })
@@ -378,6 +380,7 @@ export default function Settings() {
           departmentOptions={departmentOptions}
           departmentFilter={departmentFilter}
           onDepartmentFilterChange={setDepartmentFilter}
+          showDepartmentFilter={!isManager}
           roleOptions={roleOptions}
           roleFilter={roleFilter}
           onRoleFilterChange={setRoleFilter}
