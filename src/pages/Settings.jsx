@@ -17,9 +17,9 @@ import RolesPermissionsSection from '../components/settings/RolesPermissionsSect
 // department may pick up a different color and that's fine.
 const DEPT_COLORS = ['var(--cat-1)', 'var(--cat-4)', 'var(--cat-3)', 'var(--cat-2)', 'var(--cat-5)', 'var(--cat-6)', 'var(--cat-7)', 'var(--cat-8)'];
 
-// Same distinction Employees.jsx (and Profile.jsx) already draw: Manager/
-// Assistant Manager/Team Lead show their role, an Employee shows their
-// title instead (Developer/Intern/whatever a custom "Other" hire typed).
+// Same distinction Profile.jsx already draws: Manager/Assistant Manager/
+// Team Lead show their role, an Employee shows their title instead
+// (Developer/Intern/whatever a custom "Other" hire typed).
 const MEMBER_ROLE_LABELS = {
   [ROLES.MANAGER]: 'Manager',
   [ROLES.ASSISTANT_MANAGER]: 'Assistant Manager',
@@ -27,20 +27,35 @@ const MEMBER_ROLE_LABELS = {
 };
 const memberRoleLabel = (u) => MEMBER_ROLE_LABELS[u.role] || u.title || 'Employee';
 
-const TABS = [
+const ALL_TABS = [
   { key: 'overview', label: 'Overview' },
   { key: 'departments', label: 'Departments' },
   { key: 'teams', label: 'Teams' },
   { key: 'members', label: 'Members' },
   { key: 'roles', label: 'Roles & Permissions' },
 ];
+// A Manager has exactly one department (their own) — a "Departments" tab
+// for managing/creating/deleting departments plural doesn't apply to them,
+// so it's dropped rather than shown with nothing real to do in it.
+const MANAGER_TABS = ALL_TABS.filter((t) => t.key !== 'departments');
 
 export default function Settings() {
   const {
-    users, teams, departments, tasks, statsFor,
+    currentUser, users, teams, departments: allDepartments, tasks, statsFor,
     addDepartment, editDepartment, deleteDepartment, addTeam, editTeam, deleteTeam,
     setUserActive, deleteUser, resetUserPassword,
   } = useApp();
+
+  const isManager = currentUser.role === ROLES.MANAGER;
+  // Same page, same components, for every role this page serves — a Manager
+  // just gets `departments` pre-narrowed to their own, so every rollup/
+  // roster/tab built on top of it (Overview, Teams, Members, Roles &
+  // Permissions) is automatically department-scoped with no special-casing
+  // elsewhere. Generic on currentUser.departmentId, not any specific
+  // department, so a brand-new manager in a brand-new department gets
+  // exactly the same experience as every other one.
+  const departments = isManager ? allDepartments.filter((d) => d.id === currentUser.departmentId) : allDepartments;
+  const TABS = isManager ? MANAGER_TABS : ALL_TABS;
 
   const [activeTab, setActiveTab] = useState('overview');
 
@@ -88,6 +103,12 @@ export default function Settings() {
 
   // ---- Members tab ----
   const [memberSearch, setMemberSearch] = useState('');
+  // Set only by "View Team" (Overview/Teams tab, per-team) or "View Team"
+  // on a department card (Overview/Departments tab, whole department) —
+  // pins the Members tab to just that team/department until cleared,
+  // independent of the free-text search box above.
+  const [memberDeptFocus, setMemberDeptFocus] = useState(null);
+  const [memberTeamFocus, setMemberTeamFocus] = useState(null);
   const [showAddEmployee, setShowAddEmployee] = useState(false);
   const [editingMember, setEditingMember] = useState(null);
   const [pendingDeactivate, setPendingDeactivate] = useState(null);
@@ -98,7 +119,7 @@ export default function Settings() {
   const [resettingPassword, setResettingPassword] = useState(false);
   const [passwordResetResult, setPasswordResetResult] = useState(null);
 
-  const allowed = useRoleGuard([ROLES.SUPER_ADMIN, ROLES.ADMIN]);
+  const allowed = useRoleGuard([ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.MANAGER]);
 
   const rollups = useMemo(() => departments.map((dept, i) => {
     const deptTeams = teams.filter((t) => t.departmentId === dept.id);
@@ -158,44 +179,48 @@ export default function Settings() {
     { value: 'intern', label: 'Intern' },
   ];
 
-  // Company-wide roster grouped by department — the same shape Employees.jsx's
-  // admin view used, ported here so Settings can fully replace it for
-  // admin/super_admin (Manager keeps their own department-scoped Employees
-  // page unchanged, since Settings stays out of their reach).
+  // Roster grouped by department (department-scoped automatically for a
+  // Manager, since `departments` already is, above). Free-text
+  // search filters people by name; `memberDeptFocus`/`memberTeamFocus` (set
+  // only by a "View Team" jump) separately pin down to one department or
+  // team regardless of what's typed in search — a department's own name
+  // isn't reliably a substring of any of its members' names, so that jump
+  // can't just reuse the search box the way the per-team one used to.
   const memberGroups = useMemo(() => {
     const mq = memberSearch.trim().toLowerCase();
-    // Matches on the person's own name OR their team's name — the latter is
-    // what makes "View Team" (Overview/Teams tab) land here with that team's
-    // roster already filtered in, rather than a search nothing can match.
-    const matches = (u, team) => {
-      if (!mq) return true;
-      if (u.name.toLowerCase().includes(mq)) return true;
-      return Boolean(team && team.name.toLowerCase().includes(mq));
-    };
     return departments
+      .filter((dept) => !memberDeptFocus || dept.id === memberDeptFocus)
       .map((dept) => {
         const people = users
           .filter((u) => u.departmentId === dept.id && u.role !== ROLES.SUPER_ADMIN && u.role !== ROLES.ADMIN)
-          .map((u) => ({ user: u, team: teams.find((t) => t.id === u.teamId) }))
-          .filter(({ user, team }) => matches(user, team))
-          .map(({ user, team }) => {
-            const assigned = tasks.filter((t) => t.assigneeId === user.id);
+          .filter((u) => !memberTeamFocus || u.teamId === memberTeamFocus)
+          .filter((u) => !mq || u.name.toLowerCase().includes(mq))
+          .map((u) => {
+            const assigned = tasks.filter((t) => t.assigneeId === u.id);
             const uStats = statsFor(assigned);
-            return { user, team, assigned: uStats.total, completed: uStats.completed };
+            return { user: u, team: teams.find((t) => t.id === u.teamId), assigned: uStats.total, completed: uStats.completed };
           });
         return { dept, people };
       })
-      .filter((g) => g.people.length > 0 || !memberSearch.trim());
-  }, [departments, users, memberSearch, tasks, statsFor, teams]);
+      .filter((g) => g.people.length > 0 || (!memberSearch.trim() && !memberTeamFocus));
+  }, [departments, users, memberSearch, memberDeptFocus, memberTeamFocus, tasks, statsFor, teams]);
+
+  const memberFocusLabel = memberTeamFocus
+    ? teams.find((t) => t.id === memberTeamFocus)?.name
+    : (memberDeptFocus ? allDepartments.find((d) => d.id === memberDeptFocus)?.name : null);
+  const clearMemberFocus = () => { setMemberDeptFocus(null); setMemberTeamFocus(null); };
 
   if (!allowed) return null;
 
-  const nonAdminUsers = users.filter((u) => u.role !== ROLES.SUPER_ADMIN && u.role !== ROLES.ADMIN);
+  const nonAdminUsers = users.filter((u) => u.role !== ROLES.SUPER_ADMIN && u.role !== ROLES.ADMIN && (!isManager || u.departmentId === currentUser.departmentId));
   const activeMembers = nonAdminUsers.filter((u) => u.isActive === undefined || u.isActive).length;
+  // Team count comes from `rollups` (already department-scoped) rather than
+  // the raw `teams` list from context, which is never narrowed for a Manager.
+  const totalTeams = rollups.reduce((sum, r) => sum + r.teamRows.length, 0);
   const statItems = organizationStatItems({
     totalMembers: nonAdminUsers.length,
     totalDepartments: departments.length,
-    totalTeams: teams.length,
+    totalTeams,
     activeMembers,
   });
 
@@ -311,12 +336,22 @@ export default function Settings() {
     }
   };
 
-  // "View Team" has nowhere dedicated to navigate to (no per-team detail
-  // route exists) — the closest real, working equivalent is jumping to the
-  // Members tab already filtered down to that team's roster.
+  // "View Team"/"View Team" (on a department card) have nowhere dedicated to
+  // navigate to (no per-team or per-department detail route exists) — the
+  // closest real, working equivalent is jumping to the Members tab pinned to
+  // just that team's or department's roster.
   const handleViewTeam = (team) => {
     setActiveTab('members');
-    setMemberSearch(team.name);
+    setMemberSearch('');
+    setMemberDeptFocus(team.departmentId);
+    setMemberTeamFocus(team.id);
+  };
+
+  const handleViewDepartment = (dept) => {
+    setActiveTab('members');
+    setMemberSearch('');
+    setMemberTeamFocus(null);
+    setMemberDeptFocus(dept.id);
   };
 
   return (
@@ -326,7 +361,7 @@ export default function Settings() {
       <div>
         <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 800, fontSize: 24, color: 'var(--heading)' }}>Settings</div>
         <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 500, fontSize: 14, color: 'var(--text-secondary)', marginTop: 4 }}>
-          Manage your organization, teams, members, and permissions.
+          {isManager ? "Manage your department's teams, members, and structure." : 'Manage your organization, teams, members, and permissions.'}
         </div>
       </div>
 
@@ -353,7 +388,14 @@ export default function Settings() {
           onEditTeam={startEditTeam}
           onDeleteTeam={(team) => { setPendingDeleteTeam(team); setDeleteTeamError(''); }}
           onViewTeam={handleViewTeam}
+          onViewDepartment={handleViewDepartment}
           hasAnyDepartments={departments.length > 0}
+          subtitle={isManager ? 'Your department, its teams, and reporting structure.' : 'Manage departments, teams, and reporting structure.'}
+          canAddDepartment={!isManager}
+          canEditDept={!isManager}
+          canDeleteDept={!isManager}
+          canEditTeam={!isManager}
+          canDeleteTeam={!isManager}
         />
       )}
 
@@ -365,6 +407,7 @@ export default function Settings() {
           onAddDepartment={() => { setNewDeptName(''); setNewDeptError(''); setShowAddDept(true); }}
           onEditDept={startEditDept}
           onDeleteDept={(dept) => { setPendingDeleteDept(dept); setDeleteDeptError(''); }}
+          onViewDepartment={handleViewDepartment}
           hasAnyDepartments={departments.length > 0}
         />
       )}
@@ -381,6 +424,10 @@ export default function Settings() {
           onEditTeam={startEditTeam}
           onDeleteTeam={(team) => { setPendingDeleteTeam(team); setDeleteTeamError(''); }}
           onViewTeam={handleViewTeam}
+          subtitle={isManager ? "Your department's teams, with their lead and member count." : 'Every team across the company, with its lead and member count.'}
+          showDepartmentFilter={!isManager}
+          canEditTeam={!isManager}
+          canDeleteTeam={!isManager}
         />
       )}
 
@@ -397,10 +444,19 @@ export default function Settings() {
           onReactivate={(user) => setUserActive(user.id, true)}
           onDelete={(user) => { setPendingDeleteMember(user); setDeleteMemberError(''); }}
           hasAnyDepartments={departments.length > 0}
+          subtitle={isManager ? "Your department's roster." : 'Every department across the company.'}
+          canResetPassword={!isManager}
+          focusLabel={memberFocusLabel}
+          onClearFocus={clearMemberFocus}
         />
       )}
 
-      {activeTab === 'roles' && <RolesPermissionsSection users={users} />}
+      {activeTab === 'roles' && (
+        <RolesPermissionsSection
+          users={isManager ? users.filter((u) => u.departmentId === currentUser.departmentId) : users}
+          roleKeys={isManager ? ['manager', 'assistant_manager', 'team_lead', 'employee', 'intern'] : undefined}
+        />
+      )}
 
       {showAddDept && (
         <Modal title="Add department" onClose={() => setShowAddDept(false)}>

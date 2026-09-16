@@ -13,8 +13,9 @@ export default function OrganizationOverview({
   statItems, visibleRollups, collapsed, onToggleDept,
   search, onSearchChange, departmentOptions, departmentFilter, onDepartmentFilterChange,
   roleOptions, roleFilter, onRoleFilterChange,
-  onAddDepartment, onAddTeam, onEditDept, onDeleteDept, onEditTeam, onDeleteTeam, onViewTeam,
-  hasAnyDepartments,
+  onAddDepartment, onAddTeam, onEditDept, onDeleteDept, onEditTeam, onDeleteTeam, onViewTeam, onViewDepartment,
+  hasAnyDepartments, subtitle = 'Manage departments, teams, and reporting structure.',
+  canAddDepartment = true, canEditDept = true, canDeleteDept = true, canEditTeam = true, canDeleteTeam = true,
 }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -24,13 +25,15 @@ export default function OrganizationOverview({
         <div>
           <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 16.5, color: 'var(--heading)' }}>Organization Structure</div>
           <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 500, fontSize: 12.5, color: 'var(--text-muted)', marginTop: 3 }}>
-            Manage departments, teams, and reporting structure.
+            {subtitle}
           </div>
         </div>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          <Button onClick={onAddDepartment}>
-            <IconPlusCircle size={15} color="#FFFFFF" /> Add Department
-          </Button>
+          {canAddDepartment && (
+            <Button onClick={onAddDepartment}>
+              <IconPlusCircle size={15} color="#FFFFFF" /> Add Department
+            </Button>
+          )}
           <Button variant="secondary" onClick={() => onAddTeam()}>
             <IconPlusCircle size={15} color="var(--accent-dark)" /> Add Team
           </Button>
@@ -63,6 +66,11 @@ export default function OrganizationOverview({
             onEditTeam={onEditTeam}
             onDeleteTeam={onDeleteTeam}
             onViewTeam={onViewTeam}
+            onViewDepartment={() => onViewDepartment(r.dept)}
+            canEdit={canEditDept}
+            canDelete={canDeleteDept}
+            canEditTeam={canEditTeam}
+            canDeleteTeam={canDeleteTeam}
           />
         ))}
         {visibleRollups.length === 0 && (

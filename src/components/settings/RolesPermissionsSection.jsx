@@ -23,7 +23,14 @@ const ROLE_INFO = [
 
 const FLAT_SHADOW = '0 1px 2px rgba(16,24,40,0.04), 0 1px 3px rgba(16,24,40,0.06)';
 
-export default function RolesPermissionsSection({ users }) {
+// `roleKeys` restricts which cards show — a Manager's view drops Super
+// Admin/Admin (company-level roles with no meaning inside one department;
+// they'd always read 0 anyway since neither carries a departmentId that
+// could match) and counts the rest against their department's own roster
+// only (the caller pre-filters `users` accordingly).
+export default function RolesPermissionsSection({ users, roleKeys }) {
+  const visibleInfo = roleKeys ? ROLE_INFO.filter((r) => roleKeys.includes(r.key)) : ROLE_INFO;
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
       <div>
@@ -34,7 +41,7 @@ export default function RolesPermissionsSection({ users }) {
       </div>
 
       <div className="responsive-grid" style={{ display: 'grid', '--cols': 'repeat(2,1fr)', '--cols-tablet': '1fr', gap: 14 }}>
-        {ROLE_INFO.map(({ key, label, icon: Icon, description, countMatch }) => {
+        {visibleInfo.map(({ key, label, icon: Icon, description, countMatch }) => {
           const count = users.filter(countMatch).length;
           return (
             <Card key={key} padded={false} style={{ boxShadow: FLAT_SHADOW, border: '1px solid var(--border)', padding: '18px 20px' }}>

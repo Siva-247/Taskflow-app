@@ -6,10 +6,14 @@ import { IconPlusCircle } from '../icons.jsx';
 
 // Teams tab: every team across every department, flattened into one list
 // (each row names its own department since there's no nesting here) —
-// department-level detail lives in the Departments tab instead.
+// department-level detail lives in the Departments tab instead. A Manager
+// (single department, `showDepartmentFilter=false`) can still add a team but
+// not rename/delete one — that's admin-only on the backend.
 export default function TeamsSection({
   rollups, departments, search, onSearchChange, departmentFilter, onDepartmentFilterChange,
   onAddTeam, onEditTeam, onDeleteTeam, onViewTeam,
+  subtitle = 'Every team across the company, with its lead and member count.',
+  showDepartmentFilter = true, canEditTeam = true, canDeleteTeam = true,
 }) {
   const q = search.trim().toLowerCase();
   const allTeamRows = useMemo(() => rollups.flatMap((r) => r.teamRows.map((t) => ({ ...t, departmentId: r.dept.id, departmentName: r.dept.name }))), [rollups]);
@@ -25,7 +29,7 @@ export default function TeamsSection({
         <div>
           <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 16.5, color: 'var(--heading)' }}>Teams</div>
           <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 500, fontSize: 12.5, color: 'var(--text-muted)', marginTop: 3 }}>
-            Every team across the company, with its lead and member count.
+            {subtitle}
           </div>
         </div>
         <Button onClick={() => onAddTeam()}>
@@ -37,7 +41,7 @@ export default function TeamsSection({
         search={search}
         onSearchChange={onSearchChange}
         placeholder="Search teams..."
-        filters={[{ value: departmentFilter, onChange: onDepartmentFilterChange, options: departmentOptions }]}
+        filters={showDepartmentFilter ? [{ value: departmentFilter, onChange: onDepartmentFilterChange, options: departmentOptions }] : []}
       />
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -47,10 +51,12 @@ export default function TeamsSection({
             team={t.team}
             lead={t.lead}
             members={t.members}
-            departmentName={t.departmentName}
+            departmentName={showDepartmentFilter ? t.departmentName : undefined}
             onEdit={() => onEditTeam(t.team)}
             onDelete={() => onDeleteTeam(t.team)}
             onViewTeam={() => onViewTeam(t.team)}
+            canEdit={canEditTeam}
+            canDelete={canDeleteTeam}
           />
         ))}
         {visible.length === 0 && (

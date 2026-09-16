@@ -14,8 +14,8 @@ export function defaultStatItems(stats, totalLabel = 'Total', completedBadge) {
 
 export function orgStatItems({ totalEmployees, totalDepartments }) {
   return [
-    { icon: <IconUsersGroup size={19} color="var(--accent)" />, value: totalEmployees, label: 'Total Employees', to: '/employees' },
-    { icon: <IconBuilding size={19} color="var(--accent-dark)" />, value: totalDepartments, label: 'Total Departments', to: '/employees' },
+    { icon: <IconUsersGroup size={19} color="var(--accent)" />, value: totalEmployees, label: 'Total Employees', to: '/settings' },
+    { icon: <IconBuilding size={19} color="var(--accent-dark)" />, value: totalDepartments, label: 'Total Departments', to: '/settings' },
   ];
 }
 

@@ -11,8 +11,10 @@ const menuItemStyle = {
 // One team, nested under its department (Overview tab) or standalone in a
 // flat list (Teams tab, via `departmentName`). Edit/Delete live behind the
 // "•••" menu to keep the row itself down to icon + name + roster + one button,
-// matching the compact row shape asked for.
-export default function TeamCard({ team, lead, members, departmentName, onEdit, onDelete, onViewTeam }) {
+// matching the compact row shape asked for. `canEdit`/`canDelete` hide those
+// two menu items — off for a Manager, since renaming/deleting a team is
+// admin-only on the backend even though creating one isn't.
+export default function TeamCard({ team, lead, members, departmentName, onEdit, onDelete, onViewTeam, canEdit = true, canDelete = true }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
 
@@ -39,29 +41,35 @@ export default function TeamCard({ team, lead, members, departmentName, onEdit, 
       </div>
       <MemberAvatarGroup members={members} />
       <Button variant="secondary" style={{ padding: '6px 14px', fontSize: 12 }} onClick={onViewTeam}>View Team</Button>
-      <div ref={menuRef} style={{ position: 'relative' }}>
-        <span
-          onClick={() => setMenuOpen((v) => !v)}
-          title="More actions"
-          style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: 8, cursor: 'pointer' }}
-          className="settings-row-action"
-        >
-          <IconDotsVertical size={15} />
-        </span>
-        {menuOpen && (
-          <div style={{
-            position: 'absolute', top: 32, right: 0, background: 'var(--field-bg)', border: '1px solid var(--border)', borderRadius: 10,
-            boxShadow: '0 14px 32px -12px rgba(59,30,112,0.3)', overflow: 'hidden', zIndex: 30, minWidth: 150,
-          }}>
-            <div style={menuItemStyle} onClick={() => { setMenuOpen(false); onEdit(); }}>
-              <IconEdit size={13} /> Edit team
+      {(canEdit || canDelete) && (
+        <div ref={menuRef} style={{ position: 'relative' }}>
+          <span
+            onClick={() => setMenuOpen((v) => !v)}
+            title="More actions"
+            style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: 8, cursor: 'pointer' }}
+            className="settings-row-action"
+          >
+            <IconDotsVertical size={15} />
+          </span>
+          {menuOpen && (
+            <div style={{
+              position: 'absolute', top: 32, right: 0, background: 'var(--field-bg)', border: '1px solid var(--border)', borderRadius: 10,
+              boxShadow: '0 14px 32px -12px rgba(59,30,112,0.3)', overflow: 'hidden', zIndex: 30, minWidth: 150,
+            }}>
+              {canEdit && (
+                <div style={menuItemStyle} onClick={() => { setMenuOpen(false); onEdit(); }}>
+                  <IconEdit size={13} /> Edit team
+                </div>
+              )}
+              {canDelete && (
+                <div style={{ ...menuItemStyle, color: 'var(--amber-text)' }} onClick={() => { setMenuOpen(false); onDelete(); }}>
+                  Delete team
+                </div>
+              )}
             </div>
-            <div style={{ ...menuItemStyle, color: 'var(--amber-text)' }} onClick={() => { setMenuOpen(false); onDelete(); }}>
-              Delete team
-            </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

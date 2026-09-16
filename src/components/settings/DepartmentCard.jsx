@@ -29,10 +29,14 @@ function IconButton({ onClick, title, children }) {
 // One department's card: header row (icon, name, roll-up counts, actions,
 // expand chevron) plus its teams when expanded. `expandable=false` (used by
 // the Departments tab) drops the chevron and never renders teams at all —
-// team management lives entirely in the Teams tab in that mode.
+// team management lives entirely in the Teams tab in that mode. `canEdit`/
+// `canDelete` gate the department-level pencil/"Delete department" action —
+// off for a Manager viewing their own department, since renaming/deleting a
+// department is admin-only on the backend; they can still add a team here.
 export default function DepartmentCard({
   dept, color, memberCount, teamRows, expandable = true, isCollapsed, onToggle,
-  onAddTeam, onEdit, onDelete, onEditTeam, onDeleteTeam, onViewTeam,
+  onAddTeam, onEdit, onDelete, onEditTeam, onDeleteTeam, onViewTeam, onViewDepartment,
+  canEdit = true, canDelete = true, canEditTeam = true, canDeleteTeam = true,
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
@@ -61,26 +65,33 @@ export default function DepartmentCard({
           <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 15, color: 'var(--heading)' }}>{dept.name}</div>
           <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>{caption}</div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 2 }} onClick={(e) => e.stopPropagation()}>
-          <IconButton title="Edit department" onClick={onEdit}><IconEdit size={15} /></IconButton>
-          <div ref={menuRef} style={{ position: 'relative' }}>
-            <IconButton title="More actions" onClick={() => setMenuOpen((v) => !v)}><IconDotsVertical size={16} /></IconButton>
-            {menuOpen && (
-              <div style={{
-                position: 'absolute', top: 32, right: 0, background: 'var(--field-bg)', border: '1px solid var(--border)', borderRadius: 10,
-                boxShadow: '0 14px 32px -12px rgba(59,30,112,0.3)', overflow: 'hidden', zIndex: 30, minWidth: 170,
-              }}>
-                {expandable && (
-                  <div style={menuItemStyle} onClick={() => { setMenuOpen(false); onAddTeam(); }}>
-                    <IconPlusCircle size={13} color="var(--accent-dark)" /> Add team here
-                  </div>
-                )}
-                <div style={{ ...menuItemStyle, color: 'var(--amber-text)' }} onClick={() => { setMenuOpen(false); onDelete(); }}>
-                  Delete department
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }} onClick={(e) => e.stopPropagation()}>
+          {onViewDepartment && (
+            <Button variant="secondary" style={{ padding: '6px 14px', fontSize: 12 }} onClick={onViewDepartment}>View Team</Button>
+          )}
+          {canEdit && <IconButton title="Edit department" onClick={onEdit}><IconEdit size={15} /></IconButton>}
+          {(expandable || canDelete) && (
+            <div ref={menuRef} style={{ position: 'relative' }}>
+              <IconButton title="More actions" onClick={() => setMenuOpen((v) => !v)}><IconDotsVertical size={16} /></IconButton>
+              {menuOpen && (
+                <div style={{
+                  position: 'absolute', top: 32, right: 0, background: 'var(--field-bg)', border: '1px solid var(--border)', borderRadius: 10,
+                  boxShadow: '0 14px 32px -12px rgba(59,30,112,0.3)', overflow: 'hidden', zIndex: 30, minWidth: 170,
+                }}>
+                  {expandable && (
+                    <div style={menuItemStyle} onClick={() => { setMenuOpen(false); onAddTeam(); }}>
+                      <IconPlusCircle size={13} color="var(--accent-dark)" /> Add team here
+                    </div>
+                  )}
+                  {canDelete && (
+                    <div style={{ ...menuItemStyle, color: 'var(--amber-text)' }} onClick={() => { setMenuOpen(false); onDelete(); }}>
+                      Delete department
+                    </div>
+                  )}
                 </div>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          )}
           {expandable && (
             <div style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', transform: isCollapsed ? 'rotate(-90deg)' : 'none', transition: 'transform .15s ease' }}>
               <IconChevronDown size={14} color="var(--text-muted)" />
@@ -100,6 +111,8 @@ export default function DepartmentCard({
                 onEdit={() => onEditTeam(team)}
                 onDelete={() => onDeleteTeam(team)}
                 onViewTeam={() => onViewTeam(team)}
+                canEdit={canEditTeam}
+                canDelete={canDeleteTeam}
               />
             </div>
           ))}

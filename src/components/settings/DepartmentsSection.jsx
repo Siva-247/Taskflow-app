@@ -8,7 +8,7 @@ import { IconPlusCircle } from '../icons.jsx';
 // counts, edit/delete) — team-level detail lives in the Teams tab, so cards
 // here never expand.
 export default function DepartmentsSection({
-  rollups, search, onSearchChange, onAddDepartment, onEditDept, onDeleteDept, hasAnyDepartments,
+  rollups, search, onSearchChange, onAddDepartment, onEditDept, onDeleteDept, onViewDepartment, hasAnyDepartments,
 }) {
   const q = search.trim().toLowerCase();
   const visible = q ? rollups.filter((r) => r.dept.name.toLowerCase().includes(q)) : rollups;
@@ -41,6 +41,7 @@ export default function DepartmentsSection({
             onEdit={() => onEditDept(r.dept)}
             onDelete={() => onDeleteDept(r.dept)}
             onAddTeam={() => {}}
+            onViewDepartment={() => onViewDepartment(r.dept)}
           />
         ))}
         {visible.length === 0 && (

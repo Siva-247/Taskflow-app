@@ -4,7 +4,7 @@ import { useApp } from '../context/AppContext.jsx';
 import { useChat } from '../context/ChatContext.jsx';
 import { ROLES } from '../data/mockData.js';
 import {
-  IconGrid, IconUser, IconUsers, IconChecklist, IconBarChart, IconGear,
+  IconGrid, IconUsers, IconChecklist, IconBarChart, IconGear,
   IconEye, IconCalendar, IconChat, IconChevronDown, IconTarget,
 } from './icons.jsx';
 import { Avatar } from './ui.jsx';
@@ -24,13 +24,13 @@ const NAV_BY_ROLE = {
   [ROLES.ADMIN]: ADMIN_NAV,
   [ROLES.MANAGER]: [
     { label: 'Dashboard', icon: IconGrid, to: '/manager' },
-    { label: 'Employees', icon: IconUser, to: '/employees' },
     { label: 'Tasks', icon: IconChecklist, to: '/tasks' },
     { label: 'Approvals', icon: IconEye, to: '/tasks?status=Pending+Approval' },
     { label: 'Chat', icon: IconChat, to: '/chat' },
     { label: 'Daily Updates', icon: IconCalendar, to: '/daily-updates' },
     { label: 'Tactical Meeting', icon: IconTarget, to: '/tactical-meeting' },
     { label: 'Reports', icon: IconBarChart, to: '/reports' },
+    { label: 'Settings', icon: IconGear, to: '/settings' },
   ],
   [ROLES.ASSISTANT_MANAGER]: [
     { label: 'Dashboard', icon: IconGrid, to: '/assistant-manager' },
