@@ -1,12 +1,16 @@
 import React, { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext.jsx';
-import { ROLES, teamById } from '../data/mockData.js';
-import { Card, Avatar, Button, Modal, Field, TextInput, Select } from '../components/ui.jsx';
+import { ROLES } from '../data/mockData.js';
+import { Button, Modal, Field, TextInput, Select } from '../components/ui.jsx';
 import AddEmployeeModal from '../components/AddEmployeeModal.jsx';
-import StatBar, { organizationStatItems } from '../components/StatBar.jsx';
-import { IconSearch, IconPlusCircle, IconChevronDown, IconEdit, IconTrash, IconBuilding } from '../components/icons.jsx';
+import { organizationStatItems } from '../components/StatBar.jsx';
 import { useRoleGuard } from '../hooks/useRoleGuard.js';
+import SettingsTabs from '../components/settings/SettingsTabs.jsx';
+import OrganizationOverview from '../components/settings/OrganizationOverview.jsx';
+import DepartmentsSection from '../components/settings/DepartmentsSection.jsx';
+import TeamsSection from '../components/settings/TeamsSection.jsx';
+import MembersSection from '../components/settings/MembersSection.jsx';
+import RolesPermissionsSection from '../components/settings/RolesPermissionsSection.jsx';
 
 // Cycled by department index purely for visual variety between department
 // icons — not tied to any department property, so a renamed/reordered
@@ -23,16 +27,13 @@ const MEMBER_ROLE_LABELS = {
 };
 const memberRoleLabel = (u) => MEMBER_ROLE_LABELS[u.role] || u.title || 'Employee';
 
-const RowAction = ({ onClick, children, title }) => (
-  <span
-    onClick={(e) => { e.stopPropagation(); onClick(); }}
-    title={title}
-    style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 26, height: 26, borderRadius: 8, cursor: 'pointer' }}
-    className="settings-row-action"
-  >
-    {children}
-  </span>
-);
+const TABS = [
+  { key: 'overview', label: 'Overview' },
+  { key: 'departments', label: 'Departments' },
+  { key: 'teams', label: 'Teams' },
+  { key: 'members', label: 'Members' },
+  { key: 'roles', label: 'Roles & Permissions' },
+];
 
 export default function Settings() {
   const {
@@ -40,40 +41,53 @@ export default function Settings() {
     addDepartment, editDepartment, deleteDepartment, addTeam, editTeam, deleteTeam,
     setUserActive, deleteUser, resetUserPassword,
   } = useApp();
-  const navigate = useNavigate();
 
+  const [activeTab, setActiveTab] = useState('overview');
+
+  // ---- Overview tab: search + department/lead/status filters ----
   const [search, setSearch] = useState('');
   const [collapsed, setCollapsed] = useState(() => new Set());
+  const [departmentFilter, setDepartmentFilter] = useState('all');
+  const [leadFilter, setLeadFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
 
+  // ---- Departments / Teams tabs: their own independent search ----
+  const [deptTabSearch, setDeptTabSearch] = useState('');
+  const [teamTabSearch, setTeamTabSearch] = useState('');
+  const [teamTabDeptFilter, setTeamTabDeptFilter] = useState('all');
+
+  // ---- Add/Edit/Delete Department ----
   const [showAddDept, setShowAddDept] = useState(false);
   const [newDeptName, setNewDeptName] = useState('');
+  const [newDeptError, setNewDeptError] = useState('');
   const [deptSaving, setDeptSaving] = useState(false);
-  const [deptError, setDeptError] = useState('');
-
-  const [showAddTeam, setShowAddTeam] = useState(false);
-  const [newTeamName, setNewTeamName] = useState('');
-  const [newTeamDept, setNewTeamDept] = useState('');
-  const [teamSaving, setTeamSaving] = useState(false);
-  const [teamError, setTeamError] = useState('');
 
   const [editingDept, setEditingDept] = useState(null);
   const [editDeptName, setEditDeptName] = useState('');
   const [editDeptSaving, setEditDeptSaving] = useState(false);
   const [editDeptError, setEditDeptError] = useState('');
 
+  const [pendingDeleteDept, setPendingDeleteDept] = useState(null);
+  const [deletingDept, setDeletingDept] = useState(false);
+  const [deleteDeptError, setDeleteDeptError] = useState('');
+
+  // ---- Add/Edit/Delete Team ----
+  const [showAddTeam, setShowAddTeam] = useState(false);
+  const [newTeamName, setNewTeamName] = useState('');
+  const [newTeamDept, setNewTeamDept] = useState('');
+  const [teamSaving, setTeamSaving] = useState(false);
+  const [teamError, setTeamError] = useState('');
+
   const [editingTeam, setEditingTeam] = useState(null);
   const [editTeamName, setEditTeamName] = useState('');
   const [editTeamSaving, setEditTeamSaving] = useState(false);
   const [editTeamError, setEditTeamError] = useState('');
 
-  const [pendingDeleteDept, setPendingDeleteDept] = useState(null);
-  const [deletingDept, setDeletingDept] = useState(false);
-  const [deleteDeptError, setDeleteDeptError] = useState('');
-
   const [pendingDeleteTeam, setPendingDeleteTeam] = useState(null);
   const [deletingTeam, setDeletingTeam] = useState(false);
   const [deleteTeamError, setDeleteTeamError] = useState('');
 
+  // ---- Members tab ----
   const [memberSearch, setMemberSearch] = useState('');
   const [showAddEmployee, setShowAddEmployee] = useState(false);
   const [editingMember, setEditingMember] = useState(null);
@@ -103,10 +117,40 @@ export default function Settings() {
   }), [departments, teams, users]);
 
   const q = search.trim().toLowerCase();
-  const visibleRollups = useMemo(() => {
-    if (!q) return rollups;
-    return rollups.filter((r) => r.dept.name.toLowerCase().includes(q) || r.teamRows.some((t) => t.team.name.toLowerCase().includes(q)));
-  }, [rollups, q]);
+  const teamFilterActive = leadFilter !== 'all' || statusFilter !== 'all';
+  const visibleRollups = useMemo(() => rollups
+    .filter((r) => departmentFilter === 'all' || r.dept.id === departmentFilter)
+    .map((r) => {
+      if (!teamFilterActive) return r;
+      const filteredTeams = r.teamRows.filter((t) => {
+        if (leadFilter !== 'all' && t.lead?.id !== leadFilter) return false;
+        if (statusFilter === 'has-lead' && !t.lead) return false;
+        if (statusFilter === 'no-lead' && t.lead) return false;
+        return true;
+      });
+      return { ...r, teamRows: filteredTeams };
+    })
+    .filter((r) => (teamFilterActive ? r.teamRows.length > 0 : true))
+    .filter((r) => !q || r.dept.name.toLowerCase().includes(q) || r.teamRows.some((t) => t.team.name.toLowerCase().includes(q))),
+  [rollups, q, departmentFilter, leadFilter, statusFilter, teamFilterActive]);
+
+  const allLeads = useMemo(() => {
+    const seen = new Map();
+    teams.forEach((t) => {
+      if (!t.leadId) return;
+      const lead = users.find((u) => u.id === t.leadId);
+      if (lead && !seen.has(lead.id)) seen.set(lead.id, lead);
+    });
+    return [...seen.values()];
+  }, [teams, users]);
+
+  const departmentOptions = useMemo(() => [{ value: 'all', label: 'All Departments' }, ...departments.map((d) => ({ value: d.id, label: d.name }))], [departments]);
+  const leadOptions = useMemo(() => [{ value: 'all', label: 'All Team Leads' }, ...allLeads.map((l) => ({ value: l.id, label: l.name }))], [allLeads]);
+  const statusOptions = [
+    { value: 'all', label: 'All Statuses' },
+    { value: 'has-lead', label: 'Has Team Lead' },
+    { value: 'no-lead', label: 'No Team Lead' },
+  ];
 
   // Company-wide roster grouped by department — the same shape Employees.jsx's
   // admin view used, ported here so Settings can fully replace it for
@@ -114,20 +158,29 @@ export default function Settings() {
   // page unchanged, since Settings stays out of their reach).
   const memberGroups = useMemo(() => {
     const mq = memberSearch.trim().toLowerCase();
+    // Matches on the person's own name OR their team's name — the latter is
+    // what makes "View Team" (Overview/Teams tab) land here with that team's
+    // roster already filtered in, rather than a search nothing can match.
+    const matches = (u, team) => {
+      if (!mq) return true;
+      if (u.name.toLowerCase().includes(mq)) return true;
+      return Boolean(team && team.name.toLowerCase().includes(mq));
+    };
     return departments
       .map((dept) => {
         const people = users
           .filter((u) => u.departmentId === dept.id && u.role !== ROLES.SUPER_ADMIN && u.role !== ROLES.ADMIN)
-          .filter((u) => !mq || u.name.toLowerCase().includes(mq))
-          .map((u) => {
-            const assigned = tasks.filter((t) => t.assigneeId === u.id);
+          .map((u) => ({ user: u, team: teams.find((t) => t.id === u.teamId) }))
+          .filter(({ user, team }) => matches(user, team))
+          .map(({ user, team }) => {
+            const assigned = tasks.filter((t) => t.assigneeId === user.id);
             const uStats = statsFor(assigned);
-            return { user: u, team: teamById(u.teamId), assigned: uStats.total, completed: uStats.completed };
+            return { user, team, assigned: uStats.total, completed: uStats.completed };
           });
         return { dept, people };
       })
       .filter((g) => g.people.length > 0 || !memberSearch.trim());
-  }, [departments, users, memberSearch, tasks, statsFor]);
+  }, [departments, users, memberSearch, tasks, statsFor, teams]);
 
   if (!allowed) return null;
 
@@ -149,13 +202,13 @@ export default function Settings() {
   const openAddTeam = (departmentId) => { setNewTeamDept(departmentId || departments[0]?.id || ''); setNewTeamName(''); setTeamError(''); setShowAddTeam(true); };
 
   const handleAddDept = async () => {
-    if (!newDeptName.trim()) { setDeptError('Name is required.'); return; }
+    if (!newDeptName.trim()) { setNewDeptError('Name is required.'); return; }
     setDeptSaving(true);
     try {
       await addDepartment({ name: newDeptName.trim() });
-      setShowAddDept(false); setNewDeptName(''); setDeptError('');
+      setShowAddDept(false); setNewDeptName(''); setNewDeptError('');
     } catch (err) {
-      setDeptError(err.message || 'Could not add department');
+      setNewDeptError(err.message || 'Could not add department');
     } finally {
       setDeptSaving(false);
     }
@@ -252,227 +305,99 @@ export default function Settings() {
     }
   };
 
-  const memberActionCell = (user) => {
-    const isActive = user.isActive === undefined || !!user.isActive;
-    return (
-      <div onClick={(e) => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
-        <span onClick={() => setEditingMember(user)} style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 11.5, color: 'var(--accent-dark)', cursor: 'pointer' }}>
-          Edit
-        </span>
-        <span onClick={() => setPendingPasswordReset(user)} style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 11.5, color: 'var(--accent-dark)', cursor: 'pointer' }}>
-          Reset password
-        </span>
-        {isActive ? (
-          <span onClick={() => setPendingDeactivate(user)} style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 11.5, color: 'var(--green-text, #1F7A44)', cursor: 'pointer' }}>
-            ● Active
-          </span>
-        ) : (
-          <span onClick={() => setUserActive(user.id, true)} style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 11.5, color: 'var(--amber-text)', cursor: 'pointer' }}>
-            ● Inactive — Reactivate
-          </span>
-        )}
-        <span onClick={() => { setPendingDeleteMember(user); setDeleteMemberError(''); }} style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 11.5, color: 'var(--text-muted)', cursor: 'pointer' }}>
-          Delete
-        </span>
-      </div>
-    );
+  // "View Team" has nowhere dedicated to navigate to (no per-team detail
+  // route exists) — the closest real, working equivalent is jumping to the
+  // Members tab already filtered down to that team's roster.
+  const handleViewTeam = (team) => {
+    setActiveTab('members');
+    setMemberSearch(team.name);
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
-      <style>{`.settings-row-action:hover { background: var(--surface-strong); }`}</style>
+    <div style={{ maxWidth: 1200, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 18 }}>
+      <style>{'.settings-row-action:hover { background: var(--surface-strong); }'}</style>
+
       <div>
-        <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 24, color: 'var(--heading)' }}>Settings</div>
+        <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 800, fontSize: 24, color: 'var(--heading)' }}>Settings</div>
         <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 500, fontSize: 14, color: 'var(--text-secondary)', marginTop: 4 }}>
-          Manage your organization's departments, teams, and reporting structure
+          Manage your organization, teams, members, and permissions.
         </div>
       </div>
 
-      <StatBar items={statItems} />
+      <SettingsTabs tabs={TABS} active={activeTab} onChange={setActiveTab} />
 
-      <Card padded={false}>
-        <div style={{ padding: '22px 26px 4px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-          <div>
-            <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 16.5, color: 'var(--heading)' }}>Organization Structure</div>
-            <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 500, fontSize: 12.5, color: 'var(--text-muted)', marginTop: 3 }}>
-              Departments and teams, with who leads each one
-            </div>
-          </div>
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            <Button variant="secondary" onClick={() => openAddTeam()}>
-              <IconPlusCircle size={15} color="var(--accent-dark)" /> Add Team
-            </Button>
-            <Button onClick={() => { setNewDeptName(''); setDeptError(''); setShowAddDept(true); }}>
-              <IconPlusCircle size={15} color="#FFFFFF" /> Add Department
-            </Button>
-          </div>
-        </div>
+      {activeTab === 'overview' && (
+        <OrganizationOverview
+          statItems={statItems}
+          visibleRollups={visibleRollups}
+          collapsed={collapsed}
+          onToggleDept={toggleDept}
+          search={search}
+          onSearchChange={setSearch}
+          departmentOptions={departmentOptions}
+          departmentFilter={departmentFilter}
+          onDepartmentFilterChange={setDepartmentFilter}
+          leadOptions={leadOptions}
+          leadFilter={leadFilter}
+          onLeadFilterChange={setLeadFilter}
+          statusOptions={statusOptions}
+          statusFilter={statusFilter}
+          onStatusFilterChange={setStatusFilter}
+          onAddDepartment={() => { setNewDeptName(''); setNewDeptError(''); setShowAddDept(true); }}
+          onAddTeam={openAddTeam}
+          onEditDept={startEditDept}
+          onDeleteDept={(dept) => { setPendingDeleteDept(dept); setDeleteDeptError(''); }}
+          onEditTeam={startEditTeam}
+          onDeleteTeam={(team) => { setPendingDeleteTeam(team); setDeleteTeamError(''); }}
+          onViewTeam={handleViewTeam}
+          hasAnyDepartments={departments.length > 0}
+        />
+      )}
 
-        <div style={{ padding: '18px 26px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, border: '1px solid var(--border)', borderRadius: 9, padding: '9px 14px', maxWidth: 420 }}>
-            <IconSearch size={15} />
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search departments or teams..."
-              style={{ border: 'none', outline: 'none', flex: 1, fontFamily: "'Outfit',system-ui,sans-serif", fontSize: 13.5, color: 'var(--text-primary)', background: 'transparent' }}
-            />
-          </div>
-        </div>
+      {activeTab === 'departments' && (
+        <DepartmentsSection
+          rollups={rollups}
+          search={deptTabSearch}
+          onSearchChange={setDeptTabSearch}
+          onAddDepartment={() => { setNewDeptName(''); setNewDeptError(''); setShowAddDept(true); }}
+          onEditDept={startEditDept}
+          onDeleteDept={(dept) => { setPendingDeleteDept(dept); setDeleteDeptError(''); }}
+          hasAnyDepartments={departments.length > 0}
+        />
+      )}
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: '0 26px 26px' }}>
-          {visibleRollups.map((r) => {
-            const isCollapsed = collapsed.has(r.dept.id);
-            return (
-              <div key={r.dept.id} style={{ border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden' }}>
-                <div
-                  onClick={() => toggleDept(r.dept.id)}
-                  style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '15px 18px', cursor: 'pointer', background: 'var(--surface)' }}
-                >
-                  <div style={{ width: 40, height: 40, borderRadius: 12, background: r.color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <IconBuilding size={19} color="#FFFFFF" />
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 15, color: 'var(--heading)' }}>{r.dept.name}</div>
-                    <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
-                      {r.teamRows.length} team{r.teamRows.length === 1 ? '' : 's'} · {r.memberCount} member{r.memberCount === 1 ? '' : 's'}
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <RowAction title="Add a team here" onClick={() => openAddTeam(r.dept.id)}><IconPlusCircle size={16} color="var(--accent-dark)" /></RowAction>
-                    <RowAction title="Rename department" onClick={() => startEditDept(r.dept)}><IconEdit size={15} /></RowAction>
-                    <RowAction title="Delete department" onClick={() => { setPendingDeleteDept(r.dept); setDeleteDeptError(''); }}><IconTrash size={15} /></RowAction>
-                    <div style={{ width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', transform: isCollapsed ? 'rotate(-90deg)' : 'none', transition: 'transform .15s ease' }}>
-                      <IconChevronDown size={14} color="var(--text-muted)" />
-                    </div>
-                  </div>
-                </div>
+      {activeTab === 'teams' && (
+        <TeamsSection
+          rollups={rollups}
+          departments={departments}
+          search={teamTabSearch}
+          onSearchChange={setTeamTabSearch}
+          departmentFilter={teamTabDeptFilter}
+          onDepartmentFilterChange={setTeamTabDeptFilter}
+          onAddTeam={openAddTeam}
+          onEditTeam={startEditTeam}
+          onDeleteTeam={(team) => { setPendingDeleteTeam(team); setDeleteTeamError(''); }}
+          onViewTeam={handleViewTeam}
+        />
+      )}
 
-                {!isCollapsed && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '10px 18px 16px' }}>
-                    {r.teamRows.map(({ team, lead, members }) => (
-                      <div
-                        key={team.id}
-                        style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '11px 16px', marginLeft: 54, borderRadius: 10, background: 'var(--field-bg)', flexWrap: 'wrap' }}
-                      >
-                        <div style={{ flex: '1 1 200px', minWidth: 0 }}>
-                          <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 13.5, color: 'var(--text-primary)' }}>{team.name}</div>
-                          <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 500, fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>
-                            {lead ? `Led by ${lead.name}` : 'No team lead yet'} · {members.length} member{members.length === 1 ? '' : 's'}
-                          </div>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center' }}>
-                          {members.slice(0, 4).map((m, idx) => (
-                            <div key={m.id} title={m.name} style={{ marginLeft: idx === 0 ? 0 : -8, borderRadius: 999, border: '2px solid var(--field-bg)' }}>
-                              <Avatar initial={m.initial} size={26} />
-                            </div>
-                          ))}
-                          {members.length > 4 && (
-                            <div style={{
-                              marginLeft: -8, width: 26, height: 26, borderRadius: 999, background: 'var(--neutral-bg)',
-                              border: '2px solid var(--field-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 10, color: 'var(--text-secondary)',
-                            }}>
-                              +{members.length - 4}
-                            </div>
-                          )}
-                        </div>
-                        <div style={{ display: 'flex', gap: 2 }}>
-                          <RowAction title="Rename team" onClick={() => startEditTeam(team)}><IconEdit size={13} /></RowAction>
-                          <RowAction title="Delete team" onClick={() => { setPendingDeleteTeam(team); setDeleteTeamError(''); }}><IconTrash size={13} /></RowAction>
-                        </div>
-                      </div>
-                    ))}
-                    {r.teamRows.length === 0 && (
-                      <div style={{ marginLeft: 54, fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 500, fontSize: 12.5, color: 'var(--text-muted)', padding: '4px 0' }}>
-                        No teams yet.
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-          {visibleRollups.length === 0 && (
-            <div style={{ padding: '28px 0', textAlign: 'center', fontFamily: "'Outfit',system-ui,sans-serif", fontSize: 13.5, color: 'var(--text-muted)' }}>
-              {departments.length === 0 ? 'No departments yet — add one to get started.' : 'No departments or teams match your search.'}
-            </div>
-          )}
-        </div>
-      </Card>
+      {activeTab === 'members' && (
+        <MembersSection
+          memberGroups={memberGroups}
+          search={memberSearch}
+          onSearchChange={setMemberSearch}
+          onAddEmployee={() => setShowAddEmployee(true)}
+          roleLabel={memberRoleLabel}
+          onEdit={setEditingMember}
+          onResetPassword={setPendingPasswordReset}
+          onDeactivate={setPendingDeactivate}
+          onReactivate={(user) => setUserActive(user.id, true)}
+          onDelete={(user) => { setPendingDeleteMember(user); setDeleteMemberError(''); }}
+          hasAnyDepartments={departments.length > 0}
+        />
+      )}
 
-      <Card padded={false}>
-        <div style={{ padding: '22px 26px 4px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-          <div>
-            <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 16.5, color: 'var(--heading)' }}>Members</div>
-            <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 500, fontSize: 12.5, color: 'var(--text-muted)', marginTop: 3 }}>
-              Every department across the company
-            </div>
-          </div>
-          <Button onClick={() => setShowAddEmployee(true)}>
-            <IconPlusCircle size={15} color="#FFFFFF" /> Add employee
-          </Button>
-        </div>
-
-        <div style={{ padding: '18px 26px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, border: '1px solid var(--border)', borderRadius: 9, padding: '9px 14px', maxWidth: 420 }}>
-            <IconSearch size={15} />
-            <input
-              value={memberSearch}
-              onChange={(e) => setMemberSearch(e.target.value)}
-              placeholder="Search employees..."
-              style={{ border: 'none', outline: 'none', flex: 1, fontFamily: "'Outfit',system-ui,sans-serif", fontSize: 13.5, color: 'var(--text-primary)', background: 'transparent' }}
-            />
-          </div>
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 20, padding: '0 26px 26px' }}>
-          {memberGroups.map(({ dept, people }) => (
-            <Card key={dept.id} padded={false}>
-              <div style={{ padding: '18px 22px 4px', display: 'flex', alignItems: 'baseline', gap: 10 }}>
-                <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 16.5, color: 'var(--heading)' }}>{dept.name}</div>
-                <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 12, color: 'var(--text-muted)' }}>{people.length} member{people.length === 1 ? '' : 's'}</div>
-              </div>
-              <div style={{ overflowX: 'auto' }}>
-                <div style={{ minWidth: 800 }}>
-                  <div className="table-head-brand" style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr 1fr 0.7fr 0.9fr 1.2fr', padding: '10px 22px', marginTop: 8 }}>
-                    {['Employee', 'Team', 'Role', 'Assigned', 'Completed', 'Status'].map((h) => (
-                      <div key={h} style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 11, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>{h}</div>
-                    ))}
-                  </div>
-                  {people.map((row, i) => (
-                    <div
-                      key={row.user.id}
-                      onClick={() => navigate(`/tasks?assignee=${row.user.id}`)}
-                      style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr 1fr 0.7fr 0.9fr 1.2fr', padding: '13px 22px', alignItems: 'center', borderTop: '1px solid var(--border)', borderBottom: i === people.length - 1 ? '1px solid var(--border)' : 'none', cursor: 'pointer', opacity: (row.user.isActive === undefined || row.user.isActive) ? 1 : 0.55 }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <Avatar initial={row.user.initial} size={26} />
-                        <span style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 13.5, color: 'var(--text-primary)' }}>{row.user.name}</span>
-                      </div>
-                      <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 500, fontSize: 13, color: 'var(--text-secondary)' }}>{row.team?.name || '—'}</div>
-                      <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 500, fontSize: 13, color: 'var(--text-secondary)' }}>{memberRoleLabel(row.user)}</div>
-                      <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 13.5, color: 'var(--heading)' }}>{row.assigned}</div>
-                      <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 13.5, color: 'var(--heading)' }}>{row.completed}</div>
-                      {memberActionCell(row.user)}
-                    </div>
-                  ))}
-                  {people.length === 0 && (
-                    <div style={{ padding: '22px', textAlign: 'center', fontFamily: "'Outfit',system-ui,sans-serif", fontSize: 13, color: 'var(--text-muted)' }}>
-                      No one in this department yet.
-                    </div>
-                  )}
-                </div>
-              </div>
-            </Card>
-          ))}
-          {memberGroups.length === 0 && (
-            <Card>
-              <div style={{ textAlign: 'center', fontFamily: "'Outfit',system-ui,sans-serif", fontSize: 13.5, color: 'var(--text-muted)' }}>No departments yet.</div>
-            </Card>
-          )}
-        </div>
-      </Card>
+      {activeTab === 'roles' && <RolesPermissionsSection users={users} />}
 
       {showAddDept && (
         <Modal title="Add department" onClose={() => setShowAddDept(false)}>
@@ -480,7 +405,7 @@ export default function Settings() {
             <Field label="Department name" required>
               <TextInput value={newDeptName} onChange={setNewDeptName} placeholder="e.g. Operations" />
             </Field>
-            {deptError && <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 12, color: 'var(--amber-text)' }}>{deptError}</div>}
+            {newDeptError && <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 12, color: 'var(--amber-text)' }}>{newDeptError}</div>}
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 22 }}>
             <Button variant="secondary" onClick={() => setShowAddDept(false)}>Cancel</Button>
@@ -508,7 +433,7 @@ export default function Settings() {
       )}
 
       {editingDept && (
-        <Modal title={`Rename ${editingDept.name}`} onClose={() => setEditingDept(null)}>
+        <Modal title={`Edit ${editingDept.name}`} onClose={() => setEditingDept(null)}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <Field label="Department name" required>
               <TextInput value={editDeptName} onChange={setEditDeptName} placeholder="Department name" />
@@ -523,7 +448,7 @@ export default function Settings() {
       )}
 
       {editingTeam && (
-        <Modal title={`Rename ${editingTeam.name}`} onClose={() => setEditingTeam(null)}>
+        <Modal title={`Edit ${editingTeam.name}`} onClose={() => setEditingTeam(null)}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <Field label="Team name" required>
               <TextInput value={editTeamName} onChange={setEditTeamName} placeholder="Team name" />
