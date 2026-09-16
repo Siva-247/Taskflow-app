@@ -135,7 +135,7 @@ export default function Chat() {
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
   const [showNewGroup, setShowNewGroup] = useState(false);
-  const [showNewDM, setShowNewDM] = useState(false);
+  const [showCompose, setShowCompose] = useState(false);
   const [showGroupInfo, setShowGroupInfo] = useState(false);
   const [recording, setRecording] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
@@ -463,13 +463,8 @@ export default function Chat() {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
             <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 18, color: 'var(--heading)' }}>Chats</div>
             <div style={{ display: 'flex', gap: 8 }}>
-              {canCreateGroup && (
-                <button type="button" onClick={() => setShowNewGroup(true)} title="New group" style={iconBtnStyle}>
-                  <IconPlusCircle size={16} color="var(--accent-dark)" />
-                </button>
-              )}
-              <button type="button" onClick={() => setShowNewDM(true)} title="New chat" style={iconBtnStyle}>
-                <IconEdit size={15} color="var(--accent-dark)" />
+              <button type="button" onClick={() => setShowCompose(true)} title="New chat" style={iconBtnStyle}>
+                <IconPlusCircle size={17} color="var(--accent-dark)" />
               </button>
             </div>
           </div>
@@ -486,7 +481,7 @@ export default function Chat() {
         <div style={{ flex: 1, overflowY: 'auto' }}>
           {conversations.length === 0 && (
             <div style={emptyStateStyle}>
-              No chats yet. Start one with the compose icon above{canCreateGroup ? ', or create a group.' : '.'}
+              No chats yet. Start one with the + above.
             </div>
           )}
           {conversations.length > 0 && filteredConversations.length === 0 && (
@@ -957,12 +952,14 @@ export default function Chat() {
         />
       )}
 
-      {showNewDM && (
-        <NewDMModal
-          onClose={() => setShowNewDM(false)}
+      {showCompose && (
+        <ComposeModal
+          canCreateGroup={canCreateGroup}
+          onClose={() => setShowCompose(false)}
+          onNewGroup={() => { setShowCompose(false); setShowNewGroup(true); }}
           onPick={async (userId) => {
             const conversation = await startDM(userId);
-            setShowNewDM(false);
+            setShowCompose(false);
             setActiveConversationId(conversation.id);
           }}
         />
@@ -1128,7 +1125,13 @@ function NewGroupModal({ onClose, onCreate }) {
   );
 }
 
-function NewDMModal({ onClose, onPick }) {
+// The single "+" entry point — WhatsApp's own "new chat" screen shape: "New
+// Group" pinned as the first row (only for roles allowed to create one),
+// then every other person in the company below it. Picking a person reuses
+// the exact same find-or-create DM as before (blank chat if you've never
+// messaged them, their existing thread if you have); picking "New Group"
+// just hands off to the existing name+checkbox NewGroupModal below.
+function ComposeModal({ canCreateGroup, onClose, onNewGroup, onPick }) {
   const { currentUser } = useApp();
   const { directoryUsers } = useChat();
   const [search, setSearch] = useState('');
@@ -1152,7 +1155,15 @@ function NewDMModal({ onClose, onPick }) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <TextInput value={search} onChange={setSearch} placeholder="Search people…" />
         {error && <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 12, color: 'var(--amber-text)' }}>{error}</div>}
-        <div style={{ maxHeight: 280, overflowY: 'auto', border: '1px solid var(--border)', borderRadius: 9 }}>
+        <div style={{ maxHeight: 320, overflowY: 'auto', border: '1px solid var(--border)', borderRadius: 9 }}>
+          {canCreateGroup && (
+            <div onClick={onNewGroup} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', cursor: 'pointer', borderBottom: '1px solid var(--border)', background: 'var(--accent-soft)' }}>
+              <div style={{ width: 28, height: 28, borderRadius: 999, background: 'var(--brand-grad)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <IconPlusCircle size={15} color="#FFFFFF" />
+              </div>
+              <span style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 13, color: 'var(--accent-dark)' }}>New Group</span>
+            </div>
+          )}
           {candidates.map((u) => (
             <div key={u.id} onClick={() => handlePick(u.id)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', cursor: 'pointer', borderBottom: '1px solid var(--border)' }}>
               <Avatar initial={u.initial} size={28} />
@@ -1162,7 +1173,7 @@ function NewDMModal({ onClose, onPick }) {
               </div>
             </div>
           ))}
-          {candidates.length === 0 && (
+          {candidates.length === 0 && !canCreateGroup && (
             <div style={{ padding: 14, fontFamily: "'Outfit',system-ui,sans-serif", fontSize: 12.5, color: 'var(--text-muted)' }}>No one matches.</div>
           )}
         </div>
