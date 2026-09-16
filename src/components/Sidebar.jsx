@@ -11,7 +11,6 @@ import { Avatar } from './ui.jsx';
 
 const ADMIN_NAV = [
   { label: 'Dashboard', icon: IconGrid, to: '/admin' },
-  { label: 'Employees', icon: IconUser, to: '/employees' },
   { label: 'All Tasks', icon: IconChecklist, to: '/tasks' },
   { label: 'Chat', icon: IconChat, to: '/chat' },
   { label: 'Daily Updates', icon: IconCalendar, to: '/daily-updates' },
