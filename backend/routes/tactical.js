@@ -205,6 +205,26 @@ async function teamViewScope(user, query) {
   if (departmentId) { conditions.push('department_id = ?'); params.push(departmentId); }
   if (teamId) { conditions.push('team_id = ?'); params.push(teamId); }
 
+  // Two narrower exceptions to "the viewer is included" above, both scoped
+  // to supervisory-tier roles only — employees/interns are never touched by
+  // either rule, always seeing themselves and being seen by others exactly
+  // as before. A Manager has no legitimate "who's watching over me" use
+  // case within this feature (the only rung above them is Admin/Super
+  // Admin, already excluded from every roster here) — so Manager rows are
+  // hidden from every non-admin viewer, not just from the manager viewing
+  // their own department. A Team Lead's own row is only hidden from
+  // themselves (reviewing your own name in your own oversight tool is
+  // meaningless) — it stays visible to whoever actually supervises them
+  // (their manager or assistant manager), who need it to track that
+  // person's team.
+  if (user.role !== 'super_admin' && user.role !== 'admin') {
+    conditions.push("role != 'manager'");
+  }
+  if (user.role === 'team_lead') {
+    conditions.push('id != ?');
+    params.push(user.id);
+  }
+
   const users = await prepare(
     `SELECT id, name, title, role, team_id as "teamId", department_id as "departmentId" FROM users WHERE ${conditions.join(' AND ')}`,
   ).all(...params);
