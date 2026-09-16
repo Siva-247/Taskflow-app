@@ -2,12 +2,10 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext.jsx';
 import { ROLES, teamById } from '../data/mockData.js';
-import { Card, Avatar, Select, TextInput, Button, Modal, Field, Pagination, PAGE_SIZE } from '../components/ui.jsx';
+import { Card, Avatar, Select, Button, Modal, Pagination, PAGE_SIZE } from '../components/ui.jsx';
 import AddEmployeeModal from '../components/AddEmployeeModal.jsx';
 import { IconSearch, IconPlusCircle } from '../components/icons.jsx';
 import { useRoleGuard } from '../hooks/useRoleGuard.js';
-
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const ROLE_LABELS = {
   [ROLES.MANAGER]: 'Manager',
@@ -20,18 +18,13 @@ const ROLE_LABELS = {
 const roleLabel = (u) => ROLE_LABELS[u.role] || u.title || 'Employee';
 
 export default function Employees() {
-  const { currentUser, users, teams, departments, tasks, statsFor, setUserActive, editUser, deleteUser, resetUserPassword } = useApp();
+  const { currentUser, users, teams, departments, tasks, statsFor, setUserActive, deleteUser, resetUserPassword } = useApp();
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [teamFilter, setTeamFilter] = useState('all');
   const [showAdd, setShowAdd] = useState(false);
   const [pendingDeactivate, setPendingDeactivate] = useState(null);
   const [editingUser, setEditingUser] = useState(null);
-  const [editName, setEditName] = useState('');
-  const [editTitle, setEditTitle] = useState('');
-  const [editEmail, setEditEmail] = useState('');
-  const [editSaving, setEditSaving] = useState(false);
-  const [editError, setEditError] = useState('');
   const [pendingDelete, setPendingDelete] = useState(null);
   const [deleteError, setDeleteError] = useState('');
   const [deleting, setDeleting] = useState(false);
@@ -43,23 +36,7 @@ export default function Employees() {
   if (!allowed) return null;
 
   const isAdmin_ = currentUser.role === ROLES.SUPER_ADMIN || currentUser.role === ROLES.ADMIN;
-
-  const startEdit = (user) => { setEditingUser(user); setEditName(user.name); setEditTitle(user.title || ''); setEditEmail(user.email || ''); setEditError(''); };
-  const resetEdit = () => { setEditingUser(null); setEditName(''); setEditTitle(''); setEditEmail(''); setEditError(''); };
-
-  const handleSaveEdit = async () => {
-    if (!editName.trim()) { setEditError('Name is required.'); return; }
-    if (!EMAIL_RE.test(editEmail.trim())) { setEditError('Enter a valid email address.'); return; }
-    setEditSaving(true);
-    try {
-      await editUser(editingUser.id, { name: editName.trim(), title: editTitle.trim(), email: editEmail.trim() });
-      resetEdit();
-    } catch (err) {
-      setEditError(err.message || 'Could not save changes');
-    } finally {
-      setEditSaving(false);
-    }
-  };
+  const canAddOrEdit = isAdmin_ || currentUser.role === ROLES.MANAGER;
 
   const handleDelete = async () => {
     setDeleting(true);
@@ -133,8 +110,8 @@ export default function Employees() {
     const isActive = user.isActive === undefined || !!user.isActive;
     return (
       <div onClick={(e) => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
-        {isAdmin_ && (
-          <span onClick={() => startEdit(user)} style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 11.5, color: 'var(--accent-dark)', cursor: 'pointer' }}>
+        {canAddOrEdit && (
+          <span onClick={() => setEditingUser(user)} style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 11.5, color: 'var(--accent-dark)', cursor: 'pointer' }}>
             Edit
           </span>
         )}
@@ -168,7 +145,7 @@ export default function Employees() {
             {isAdmin ? 'Every department across the company' : `Employees across ${myDepartment?.name || 'your department'}`}
           </div>
         </div>
-        {isAdmin && (
+        {canAddOrEdit && (
           <Button onClick={() => setShowAdd(true)}>
             <IconPlusCircle size={15} color="#FFFFFF" /> Add employee
           </Button>
@@ -281,26 +258,7 @@ export default function Employees() {
 
       {showAdd && <AddEmployeeModal onClose={() => setShowAdd(false)} />}
 
-      {editingUser && (
-        <Modal title={`Edit ${editingUser.name}`} onClose={resetEdit}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <Field label="Full name" required>
-              <TextInput value={editName} onChange={setEditName} placeholder="Full name" />
-            </Field>
-            <Field label="Title">
-              <TextInput value={editTitle} onChange={setEditTitle} placeholder="e.g. Developer" />
-            </Field>
-            <Field label="Email" required>
-              <TextInput value={editEmail} onChange={setEditEmail} placeholder="name@company.com" />
-            </Field>
-            {editError && <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 12, color: 'var(--amber-text)' }}>{editError}</div>}
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 22 }}>
-            <Button variant="secondary" onClick={resetEdit}>Cancel</Button>
-            <Button variant="primary" onClick={handleSaveEdit} disabled={editSaving}>{editSaving ? 'Saving…' : 'Save changes'}</Button>
-          </div>
-        </Modal>
-      )}
+      {editingUser && <AddEmployeeModal user={editingUser} onClose={() => setEditingUser(null)} />}
 
       {pendingDeactivate && (
         <Modal title={`Deactivate ${pendingDeactivate.name}?`} onClose={() => setPendingDeactivate(null)}>

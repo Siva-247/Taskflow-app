@@ -191,17 +191,22 @@ router.post('/', requireRole('team_lead', 'assistant_manager', 'manager', 'admin
   res.status(201).json({ user, tempPassword });
 }));
 
-// Edit of a member's basic details, scoped by hierarchy.canManage (cascades
-// down the whole chain: admin/super_admin reach anyone, a manager their
-// whole department, an assistant manager/team lead their own team).
-// Deliberately NOT allowing team/department here — moving someone between
-// teams has structural implications (task scoping, review authority) that a
-// simple field edit shouldn't quietly trigger; that stays a
-// create-a-new-placement operation. Deliberately no user DELETE anywhere in
-// this file either — a hard delete would leave every task/comment/daily-
-// update they ever touched pointing at a nonexistent user. Deactivate
-// (below) is the safe equivalent: it blocks sign-in while keeping their
-// history intact and reversible.
+// Edit of a member's details, scoped by hierarchy.canManage (cascades down
+// the whole chain: admin/super_admin reach anyone, a manager their whole
+// department, an assistant manager/team lead their own team). name/title/
+// email always apply. role/teamId/departmentId only move someone between
+// 'manager' and 'employee' — the Add Employee popup's own two placement
+// shapes, reused here so editing looks and behaves like re-filling that
+// same form. team_lead/assistant_manager are deliberately excluded from
+// this reshuffling: teams.lead_id/assistant_manager_id carry bookkeeping
+// (and a real FK, for assistant_manager_id) that a simple field edit can't
+// safely rewrite without also touching the team row, so an existing
+// team_lead/assistant_manager keeps their current role/team/department no
+// matter what the request asks for — only name/title/email apply to them.
+// Deliberately no user DELETE anywhere in this file either — a hard delete
+// would leave every task/comment/daily-update they ever touched pointing at
+// a nonexistent user. Deactivate (below) is the safe equivalent: it blocks
+// sign-in while keeping their history intact and reversible.
 router.patch('/:id', asyncRoute(async (req, res) => {
   const target = await prepare('SELECT * FROM users WHERE id = ?').get(req.params.id);
   if (!target) return res.status(404).json({ error: 'User not found' });
@@ -209,7 +214,6 @@ router.patch('/:id', asyncRoute(async (req, res) => {
   if (!canManage(req.user, target)) return res.status(403).json({ error: 'You do not have permission to edit this person' });
 
   const name = req.body.name !== undefined ? req.body.name.trim() : target.name;
-  const title = req.body.title !== undefined ? req.body.title.trim() : target.title;
   const email = req.body.email !== undefined ? req.body.email.trim().toLowerCase() : target.email;
   if (!name) return res.status(400).json({ error: 'Name is required' });
   if (!EMAIL_RE.test(email)) return res.status(400).json({ error: 'A valid email is required' });
@@ -217,8 +221,49 @@ router.patch('/:id', asyncRoute(async (req, res) => {
     return res.status(409).json({ error: 'That email is already in use' });
   }
 
-  await prepare('UPDATE users SET name = ?, title = ?, email = ?, initial = ? WHERE id = ?')
-    .run(name, title, email, initialsOf(name), req.params.id);
+  let role = target.role;
+  let teamId = target.team_id;
+  let departmentId = target.department_id;
+  let title = req.body.title !== undefined ? req.body.title.trim() : target.title;
+
+  const canReshape = ['manager', 'employee'].includes(target.role);
+  if (canReshape && req.body.role && ['manager', 'employee'].includes(req.body.role)) {
+    if (req.body.role === 'manager' && !['admin', 'super_admin'].includes(req.user.role)) {
+      return res.status(403).json({ error: 'Only an admin can make someone a manager' });
+    }
+    role = req.body.role;
+    if (role === 'manager') {
+      departmentId = req.body.departmentId || target.department_id;
+      if (!departmentId) return res.status(400).json({ error: 'departmentId is required' });
+      if (!(await prepare('SELECT 1 FROM departments WHERE id = ?').get(departmentId))) {
+        return res.status(404).json({ error: 'Department not found' });
+      }
+      teamId = null;
+      title = title || 'Manager';
+    } else {
+      teamId = req.body.teamId || null;
+      if (teamId) {
+        const team = await prepare('SELECT * FROM teams WHERE id = ?').get(teamId);
+        if (!team) return res.status(404).json({ error: 'Team not found' });
+        departmentId = team.department_id;
+      } else {
+        departmentId = req.body.departmentId || target.department_id;
+        if (!departmentId) return res.status(400).json({ error: 'departmentId is required' });
+        if (!(await prepare('SELECT 1 FROM departments WHERE id = ?').get(departmentId))) {
+          return res.status(404).json({ error: 'Department not found' });
+        }
+      }
+      if (!title) return res.status(400).json({ error: 'Title is required' });
+    }
+    // A manager may only reshape someone within their own department —
+    // same reach hierarchy.canManage already grants them for editing at all.
+    if (req.user.role === 'manager' && departmentId !== req.user.department_id) {
+      return res.status(403).json({ error: 'You can only place members within your own department' });
+    }
+  }
+
+  await prepare('UPDATE users SET name = ?, title = ?, email = ?, initial = ?, role = ?, team_id = ?, department_id = ? WHERE id = ?')
+    .run(name, title, email, initialsOf(name), role, teamId, departmentId, req.params.id);
 
   const user = await prepare(`${SELECT_USER} WHERE id = ?`).get(req.params.id);
   res.json({ user });
