@@ -37,7 +37,12 @@ export default function AddEmployeeModal({ onClose }) {
 
   const needsTeam = role !== 'manager';
   const teamsForDept = deptSelection === OTHER_DEPT ? [] : teams.filter((t) => t.departmentId === deptSelection);
-  const needsNewTeamField = needsTeam && (teamsForDept.length === 0 || teamSelection === NEW_TEAM);
+  // Only forced when actually chosen — an empty teamsForDept used to force
+  // this on by itself (no teams yet = you MUST create one), which fought
+  // against Team being optional: a department with zero teams should still
+  // let you add someone with no team at all, not railroad you into creating
+  // one just because the list happens to be empty.
+  const needsNewTeamField = needsTeam && teamSelection === NEW_TEAM;
 
   const handleDeptChange = (value) => {
     setDeptSelection(value);
@@ -52,10 +57,11 @@ export default function AddEmployeeModal({ onClose }) {
     if (password && password.length < 8) e.password = true;
     if (deptSelection === OTHER_DEPT && !customDept.trim()) e.customDept = true;
     if (role === 'other' && !customTitle.trim()) e.customTitle = true;
-    if (needsTeam) {
-      if (needsNewTeamField && !customTeam.trim()) e.customTeam = true;
-      if (!needsNewTeamField && !teamSelection) e.teamSelection = true;
-    }
+    // Team is optional — the only thing that still needs validating here is
+    // the "+ New team" text field itself, if that's the path they're on;
+    // simply not picking an existing team is a valid, deliberate "no team
+    // yet" choice, not an incomplete form.
+    if (needsTeam && needsNewTeamField && !customTeam.trim()) e.customTeam = true;
     return e;
   };
 
@@ -84,7 +90,10 @@ export default function AddEmployeeModal({ onClose }) {
           teamId = team.id;
         }
         const title = role === 'intern' ? 'Intern' : role === 'employee' ? 'Developer' : customTitle.trim();
-        result = await addTeamMember({ name: name.trim(), email: email.trim(), title, teamId, ...(password ? { password } : {}) });
+        // departmentId always goes along for the ride now, not just when a
+        // team supplies it — the backend needs it directly for a team-less
+        // hire, since there's no team left to derive it from.
+        result = await addTeamMember({ name: name.trim(), email: email.trim(), title, teamId: teamId || undefined, departmentId, ...(password ? { password } : {}) });
       }
       setCreated(result);
     } catch {
@@ -160,15 +169,14 @@ export default function AddEmployeeModal({ onClose }) {
         {errors.customTitle && <ErrorText>Describe the role.</ErrorText>}
 
         {needsTeam && !needsNewTeamField && (
-          <Field label="Team" required>
+          <Field label="Team (optional)">
             <Select
               value={teamSelection}
               onChange={setTeamSelection}
-              options={[{ value: '', label: 'Select a team' }, ...teamsForDept.map((t) => ({ value: t.id, label: t.name })), { value: NEW_TEAM, label: '+ New team' }]}
+              options={[{ value: '', label: 'No team' }, ...teamsForDept.map((t) => ({ value: t.id, label: t.name })), { value: NEW_TEAM, label: '+ New team' }]}
             />
           </Field>
         )}
-        {errors.teamSelection && <ErrorText>Select a team.</ErrorText>}
         {needsNewTeamField && (
           <Field label="New team name" required>
             <TextInput value={customTeam} onChange={setCustomTeam} placeholder="e.g. Operations Team" />

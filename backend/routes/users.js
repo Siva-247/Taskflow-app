@@ -143,31 +143,49 @@ router.post('/', requireRole('team_lead', 'assistant_manager', 'manager', 'admin
   const title = TITLE_OPTIONS.includes(req.body.title) ? req.body.title : (req.body.title || '').trim();
   if (!title) return res.status(400).json({ error: 'Title is required' });
 
-  let teamId;
+  // Team is optional for an admin/super_admin/manager placing someone —
+  // e.g. a fresh hire who isn't slotted into a team yet. A team_lead/
+  // assistant_manager has no such choice, same as before: their own team,
+  // always. Department is still always required — unlike team_id it's what
+  // actually scopes this person to a manager at all (hierarchy.canManage's
+  // manager branch is department-scoped, not team-scoped) — so a team-less
+  // employee still needs a home department to be manageable/visible there.
+  let teamId = null;
+  let team = null;
   if (['team_lead', 'assistant_manager'].includes(req.user.role)) {
     teamId = req.user.team_id;
-  } else {
+    team = await prepare('SELECT * FROM teams WHERE id = ?').get(teamId);
+    if (!team) return res.status(404).json({ error: 'Team not found' });
+  } else if (req.body.teamId) {
     teamId = req.body.teamId;
-    if (!teamId) return res.status(400).json({ error: 'teamId is required' });
+    team = await prepare('SELECT * FROM teams WHERE id = ?').get(teamId);
+    if (!team) return res.status(404).json({ error: 'Team not found' });
+    // A manager can staff any team in their own department directly (not
+    // just via that team's lead) — same reach hierarchy.canManage already
+    // grants them for editing. Never another department's team.
+    if (req.user.role === 'manager' && team.department_id !== req.user.department_id) {
+      return res.status(403).json({ error: 'You can only add members to a team in your own department' });
+    }
   }
 
-  const team = await prepare('SELECT * FROM teams WHERE id = ?').get(teamId);
-  if (!team) return res.status(404).json({ error: 'Team not found' });
-  // A manager can staff any team in their own department directly (not just
-  // via that team's lead) — same reach hierarchy.canManage already grants
-  // them for editing. Never another department's team.
-  if (req.user.role === 'manager' && team.department_id !== req.user.department_id) {
-    return res.status(403).json({ error: 'You can only add members to a team in your own department' });
+  const departmentId = team ? team.department_id : (req.body.departmentId || (req.user.role === 'manager' ? req.user.department_id : null));
+  if (!departmentId) return res.status(400).json({ error: 'departmentId is required' });
+  if (!team) {
+    const department = await prepare('SELECT * FROM departments WHERE id = ?').get(departmentId);
+    if (!department) return res.status(404).json({ error: 'Department not found' });
+    if (req.user.role === 'manager' && departmentId !== req.user.department_id) {
+      return res.status(403).json({ error: 'You can only add members to your own department' });
+    }
   }
 
   const id = await uniqueUserId(name);
   await prepare(`INSERT INTO users (id, name, role, team_id, department_id, title, initial, email, password_hash, must_change_password)
     VALUES (@id, @name, 'employee', @teamId, @departmentId, @title, @initial, @email, @passwordHash, 1)`).run({
-    id, name, teamId: team.id, departmentId: team.department_id, title, initial: initialsOf(name), email, passwordHash,
+    id, name, teamId, departmentId, title, initial: initialsOf(name), email, passwordHash,
   });
 
-  await insertGlobalActivity('joined', `${await userName(req.user.id)} added ${name} to ${team.name}`, team.id);
-  await insertNotification(id, req.user.id, 'joined', `You've been added to ${team.name} by ${await userName(req.user.id)}`, null);
+  await insertGlobalActivity('joined', `${await userName(req.user.id)} added ${name}${team ? ` to ${team.name}` : ''}`, teamId);
+  await insertNotification(id, req.user.id, 'joined', `You've been added${team ? ` to ${team.name}` : ''} by ${await userName(req.user.id)}`, null);
 
   const user = await prepare(`${SELECT_USER} WHERE id = ?`).get(id);
   res.status(201).json({ user, tempPassword });
