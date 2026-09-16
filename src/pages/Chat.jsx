@@ -4,7 +4,7 @@ import { useChat } from '../context/ChatContext.jsx';
 import { ROLES } from '../data/mockData.js';
 import { Avatar, Button, Modal, Field, TextInput, Select } from '../components/ui.jsx';
 import {
-  IconPlusCircle, IconSend, IconImage, IconSearch, IconMic, IconStopCircle, IconTrash, IconEdit, IconCheck, IconX,
+  IconPlusCircle, IconPlus, IconSend, IconImage, IconSearch, IconMic, IconStopCircle, IconTrash, IconEdit, IconCheck, IconX,
   IconSmile, IconReply, IconDotsVertical, IconCheckDouble, IconArrowRight,
 } from '../components/icons.jsx';
 
@@ -463,8 +463,8 @@ export default function Chat() {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
             <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 700, fontSize: 18, color: 'var(--heading)' }}>Chats</div>
             <div style={{ display: 'flex', gap: 8 }}>
-              <button type="button" onClick={() => setShowCompose(true)} title="New chat" style={iconBtnStyle}>
-                <IconPlusCircle size={17} color="var(--accent-dark)" />
+              <button type="button" onClick={() => setShowCompose(true)} title="New chat" className="btn-3d btn-3d-primary" style={composeBtnStyle}>
+                <IconPlus size={19} color="#FFFFFF" />
               </button>
             </div>
           </div>
@@ -504,7 +504,7 @@ export default function Chat() {
                 }}
               >
                 <div style={{ position: 'relative', flexShrink: 0 }}>
-                  <Avatar initial={conversationAvatarInitial(c)} size={44} gradient={c.type === 'group'} />
+                  <Avatar initial={conversationAvatarInitial(c)} size={44} gradient={c.type === 'group'} group={c.type === 'group'} />
                   {c.type === 'dm' && (
                     <span style={{
                       position: 'absolute', bottom: -1, right: -1, width: 11, height: 11, borderRadius: 999,
@@ -564,7 +564,7 @@ export default function Chat() {
                 style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: active.type === 'group' ? 'pointer' : 'default', flex: 1, minWidth: 0 }}
               >
                 <div style={{ position: 'relative', flexShrink: 0 }}>
-                  <Avatar initial={conversationAvatarInitial(active)} size={38} gradient={active.type === 'group'} />
+                  <Avatar initial={conversationAvatarInitial(active)} size={38} gradient={active.type === 'group'} group={active.type === 'group'} />
                   {active.type === 'dm' && onlineUserIds.has(otherMemberOf(active)?.id) && (
                     <span style={{ position: 'absolute', bottom: -1, right: -1, width: 10, height: 10, borderRadius: 999, background: '#22C55E', border: '2px solid #FFFFFF' }} />
                   )}
@@ -1020,6 +1020,13 @@ const iconBtnStyle = {
   border: '1px solid var(--border)', background: '#FFFFFF', cursor: 'pointer', flexShrink: 0, transition: 'background 0.15s ease, box-shadow 0.15s ease',
 };
 
+// The one "New chat" trigger — a solid purple-gradient circle rather than
+// the plain outlined icon buttons around it, so it reads as the page's
+// single primary action the way it does everywhere else in the app.
+const composeBtnStyle = {
+  display: 'flex', alignItems: 'center', justifyContent: 'center', width: 36, height: 36, borderRadius: 999, border: 0, cursor: 'pointer', flexShrink: 0,
+};
+
 const hoverToolBtnStyle = {
   display: 'flex', alignItems: 'center', justifyContent: 'center', width: 26, height: 26, borderRadius: 999,
   border: '1px solid var(--border)', background: '#FFFFFF', cursor: 'pointer', flexShrink: 0, color: 'var(--text-secondary)',
@@ -1070,10 +1077,15 @@ function NewGroupModal({ onClose, onCreate }) {
   const { currentUser } = useApp();
   const { directoryUsers } = useChat();
   const [name, setName] = useState('');
+  const [memberSearch, setMemberSearch] = useState('');
   const [selected, setSelected] = useState(new Set());
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
-  const candidates = useMemo(() => pickableMembers(currentUser, directoryUsers), [currentUser, directoryUsers]);
+  const allCandidates = useMemo(() => pickableMembers(currentUser, directoryUsers), [currentUser, directoryUsers]);
+  const candidates = useMemo(() => {
+    const q = memberSearch.trim().toLowerCase();
+    return q ? allCandidates.filter((u) => u.name.toLowerCase().includes(q)) : allCandidates;
+  }, [allCandidates, memberSearch]);
 
   const toggle = (id) => setSelected((prev) => {
     const next = new Set(prev);
@@ -1101,9 +1113,13 @@ function NewGroupModal({ onClose, onCreate }) {
           <TextInput value={name} onChange={setName} placeholder="e.g. Sprint Planning" />
         </Field>
         <Field label={`Add members (${selected.size} selected)`}>
-          <div style={{ maxHeight: 220, overflowY: 'auto', border: '1px solid var(--border)', borderRadius: 9 }}>
-            {candidates.length === 0 && (
+          <TextInput value={memberSearch} onChange={setMemberSearch} placeholder="Search people…" />
+          <div style={{ maxHeight: 220, overflowY: 'auto', border: '1px solid var(--border)', borderRadius: 9, marginTop: 8 }}>
+            {allCandidates.length === 0 && (
               <div style={{ padding: 14, fontFamily: "'Outfit',system-ui,sans-serif", fontSize: 12.5, color: 'var(--text-muted)' }}>Nobody available to add.</div>
+            )}
+            {allCandidates.length > 0 && candidates.length === 0 && (
+              <div style={{ padding: 14, fontFamily: "'Outfit',system-ui,sans-serif", fontSize: 12.5, color: 'var(--text-muted)' }}>No one matches "{memberSearch}".</div>
             )}
             {candidates.map((u) => (
               <label key={u.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', cursor: 'pointer', borderBottom: '1px solid var(--border)' }}>

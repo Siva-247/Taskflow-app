@@ -2,9 +2,12 @@ import React from 'react';
 import { createPortal } from 'react-dom';
 import { STATUS, PRIORITY } from '../data/mockData.js';
 import { downloadCsv } from '../utils.js';
-import { IconDownload } from './icons.jsx';
+import { IconDownload, IconUsersGroup } from './icons.jsx';
 
-export function Avatar({ initial, size = 32, gradient = false }) {
+// `group=true` swaps the initials for a generic two-person glyph — a chat
+// group's default "profile picture", so a new group reads as a group at a
+// glance instead of showing an arbitrary 2-letter abbreviation of its name.
+export function Avatar({ initial, size = 32, gradient = false, group = false }) {
   return (
     <div style={{
       width: size, height: size, borderRadius: 999, flexShrink: 0,
@@ -12,7 +15,7 @@ export function Avatar({ initial, size = 32, gradient = false }) {
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: Math.round(size * 0.4), color: '#FFFFFF',
     }}>
-      {initial}
+      {group ? <IconUsersGroup size={Math.round(size * 0.55)} color="#FFFFFF" /> : initial}
     </div>
   );
 }
