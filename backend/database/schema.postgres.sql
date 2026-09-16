@@ -305,6 +305,12 @@ ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS audio_url TEXT;
 ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS edited_at TEXT;
 ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS deleted_at TEXT;
 ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS reply_to_id TEXT REFERENCES chat_messages(id) ON DELETE SET NULL;
+-- Set when someone leaves a group (never for a DM): their chat_members row
+-- stays in place — so the conversation and its history keep showing in
+-- their own chat list — but they stop counting as an active member for
+-- everyone else, and lose the ability to send/react/be sent new messages,
+-- until they separately delete the chat.
+ALTER TABLE chat_members ADD COLUMN IF NOT EXISTS left_at TEXT;
 
 -- One reaction per person per message — picking a new emoji replaces the
 -- old one (upsert on conflict), matching how a single-reaction-per-person

@@ -329,6 +329,19 @@ export function ChatProvider({ children }) {
     }
   }, [token, showToast]);
 
+  // "Delete chat" — clears the conversation from just this person's own
+  // list (the server refuses this for a group they haven't left yet). The
+  // other side of a DM, or a group's remaining members, keep it untouched.
+  const deleteConversation = useCallback(async (conversationId) => {
+    try {
+      await chatRequest(`/conversations/${conversationId}`, { method: 'DELETE' }, token);
+      setConversations((prev) => prev.filter((c) => c.id !== conversationId));
+    } catch (err) {
+      showToast(err.message || 'Could not delete this chat');
+      throw err;
+    }
+  }, [token, showToast]);
+
   const markRead = useCallback((conversationId) => {
     chatRequest(`/conversations/${conversationId}/read`, { method: 'POST' }, token)
       .then(() => setConversations((prev) => prev.map((c) => (c.id === conversationId ? { ...c, lastReadAt: new Date().toISOString(), unreadCount: 0 } : c))))
@@ -343,7 +356,7 @@ export function ChatProvider({ children }) {
     conversations, activeConversationId, setActiveConversationId, directoryUsers,
     messagesByConversation, typingByConversation, connected, onlineUserIds,
     loadMessages, sendMessage, editMessage, deleteMessage, uploadImage, uploadAudio, toggleReaction,
-    createGroup, startDM, addMember, removeMember, markRead, setTyping,
+    createGroup, startDM, addMember, removeMember, deleteConversation, markRead, setTyping,
     notificationPermission, requestNotificationPermission,
   };
 

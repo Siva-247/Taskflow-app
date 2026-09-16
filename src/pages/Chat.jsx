@@ -129,7 +129,7 @@ export default function Chat() {
   const {
     conversations, activeConversationId, setActiveConversationId, messagesByConversation, typingByConversation,
     connected, onlineUserIds, directoryUsers, loadMessages, sendMessage, editMessage, deleteMessage, uploadImage, uploadAudio,
-    toggleReaction, createGroup, startDM, addMember, removeMember, markRead, setTyping,
+    toggleReaction, createGroup, startDM, addMember, removeMember, deleteConversation, markRead, setTyping,
   } = useChat();
 
   const [draft, setDraft] = useState('');
@@ -151,6 +151,9 @@ export default function Chat() {
   const [threadSearchOpen, setThreadSearchOpen] = useState(false);
   const [threadSearchQuery, setThreadSearchQuery] = useState('');
   const [highlightedMessageId, setHighlightedMessageId] = useState(null);
+  // Which conversation's long-press/right-click context menu (Leave group /
+  // Delete chat) is currently open, in the left-hand chat list.
+  const [chatMenuFor, setChatMenuFor] = useState(null);
   const typingTimeoutRef = useRef(null);
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -162,6 +165,9 @@ export default function Chat() {
   const messageNodesRef = useRef(new Map());
   const dividerBaselineRef = useRef({});
   const highlightTimeoutRef = useRef(null);
+  const chatMenuRef = useRef(null);
+  const longPressTimerRef = useRef(null);
+  const longPressFiredRef = useRef(false);
 
   // activeConversationId lives in ChatContext (outside this page) so a
   // notification click-through can set it before Chat has even mounted —
@@ -243,7 +249,29 @@ export default function Chat() {
     window.clearInterval(recordingTimerRef.current);
     recordingStreamRef.current?.getTracks().forEach((t) => t.stop());
     window.clearTimeout(highlightTimeoutRef.current);
+    window.clearTimeout(longPressTimerRef.current);
   }, []);
+
+  useEffect(() => {
+    if (!chatMenuFor) return undefined;
+    const close = (e) => { if (chatMenuRef.current && !chatMenuRef.current.contains(e.target)) setChatMenuFor(null); };
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, [chatMenuFor]);
+
+  // Long-press (touch) or right-click (desktop) a chat-list row to open its
+  // Leave/Delete menu — `longPressFiredRef` suppresses the row's own onClick
+  // (which would otherwise also fire and switch to that conversation) right
+  // after a long-press opens the menu.
+  const startLongPress = (conversationId) => {
+    longPressFiredRef.current = false;
+    window.clearTimeout(longPressTimerRef.current);
+    longPressTimerRef.current = window.setTimeout(() => {
+      longPressFiredRef.current = true;
+      setChatMenuFor(conversationId);
+    }, 500);
+  };
+  const cancelLongPress = () => window.clearTimeout(longPressTimerRef.current);
 
   // Grows the composer with a multi-line draft (Shift+Enter adds a line)
   // and shrinks it back down once text is removed, capped so a long paste
@@ -263,6 +291,13 @@ export default function Chat() {
   };
   const otherMemberOf = (c) => (c.type === 'dm' ? c.members.find((m) => m.id !== currentUser.id) : null);
   const isUnread = (c) => (c.unreadCount || 0) > 0;
+  // Someone who's left a group keeps seeing its thread in their own chat
+  // list (server-side, their chat_members row stays put) but drops out of
+  // its live `members` array — that's also the only client-visible signal
+  // that they've left, so it doubles as both "hide the composer" and
+  // "delete is now allowed" for that one conversation.
+  const isActiveGroupMember = (c) => c.type === 'group' && c.members.some((m) => m.id === currentUser.id);
+  const hasLeftGroup = (c) => c.type === 'group' && !isActiveGroupMember(c);
 
   const scrollToMessage = (id) => {
     const node = messageNodesRef.current.get(id);
@@ -439,6 +474,28 @@ export default function Chat() {
     }
   };
 
+  // Leaving keeps the thread sitting in the chat list (view-only, past
+  // messages intact) until it's separately deleted — see handleDeleteChat.
+  const handleLeaveGroup = async (c) => {
+    setChatMenuFor(null);
+    try {
+      await removeMember(c.id, currentUser.id);
+      if (activeConversationId === c.id) setActiveConversationId(null);
+    } catch {
+      // ChatContext already surfaced a toast for this.
+    }
+  };
+
+  const handleDeleteChat = async (c) => {
+    setChatMenuFor(null);
+    try {
+      await deleteConversation(c.id);
+      if (activeConversationId === c.id) setActiveConversationId(null);
+    } catch {
+      // ChatContext already surfaced a toast for this.
+    }
+  };
+
   const handleReact = async (m, emoji) => {
     setReactionPickerId(null);
     try {
@@ -491,13 +548,21 @@ export default function Chat() {
             const other = otherMemberOf(c);
             const online = other && onlineUserIds.has(other.id);
             const unread = isUnread(c);
+            const left = hasLeftGroup(c);
             return (
               <div
                 key={c.id}
-                onClick={() => setActiveConversationId(c.id)}
+                onClick={() => {
+                  if (longPressFiredRef.current) { longPressFiredRef.current = false; return; }
+                  setActiveConversationId(c.id);
+                }}
+                onContextMenu={(e) => { e.preventDefault(); setChatMenuFor(c.id); }}
+                onTouchStart={() => startLongPress(c.id)}
+                onTouchEnd={cancelLongPress}
+                onTouchMove={cancelLongPress}
                 className="chat-row"
                 style={{
-                  display: 'flex', alignItems: 'center', gap: 11, padding: '11px 18px', cursor: 'pointer',
+                  position: 'relative', display: 'flex', alignItems: 'center', gap: 11, padding: '11px 18px', cursor: 'pointer',
                   background: c.id === activeConversationId ? 'var(--accent-soft)' : 'transparent',
                   borderLeft: c.id === activeConversationId ? '3px solid var(--accent)' : '3px solid transparent',
                   transition: 'background 0.15s ease',
@@ -520,10 +585,14 @@ export default function Chat() {
                     {c.lastMessageAt && <span style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: unread ? 700 : 500, fontSize: 11, color: unread ? 'var(--accent-dark)' : 'var(--text-muted)', flexShrink: 0 }}>{formatMessageTime(c.lastMessageAt)}</span>}
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 3 }}>
-                    <span style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: unread ? 700 : 500, fontSize: 12.5, color: unread ? 'var(--text-primary)' : 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {c.type === 'group' && c.lastMessageSenderId && !c.lastMessageDeletedAt && `${c.lastMessageSenderId === currentUser.id ? 'You' : directoryUsers.find((u) => u.id === c.lastMessageSenderId)?.name?.split(' ')[0] || ''}: `}
-                      {c.lastMessageDeletedAt ? 'This message was deleted'
-                        : c.lastMessageText || (c.lastMessageImage ? '📷 Photo' : c.lastMessageAudio ? '🎤 Voice message' : 'No messages yet')}
+                    <span style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: left ? 500 : (unread ? 700 : 500), fontStyle: left ? 'italic' : 'normal', fontSize: 12.5, color: left ? 'var(--text-muted)' : (unread ? 'var(--text-primary)' : 'var(--text-muted)'), overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {left ? 'You left this group' : (
+                        <>
+                          {c.type === 'group' && c.lastMessageSenderId && !c.lastMessageDeletedAt && `${c.lastMessageSenderId === currentUser.id ? 'You' : directoryUsers.find((u) => u.id === c.lastMessageSenderId)?.name?.split(' ')[0] || ''}: `}
+                          {c.lastMessageDeletedAt ? 'This message was deleted'
+                            : c.lastMessageText || (c.lastMessageImage ? '📷 Photo' : c.lastMessageAudio ? '🎤 Voice message' : 'No messages yet')}
+                        </>
+                      )}
                     </span>
                     {unread && (
                       <span style={{
@@ -536,6 +605,20 @@ export default function Chat() {
                     )}
                   </div>
                 </div>
+
+                {chatMenuFor === c.id && (
+                  <div ref={chatMenuRef} onClick={(e) => e.stopPropagation()} style={{ ...dropdownStyle, top: 12, right: 12 }}>
+                    {isActiveGroupMember(c) ? (
+                      <div style={{ ...menuItemStyle, color: 'var(--amber-text)' }} onClick={() => handleLeaveGroup(c)}>
+                        Leave group
+                      </div>
+                    ) : (
+                      <div style={{ ...menuItemStyle, color: 'var(--amber-text)' }} onClick={() => handleDeleteChat(c)}>
+                        Delete chat
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             );
           })}
@@ -595,12 +678,21 @@ export default function Chat() {
                     {threadMenuOpen && (
                       <div style={dropdownStyle}>
                         <div style={menuItemStyle} onClick={() => { setThreadMenuOpen(false); setShowGroupInfo(true); }}>Group info</div>
-                        <div
-                          style={{ ...menuItemStyle, color: 'var(--amber-text)' }}
-                          onClick={() => { setThreadMenuOpen(false); removeMember(active.id, currentUser.id); setActiveConversationId(null); }}
-                        >
-                          Leave group
-                        </div>
+                        {isActiveGroupMember(active) ? (
+                          <div
+                            style={{ ...menuItemStyle, color: 'var(--amber-text)' }}
+                            onClick={() => { setThreadMenuOpen(false); handleLeaveGroup(active); }}
+                          >
+                            Leave group
+                          </div>
+                        ) : (
+                          <div
+                            style={{ ...menuItemStyle, color: 'var(--amber-text)' }}
+                            onClick={() => { setThreadMenuOpen(false); handleDeleteChat(active); }}
+                          >
+                            Delete chat
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -849,6 +941,12 @@ export default function Chat() {
               <div ref={messagesEndRef} />
             </div>
 
+            {hasLeftGroup(active) ? (
+              <div style={{ padding: '14px 18px', borderTop: '1px solid var(--border)', textAlign: 'center', fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 12.5, color: 'var(--text-muted)' }}>
+                You left this group — you can still view past messages, but not send new ones.
+              </div>
+            ) : (
+              <>
             {replyingTo && (
               <div style={{ padding: '9px 18px', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 10, background: 'var(--field-bg)' }}>
                 <div style={{ width: 3, alignSelf: 'stretch', background: 'var(--accent)', borderRadius: 2 }} />
@@ -937,6 +1035,8 @@ export default function Chat() {
                 </>
               )}
             </div>
+              </>
+            )}
           </>
         )}
       </div>

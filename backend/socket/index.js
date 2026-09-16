@@ -7,12 +7,19 @@ import { reactionsForMessages } from '../database/helpers.js';
 const EDIT_WINDOW_MS = 15 * 60 * 1000;
 const DELETE_WINDOW_MS = 2 * 60 * 60 * 1000;
 
-async function isMember(conversationId, userId) {
-  return !!(await prepare('SELECT 1 FROM chat_members WHERE conversation_id = ? AND user_id = ?').get(conversationId, userId));
+// Membership minus anyone who's left their group (a DM member is always
+// "active" — left_at is never set on one) — gates actually participating
+// (sending, reacting) as opposed to just viewing history you're still
+// entitled to see.
+async function isActiveMember(conversationId, userId) {
+  return !!(await prepare('SELECT 1 FROM chat_members WHERE conversation_id = ? AND user_id = ? AND left_at IS NULL').get(conversationId, userId));
 }
 
+// Only active memberships join a socket room on connect — someone who left
+// a group shouldn't keep receiving its live messages just because their
+// chat_members row (and the history it unlocks) still exists.
 async function conversationIdsOf(userId) {
-  const rows = await prepare('SELECT conversation_id FROM chat_members WHERE user_id = ?').all(userId);
+  const rows = await prepare('SELECT conversation_id FROM chat_members WHERE user_id = ? AND left_at IS NULL').all(userId);
   return rows.map((r) => r.conversation_id);
 }
 
@@ -52,6 +59,18 @@ export function joinRoom(userId, conversationId) {
   if (!sockets) return;
   for (const socketId of sockets) {
     io.sockets.sockets.get(socketId)?.join(conversationId);
+  }
+}
+
+// Symmetric with joinRoom above — called by the REST routes when someone
+// leaves a group or is removed from one, so their already-connected
+// socket(s) stop receiving that room's live messages immediately instead of
+// only after their next reconnect.
+export function leaveRoom(userId, conversationId) {
+  const sockets = socketsByUser.get(userId);
+  if (!sockets) return;
+  for (const socketId of sockets) {
+    io.sockets.sockets.get(socketId)?.leave(conversationId);
   }
 }
 
@@ -101,7 +120,7 @@ export function attachSocket(httpServer) {
         if (!conversationId || (!text?.trim() && !imageUrl && !audioUrl)) {
           return ack?.({ error: 'A message needs text, an image, or a voice clip' });
         }
-        if (!(await isMember(conversationId, userId))) {
+        if (!(await isActiveMember(conversationId, userId))) {
           return ack?.({ error: 'You are not a member of this conversation' });
         }
         // A reply must point at a real message in this same conversation —
@@ -135,7 +154,7 @@ export function attachSocket(httpServer) {
         if (!messageId || !emoji) return ack?.({ error: 'messageId and emoji are required' });
         const existing = await prepare('SELECT * FROM chat_messages WHERE id = ?').get(messageId);
         if (!existing) return ack?.({ error: 'Message not found' });
-        if (!(await isMember(existing.conversation_id, userId))) return ack?.({ error: 'You are not a member of this conversation' });
+        if (!(await isActiveMember(existing.conversation_id, userId))) return ack?.({ error: 'You are not a member of this conversation' });
 
         const mine = await prepare('SELECT id, emoji FROM chat_reactions WHERE message_id = ? AND user_id = ?').get(messageId, userId);
         if (mine && mine.emoji === emoji) {

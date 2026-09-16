@@ -4,7 +4,7 @@ import { prepare } from '../database/db.js';
 import { requireAuth } from '../middleware/auth.js';
 import { asyncRoute } from '../middleware/asyncRoute.js';
 import { uploadChatFile, isStorageConfigured } from '../storage/supabase.js';
-import { notifyUser, joinRoom, getIo } from '../socket/index.js';
+import { notifyUser, joinRoom, leaveRoom, getIo } from '../socket/index.js';
 import { reactionsForMessages } from '../database/helpers.js';
 
 const router = Router();
@@ -16,12 +16,21 @@ async function isMember(conversationId, userId) {
   return !!(await prepare('SELECT 1 FROM chat_members WHERE conversation_id = ? AND user_id = ?').get(conversationId, userId));
 }
 
+// Membership minus anyone who's left their group — gates actually
+// participating (adding members, uploading a file to send), as opposed to
+// just being a member of record who can still view history.
+async function isActiveMember(conversationId, userId) {
+  return !!(await prepare('SELECT 1 FROM chat_members WHERE conversation_id = ? AND user_id = ? AND left_at IS NULL').get(conversationId, userId));
+}
+
 // last_read_at is included on every member row (not just the requester's
 // own) so the client can compute WhatsApp-style read receipts: a message I
 // sent counts as "read" once every other member's last_read_at is at or
-// past its created_at.
+// past its created_at. Excludes anyone who's left the group — they keep
+// their own chat_members row (so the thread still shows in their own list)
+// but stop counting as a member everyone else sees.
 async function memberRows(conversationId) {
-  return prepare(`SELECT u.id, u.name, u.initial, cm.last_read_at as "lastReadAt" FROM chat_members cm JOIN users u ON u.id = cm.user_id WHERE cm.conversation_id = ?`).all(conversationId);
+  return prepare(`SELECT u.id, u.name, u.initial, cm.last_read_at as "lastReadAt" FROM chat_members cm JOIN users u ON u.id = cm.user_id WHERE cm.conversation_id = ? AND cm.left_at IS NULL`).all(conversationId);
 }
 
 // Who a person may add to a group they're creating — admin/super_admin
@@ -175,7 +184,7 @@ router.post('/conversations/:id/members', asyncRoute(async (req, res) => {
   const conversation = await prepare('SELECT * FROM chat_conversations WHERE id = ?').get(req.params.id);
   if (!conversation) return res.status(404).json({ error: 'Conversation not found' });
   if (conversation.type !== 'group') return res.status(400).json({ error: 'Only groups can have members added' });
-  if (!(await isMember(req.params.id, req.user.id))) return res.status(403).json({ error: 'You are not a member of this group' });
+  if (!(await isActiveMember(req.params.id, req.user.id))) return res.status(403).json({ error: 'You are not a member of this group' });
   if (!['admin', 'super_admin', 'manager', 'assistant_manager', 'team_lead'].includes(req.user.role)) {
     return res.status(403).json({ error: 'Only an admin, manager, or team lead can add members' });
   }
@@ -184,10 +193,18 @@ router.post('/conversations/:id/members', asyncRoute(async (req, res) => {
   const target = await prepare('SELECT id, role, team_id, department_id FROM users WHERE id = ?').get(memberId);
   if (!target) return res.status(404).json({ error: 'User not found' });
   if (!canAddToGroup(req.user, target)) return res.status(403).json({ error: 'You can only add people from your own team/department' });
-  if (await isMember(req.params.id, memberId)) return res.status(409).json({ error: 'Already a member' });
+  if (await isActiveMember(req.params.id, memberId)) return res.status(409).json({ error: 'Already a member' });
 
-  await prepare('INSERT INTO chat_members (id, conversation_id, user_id, joined_at) VALUES (?, ?, ?, ?)')
-    .run(`cm-${randomUUID()}`, req.params.id, memberId, new Date().toISOString());
+  // A former member's row (left_at set) still exists rather than having
+  // been deleted — re-add them by clearing left_at instead of inserting a
+  // second row, which the (conversation_id, user_id) unique index would
+  // reject anyway.
+  const rejoined = await prepare('UPDATE chat_members SET left_at = NULL, joined_at = ? WHERE conversation_id = ? AND user_id = ?')
+    .run(new Date().toISOString(), req.params.id, memberId);
+  if (!rejoined.changes) {
+    await prepare('INSERT INTO chat_members (id, conversation_id, user_id, joined_at) VALUES (?, ?, ?, ?)')
+      .run(`cm-${randomUUID()}`, req.params.id, memberId, new Date().toISOString());
+  }
   const members = await memberRows(req.params.id);
   notifyUser(memberId, 'conversation:new', {
     id: conversation.id, type: conversation.type, name: conversation.name,
@@ -212,7 +229,33 @@ router.delete('/conversations/:id/members/:userId', asyncRoute(async (req, res) 
       return res.status(403).json({ error: 'You can only remove people from your own team/department' });
     }
   }
-  await prepare('DELETE FROM chat_members WHERE conversation_id = ? AND user_id = ?').run(req.params.id, req.params.userId);
+  // Leaving/being removed marks the row rather than deleting it — that
+  // keeps the thread (and its history) sitting in the departed member's own
+  // chat list, exactly like WhatsApp, until they separately delete it; see
+  // DELETE /conversations/:id below, which is the only thing that ever
+  // actually removes this row.
+  await prepare('UPDATE chat_members SET left_at = ? WHERE conversation_id = ? AND user_id = ?')
+    .run(new Date().toISOString(), req.params.id, req.params.userId);
+  leaveRoom(req.params.userId, req.params.id);
+  res.json({ ok: true });
+}));
+
+// "Delete chat" — removes the conversation from just the requester's own
+// list, without touching it for anyone else (a DM's other side, or a
+// group's remaining members, keep the conversation and its full history
+// untouched). A group can only be deleted after leaving it first (the
+// UPDATE above sets left_at) — deleting while still an active member would
+// let someone silently vanish from a group's roster without ever using the
+// real "leave" flow.
+router.delete('/conversations/:id', asyncRoute(async (req, res) => {
+  const membership = await prepare('SELECT * FROM chat_members WHERE conversation_id = ? AND user_id = ?').get(req.params.id, req.user.id);
+  if (!membership) return res.status(404).json({ error: 'Conversation not found' });
+  const conversation = await prepare('SELECT type FROM chat_conversations WHERE id = ?').get(req.params.id);
+  if (conversation?.type === 'group' && !membership.left_at) {
+    return res.status(403).json({ error: 'Leave the group before deleting this chat' });
+  }
+  await prepare('DELETE FROM chat_members WHERE conversation_id = ? AND user_id = ?').run(req.params.id, req.user.id);
+  leaveRoom(req.user.id, req.params.id);
   res.json({ ok: true });
 }));
 
@@ -222,7 +265,7 @@ router.post('/upload', asyncRoute(async (req, res) => {
   if (!isStorageConfigured()) return res.status(503).json({ error: 'File sharing is not configured on this server' });
   const { conversationId, dataUri, kind } = req.body;
   if (!conversationId || !dataUri) return res.status(400).json({ error: 'conversationId and dataUri are required' });
-  if (!(await isMember(conversationId, req.user.id))) return res.status(403).json({ error: 'You are not a member of this conversation' });
+  if (!(await isActiveMember(conversationId, req.user.id))) return res.status(403).json({ error: 'You are not a member of this conversation' });
 
   const url = await uploadChatFile(dataUri, conversationId, kind === 'audio' ? 'audio' : 'image');
   res.json(kind === 'audio' ? { audioUrl: url } : { imageUrl: url });
