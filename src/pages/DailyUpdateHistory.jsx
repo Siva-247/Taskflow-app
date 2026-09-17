@@ -337,7 +337,7 @@ export default function DailyUpdateHistory() {
           <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 500, fontSize: 14, color: 'var(--text-secondary)', marginTop: 4 }}>{scopeLabel}</div>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
-          {currentUser.role === ROLES.EMPLOYEE && (
+          {[ROLES.EMPLOYEE, ROLES.TEAM_LEAD].includes(currentUser.role) && (
             <Button variant="secondary" onClick={() => setShowUpdateForm(true)}>Update today's entry</Button>
           )}
           {/* Visible to every role, unlike the button above — a blocker can
