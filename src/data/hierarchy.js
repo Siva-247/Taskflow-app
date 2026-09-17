@@ -26,10 +26,10 @@ export function canManage(actor, target) {
   if (target.role === ROLES.SUPER_ADMIN) return false;
   if (actor.role === ROLES.SUPER_ADMIN) return true;
   if (actor.role === ROLES.ADMIN) return target.role !== ROLES.ADMIN;
-  if (actor.role === ROLES.MANAGER) {
+  if (actor.role === ROLES.MANAGER || actor.role === ROLES.ASSISTANT_MANAGER) {
     return rankIndex(target.role) > rankIndex(actor.role) && target.departmentId === actor.departmentId;
   }
-  if (actor.role === ROLES.ASSISTANT_MANAGER || actor.role === ROLES.TEAM_LEAD) {
+  if (actor.role === ROLES.TEAM_LEAD) {
     return rankIndex(target.role) > rankIndex(actor.role) && target.teamId === actor.teamId;
   }
   return false;
@@ -43,8 +43,8 @@ export function canManage(actor, target) {
 // the backend keeps separate for its own endpoint-level gating).
 export function canAccessTeamScope(user, team) {
   if (user.role === ROLES.SUPER_ADMIN || user.role === ROLES.ADMIN) return true;
-  if (user.role === ROLES.MANAGER) return Boolean(team) && team.departmentId === user.departmentId;
-  if (user.role === ROLES.ASSISTANT_MANAGER || user.role === ROLES.TEAM_LEAD) return Boolean(team) && team.id === user.teamId;
+  if (user.role === ROLES.MANAGER || user.role === ROLES.ASSISTANT_MANAGER) return Boolean(team) && team.departmentId === user.departmentId;
+  if (user.role === ROLES.TEAM_LEAD) return Boolean(team) && team.id === user.teamId;
   return false;
 }
 
@@ -60,8 +60,8 @@ export function assignableTargets(actor, users) {
     if (u.id === actor.id) return false;
     if (u.role === ROLES.SUPER_ADMIN) return false;
     if (rankIndex(u.role) <= rankIndex(actor.role)) return false;
-    if (actor.role === ROLES.MANAGER) return u.departmentId === actor.departmentId;
-    if (actor.role === ROLES.ASSISTANT_MANAGER || actor.role === ROLES.TEAM_LEAD) return u.teamId === actor.teamId;
+    if (actor.role === ROLES.MANAGER || actor.role === ROLES.ASSISTANT_MANAGER) return u.departmentId === actor.departmentId;
+    if (actor.role === ROLES.TEAM_LEAD) return u.teamId === actor.teamId;
     if (actor.role === ROLES.ADMIN || actor.role === ROLES.SUPER_ADMIN) return true;
     return false;
   });

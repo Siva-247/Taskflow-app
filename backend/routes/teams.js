@@ -22,9 +22,10 @@ function slugify(name) {
 // (adding a team lead) already creates its own brand-new team bundled with
 // that person, so this exists for the cases that leaves uncovered: a
 // pre-staffed placeholder, or replacing an empty team removed elsewhere. A
-// manager may also create one, but only within their own department — same
-// reach as everywhere else they staff people (POST /users, PATCH /users/:id).
-router.post('/', requireRole('admin', 'super_admin', 'manager'), asyncRoute(async (req, res) => {
+// manager or assistant manager may also create one, but only within their
+// own department — same reach as everywhere else they staff people
+// (POST /users, PATCH /users/:id).
+router.post('/', requireRole('admin', 'super_admin', 'manager', 'assistant_manager'), asyncRoute(async (req, res) => {
   const name = (req.body.name || '').trim();
   const departmentId = req.body.departmentId;
   if (!name) return res.status(400).json({ error: 'Team name is required' });
@@ -32,7 +33,7 @@ router.post('/', requireRole('admin', 'super_admin', 'manager'), asyncRoute(asyn
   if (!(await prepare('SELECT 1 FROM departments WHERE id = ?').get(departmentId))) {
     return res.status(400).json({ error: 'Select a valid department' });
   }
-  if (req.user.role === 'manager' && departmentId !== req.user.department_id) {
+  if (['manager', 'assistant_manager'].includes(req.user.role) && departmentId !== req.user.department_id) {
     return res.status(403).json({ error: 'You can only create a team in your own department' });
   }
 

@@ -297,11 +297,11 @@ export function AppProvider({ children }) {
   const scopedTasks = useCallback((user) => {
     if (!user) return [];
     if (user.role === ROLES.SUPER_ADMIN || user.role === ROLES.ADMIN) return tasks;
-    if (user.role === ROLES.MANAGER) return tasks.filter((task) => {
+    if (user.role === ROLES.MANAGER || user.role === ROLES.ASSISTANT_MANAGER) return tasks.filter((task) => {
       const team = teams.find((t) => t.id === task.teamId);
       return team && team.departmentId === user.departmentId;
     });
-    if (user.role === ROLES.ASSISTANT_MANAGER || user.role === ROLES.TEAM_LEAD) return tasks.filter((task) => task.teamId === user.teamId);
+    if (user.role === ROLES.TEAM_LEAD) return tasks.filter((task) => task.teamId === user.teamId);
     if (user.role === ROLES.EMPLOYEE) return tasks.filter((task) => task.assigneeId === user.id);
     return [];
   }, [tasks, teams]);
@@ -312,8 +312,8 @@ export function AppProvider({ children }) {
     const authorTeam = (update) => users.find((u) => u.id === update.userId)?.teamId;
     const authorDept = (update) => users.find((u) => u.id === update.userId)?.departmentId;
     if (user.role === ROLES.SUPER_ADMIN || user.role === ROLES.ADMIN) return dailyUpdates;
-    if (user.role === ROLES.MANAGER) return dailyUpdates.filter((u) => authorDept(u) === user.departmentId);
-    if (user.role === ROLES.ASSISTANT_MANAGER || user.role === ROLES.TEAM_LEAD) return dailyUpdates.filter((u) => authorTeam(u) === user.teamId);
+    if (user.role === ROLES.MANAGER || user.role === ROLES.ASSISTANT_MANAGER) return dailyUpdates.filter((u) => authorDept(u) === user.departmentId);
+    if (user.role === ROLES.TEAM_LEAD) return dailyUpdates.filter((u) => authorTeam(u) === user.teamId);
     if (user.role === ROLES.EMPLOYEE) return dailyUpdates.filter((u) => u.userId === user.id);
     return [];
   }, [dailyUpdates, users]);
@@ -694,6 +694,40 @@ export function AppProvider({ children }) {
     }
   }, [call, showToast]);
 
+  // Placed onto an EXISTING team (`data.teamId`, one without an assistant
+  // manager yet) rather than getting a new one of their own the way a team
+  // lead does — the backend also hands back that team with its
+  // assistantManagerId now set, so it's reflected here immediately instead
+  // of waiting for the next full reload.
+  const addAssistantManager = useCallback(async (data) => {
+    try {
+      const result = await call('/users', { method: 'POST', body: JSON.stringify({ ...data, role: 'assistant_manager' }) });
+      setUsers((prev) => [...prev, result.user]);
+      if (result.team) setTeams((prev) => prev.map((t) => (t.id === result.team.id ? result.team : t)));
+      showToast(`${result.user.name} added as assistant manager`);
+      return result;
+    } catch (err) {
+      showToast(err.message || 'Could not add assistant manager');
+      throw err;
+    }
+  }, [call, showToast, setTeams]);
+
+  // Unlike an assistant manager, a team lead always gets a brand-new team of
+  // their own (`data.teamName`) — the backend creates it and hands it back
+  // alongside the new user, so it shows up here immediately too.
+  const addTeamLead = useCallback(async (data) => {
+    try {
+      const result = await call('/users', { method: 'POST', body: JSON.stringify({ ...data, role: 'team_lead' }) });
+      setUsers((prev) => [...prev, result.user]);
+      if (result.team) setTeams((prev) => [...prev, result.team]);
+      showToast(`${result.user.name} added as team lead`);
+      return result;
+    } catch (err) {
+      showToast(err.message || 'Could not add team lead');
+      throw err;
+    }
+  }, [call, showToast, setTeams]);
+
   // Admin-only: used by AddEmployeeModal's "Other" department option when
   // the chosen team doesn't exist yet either.
   const addTeam = useCallback(async (data) => {
@@ -875,7 +909,7 @@ export function AppProvider({ children }) {
     tasks, dailyUpdates, activity, notifications, blockers, blockerDirectory, blockerRegisterOpen, openBlockerRegister, closeBlockerRegister, memberStats,
     scopedTasks, scopedDailyUpdates, statsFor, bucketOf, myDrafts,
     createTask, updateTask, deleteTask, publishDraft, refreshTask, setTaskProgress, setTaskStatus, requestChanges, submitForReview, approveTask, approveTaskCreation, rejectTaskCreation, reassignTask, requestExtension, approveExtension, rejectExtension, setTaskMarks, toggleSubtask,
-    addComment, editComment, deleteComment, addDailyUpdate, editDailyUpdate, deleteDailyUpdate, reviewDailyUpdate, addBlocker, editBlocker, deleteBlocker, addTeamMember, addManager, addTeam, editTeam, deleteTeam, addDepartment, editDepartment, deleteDepartment, editUser, deleteUser, resetUserPassword, setUserActive,
+    addComment, editComment, deleteComment, addDailyUpdate, editDailyUpdate, deleteDailyUpdate, reviewDailyUpdate, addBlocker, editBlocker, deleteBlocker, addTeamMember, addManager, addAssistantManager, addTeamLead, addTeam, editTeam, deleteTeam, addDepartment, editDepartment, deleteDepartment, editUser, deleteUser, resetUserPassword, setUserActive,
     markNotificationRead, markAllNotificationsRead,
     toast, showToast,
   };

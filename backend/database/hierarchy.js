@@ -29,8 +29,8 @@ async function departmentIdOfTeam(teamId) {
 }
 
 // Broad, cascading "who may manage whom" — every rank manages everyone
-// strictly below it in the chain, scoped to their own team
-// (assistant_manager/team_lead) or department (manager), unrestricted for
+// strictly below it in the chain, scoped to their own department
+// (manager/assistant_manager) or team (team_lead), unrestricted for
 // admin/super_admin. This is the single source of truth for credential
 // edits and anywhere else "can actor manage target" needs an answer.
 export function canManage(actor, target) {
@@ -39,10 +39,10 @@ export function canManage(actor, target) {
   if (target.role === 'super_admin') return false;
   if (actor.role === 'super_admin') return true;
   if (actor.role === 'admin') return target.role !== 'admin';
-  if (actor.role === 'manager') {
+  if (actor.role === 'manager' || actor.role === 'assistant_manager') {
     return rankIndex(target.role) > rankIndex(actor.role) && target.department_id === actor.department_id;
   }
-  if (actor.role === 'assistant_manager' || actor.role === 'team_lead') {
+  if (actor.role === 'team_lead') {
     return rankIndex(target.role) > rankIndex(actor.role) && target.team_id === actor.team_id;
   }
   return false;
@@ -52,11 +52,11 @@ export function canManage(actor, target) {
 // canManage, applied to a task's team instead of a person.
 export async function canAccessTask(user, task) {
   if (user.role === 'super_admin' || user.role === 'admin') return true;
-  if (user.role === 'manager') {
+  if (user.role === 'manager' || user.role === 'assistant_manager') {
     const deptId = await departmentIdOfTeam(task.team_id);
     return Boolean(deptId && deptId === user.department_id);
   }
-  if (user.role === 'assistant_manager' || user.role === 'team_lead') return task.team_id === user.team_id;
+  if (user.role === 'team_lead') return task.team_id === user.team_id;
   if (user.role === 'employee') return task.assignee_id === user.id;
   return false;
 }
@@ -73,11 +73,10 @@ export async function canManageTask(actor, task) {
   if (task.status === STATUS.DRAFT) return isOwner;
   if (isOwner) return true;
   if (actor.role === 'super_admin' || actor.role === 'admin') return true;
-  if (actor.role === 'manager') {
+  if (actor.role === 'manager' || actor.role === 'assistant_manager') {
     const deptId = await departmentIdOfTeam(task.team_id);
     return Boolean(deptId && deptId === actor.department_id);
   }
-  if (actor.role === 'assistant_manager') return task.team_id === actor.team_id;
   return false;
 }
 
@@ -86,11 +85,11 @@ export async function canManageTask(actor, task) {
 // department; assistant_manager/team_lead if it's their own team.
 export async function canReviewTask(reviewer, task) {
   if (reviewer.role === 'super_admin' || reviewer.role === 'admin') return true;
-  if (reviewer.role === 'manager') {
+  if (reviewer.role === 'manager' || reviewer.role === 'assistant_manager') {
     const deptId = await departmentIdOfTeam(task.team_id);
     return Boolean(deptId && deptId === reviewer.department_id);
   }
-  if (reviewer.role === 'assistant_manager' || reviewer.role === 'team_lead') return task.team_id === reviewer.team_id;
+  if (reviewer.role === 'team_lead') return task.team_id === reviewer.team_id;
   return false;
 }
 
@@ -165,12 +164,12 @@ export async function resolveReviewer(teamId, submitterRank) {
 // UI chooses to render.
 export async function scopeTasks(user, allTasks) {
   if (user.role === 'super_admin' || user.role === 'admin') return allTasks;
-  if (user.role === 'manager') {
+  if (user.role === 'manager' || user.role === 'assistant_manager') {
     const teamRows = await prepare('SELECT id FROM teams WHERE department_id = ?').all(user.department_id);
     const teamIds = teamRows.map((t) => t.id);
     return allTasks.filter((t) => teamIds.includes(t.teamId));
   }
-  if (user.role === 'assistant_manager' || user.role === 'team_lead') return allTasks.filter((t) => t.teamId === user.team_id);
+  if (user.role === 'team_lead') return allTasks.filter((t) => t.teamId === user.team_id);
   if (user.role === 'employee') return allTasks.filter((t) => t.assigneeId === user.id);
   return [];
 }
@@ -199,8 +198,8 @@ export async function scopeDailyUpdates(user, allUpdates) {
   const rows = await prepare(`SELECT id, team_id, department_id FROM users WHERE id IN (${placeholders})`).all(...userIds);
   const infoById = new Map(rows.map((r) => [r.id, r]));
 
-  if (user.role === 'manager') return allUpdates.filter((u) => infoById.get(u.userId)?.department_id === user.department_id);
-  if (user.role === 'assistant_manager' || user.role === 'team_lead') return allUpdates.filter((u) => infoById.get(u.userId)?.team_id === user.team_id);
+  if (user.role === 'manager' || user.role === 'assistant_manager') return allUpdates.filter((u) => infoById.get(u.userId)?.department_id === user.department_id);
+  if (user.role === 'team_lead') return allUpdates.filter((u) => infoById.get(u.userId)?.team_id === user.team_id);
   return [];
 }
 
@@ -238,13 +237,13 @@ export async function validateAssignee(creator, assigneeId) {
   if (!(rankIndex(assignee.role) > rankIndex(creator.role))) {
     return { ok: false, error: 'You can only assign tasks to someone below you in the hierarchy' };
   }
-  if ((creator.role === 'assistant_manager' || creator.role === 'team_lead') && assignee.team_id !== creator.team_id) {
+  if (creator.role === 'team_lead' && assignee.team_id !== creator.team_id) {
     return { ok: false, error: 'You can only assign tasks to your own team' };
   }
-  if (creator.role === 'manager' && assignee.department_id !== creator.department_id) {
+  if ((creator.role === 'manager' || creator.role === 'assistant_manager') && assignee.department_id !== creator.department_id) {
     return { ok: false, error: 'You can only assign tasks within your department' };
   }
 
-  const teamId = (creator.role === 'assistant_manager' || creator.role === 'team_lead') ? creator.team_id : assignee.team_id;
+  const teamId = creator.role === 'team_lead' ? creator.team_id : assignee.team_id;
   return { ok: true, teamId };
 }

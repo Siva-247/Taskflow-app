@@ -45,7 +45,7 @@ export default function Reports() {
     [ROLES.SUPER_ADMIN]: 'Company-wide report',
     [ROLES.ADMIN]: 'Company-wide report',
     [ROLES.MANAGER]: `${myDepartment?.name || 'Department'} report`,
-    [ROLES.ASSISTANT_MANAGER]: 'Team report',
+    [ROLES.ASSISTANT_MANAGER]: `${myDepartment?.name || 'Department'} report`,
     [ROLES.TEAM_LEAD]: 'Team report',
   }[currentUser.role];
 

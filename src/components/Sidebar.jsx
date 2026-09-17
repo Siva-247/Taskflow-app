@@ -32,15 +32,18 @@ const NAV_BY_ROLE = {
     { label: 'Reports', icon: IconBarChart, to: '/reports' },
     { label: 'Settings', icon: IconGear, to: '/settings' },
   ],
+  // Department-scoped identically to Manager (see hierarchy.js) — same nav
+  // shape: Settings instead of My Team, "Approvals" instead of the merged
+  // "Approvals & Reviews" Team Lead still uses.
   [ROLES.ASSISTANT_MANAGER]: [
     { label: 'Dashboard', icon: IconGrid, to: '/assistant-manager' },
-    { label: 'My Team', icon: IconUsers, to: '/my-team' },
     { label: 'Tasks', icon: IconChecklist, to: '/tasks' },
-    { label: 'Approvals & Reviews', icon: IconEye, to: '/tasks?status=Approvals+%26+Reviews' },
+    { label: 'Approvals', icon: IconEye, to: '/tasks?status=Pending+Approval' },
     { label: 'Chat', icon: IconChat, to: '/chat' },
     { label: 'Daily Updates', icon: IconCalendar, to: '/daily-updates' },
     { label: 'Tactical Meeting', icon: IconTarget, to: '/tactical-meeting' },
     { label: 'Reports', icon: IconBarChart, to: '/reports' },
+    { label: 'Settings', icon: IconGear, to: '/settings' },
   ],
   [ROLES.TEAM_LEAD]: [
     { label: 'Dashboard', icon: IconGrid, to: '/team-lead' },

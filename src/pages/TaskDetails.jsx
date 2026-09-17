@@ -67,12 +67,11 @@ export default function TaskDetails() {
   const isAssignee = currentUser.id === task.assigneeId;
   // Editing authority is narrower than review authority — a Team Lead can
   // review/approve a task but never directly edit it, same distinction as
-  // before; Assistant Manager gets the same edit rights as Manager (one
-  // rung up from Team Lead), matching hierarchy.canManageTask on the backend.
+  // before; Assistant Manager is department-scoped identically to Manager,
+  // matching hierarchy.canManageTask on the backend.
   const canManageTask = currentUser.id === task.createdBy
     || currentUser.role === ROLES.SUPER_ADMIN || currentUser.role === ROLES.ADMIN
-    || (currentUser.role === ROLES.MANAGER && team?.departmentId === currentUser.departmentId)
-    || (currentUser.role === ROLES.ASSISTANT_MANAGER && team?.id === currentUser.teamId);
+    || ((currentUser.role === ROLES.MANAGER || currentUser.role === ROLES.ASSISTANT_MANAGER) && team?.departmentId === currentUser.departmentId);
   // Mirrors hierarchy.canReviewTask exactly — same rank+scope shape used for
   // viewing/reviewing/approving/reassigning/moderating this task.
   const isReviewer = canAccessTeamScope(currentUser, team);

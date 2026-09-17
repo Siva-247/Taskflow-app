@@ -20,7 +20,10 @@ const WEEKS = [
 export default function ManagerDashboard() {
   const { currentUser, users, teams, departments, statsFor, scopedTasks, activity, memberStats, TODAY } = useApp();
   const navigate = useNavigate();
-  const allowed = useRoleGuard(ROLES.MANAGER);
+  // Assistant Manager gets this exact dashboard too — department-scoped
+  // identically to Manager (see hierarchy.js) — rather than the old
+  // simpler, team-scoped AssistantManagerDashboard.
+  const allowed = useRoleGuard([ROLES.MANAGER, ROLES.ASSISTANT_MANAGER]);
   if (!allowed) return null;
 
   const department = departments.find((d) => d.id === currentUser.departmentId);

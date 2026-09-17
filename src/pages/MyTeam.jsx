@@ -11,10 +11,10 @@ const TITLE_OPTIONS = ['Intern', 'Developer'];
 const OTHER_TITLE = '__other_title__';
 const titleSelectOptions = [...TITLE_OPTIONS.map((t) => ({ value: t, label: t })), { value: OTHER_TITLE, label: 'Other' }];
 
-// A team lead/assistant manager's own team is fixed to their own team and
-// department — hierarchy.canManage never lets them place anyone elsewhere,
-// so unlike AddEmployeeModal (used by admin/manager) there's no team or
-// department picker here at all, just the role/title itself. Mirrors
+// A team lead's own team is fixed to their own team and department —
+// hierarchy.canManage never lets them place anyone elsewhere, so unlike
+// AddEmployeeModal (used by admin/manager/assistant manager) there's no team
+// or department picker here at all, just the role/title itself. Mirrors
 // AddEmployeeModal's roleSelectionFor: fall back to "Other" (with the real
 // title preserved as free text) for anything outside the two fixed options.
 function titleSelectionFor(user) {
@@ -24,7 +24,10 @@ function titleSelectionFor(user) {
 export default function MyTeam() {
   const { currentUser, users, departments, scopedTasks, statsFor, addTeamMember, setUserActive, deleteUser, editUser, resetUserPassword } = useApp();
   const navigate = useNavigate();
-  const allowed = useRoleGuard([ROLES.TEAM_LEAD, ROLES.ASSISTANT_MANAGER]);
+  // Assistant Manager now manages via the department-scoped Settings page
+  // instead (same as Manager) — this page is Team Lead's own team-scoped
+  // one only.
+  const allowed = useRoleGuard(ROLES.TEAM_LEAD);
 
   const [showAdd, setShowAdd] = useState(false);
   const [newName, setNewName] = useState('');
@@ -59,9 +62,7 @@ export default function MyTeam() {
   const teamStats = statsFor(teamTasks);
   const completionRate = teamStats.total ? Math.round((teamStats.completed / teamStats.total) * 100) : 0;
 
-  // Anyone strictly below the viewer's rank on this team — for a Team Lead
-  // that's just Employees/Interns (as before); for an Assistant Manager it
-  // also includes the team's Team Lead, mirroring assignableTargets.
+  // Anyone strictly below the viewer's rank on this team — Employees/Interns.
   const members = assignableTargets(currentUser, users);
   const rows = members.map((u) => {
     const assigned = teamTasks.filter((t) => t.assigneeId === u.id);

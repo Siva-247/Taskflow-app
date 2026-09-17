@@ -209,7 +209,7 @@ export default function DailyUpdateHistory() {
     [ROLES.SUPER_ADMIN]: 'Every daily update across the company',
     [ROLES.ADMIN]: 'Every daily update across the company',
     [ROLES.MANAGER]: `Daily updates across ${myDepartment?.name || 'your department'}`,
-    [ROLES.ASSISTANT_MANAGER]: 'Daily updates from your team',
+    [ROLES.ASSISTANT_MANAGER]: `Daily updates across ${myDepartment?.name || 'your department'}`,
     [ROLES.TEAM_LEAD]: 'Daily updates from your team',
     [ROLES.EMPLOYEE]: 'Your daily updates',
   }[currentUser.role];
@@ -235,17 +235,17 @@ export default function DailyUpdateHistory() {
   // exist yet — so a brand-new department or a freshly hired employee shows
   // up here immediately (next load), and each dropdown narrows the ones
   // after it instead of listing every category/person the viewer could ever
-  // see. Scope mirrors scopedDailyUpdates exactly: Manager gets their whole
-  // department, Assistant Manager/Team Lead their own team, Employee just
+  // see. Scope mirrors scopedDailyUpdates exactly: Manager/Assistant Manager
+  // get their whole department, Team Lead their own team, Employee just
   // themselves — never wider than the rows they can actually filter down to.
   const rosterInScope = useMemo(() => {
     if ([ROLES.SUPER_ADMIN, ROLES.ADMIN].includes(currentUser.role)) {
       return users.filter((u) => u.role !== ROLES.SUPER_ADMIN && u.role !== ROLES.ADMIN);
     }
-    if (currentUser.role === ROLES.MANAGER) {
+    if ([ROLES.MANAGER, ROLES.ASSISTANT_MANAGER].includes(currentUser.role)) {
       return users.filter((u) => u.departmentId === currentUser.departmentId && u.role !== ROLES.SUPER_ADMIN && u.role !== ROLES.ADMIN);
     }
-    if ([ROLES.ASSISTANT_MANAGER, ROLES.TEAM_LEAD].includes(currentUser.role)) {
+    if (currentUser.role === ROLES.TEAM_LEAD) {
       return users.filter((u) => u.teamId === currentUser.teamId);
     }
     return users.filter((u) => u.id === currentUser.id);

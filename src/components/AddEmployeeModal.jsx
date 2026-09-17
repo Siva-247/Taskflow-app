@@ -7,6 +7,8 @@ const OTHER_DEPT = '__other_dept__';
 const NEW_TEAM = '__new_team__';
 const ROLE_OPTIONS = [
   { value: 'manager', label: 'Manager' },
+  { value: 'assistant_manager', label: 'Assistant Manager' },
+  { value: 'team_lead', label: 'Team Lead' },
   { value: 'employee', label: 'Employee' },
   { value: 'intern', label: 'Intern' },
   { value: 'other', label: 'Other' },
@@ -33,13 +35,16 @@ function roleSelectionFor(user) {
 // was typed) — the six-value role enum every authorization check depends
 // on never changes. Pass `user` to edit them; omit it to create someone new.
 export default function AddEmployeeModal({ user, onClose }) {
-  const { currentUser, departments, teams, addDepartment, addTeam, addManager, addTeamMember, editUser, showToast } = useApp();
+  const {
+    currentUser, departments, teams, addDepartment, addTeam, addManager, addAssistantManager, addTeamLead, addTeamMember, editUser, showToast,
+  } = useApp();
   const isEditing = Boolean(user);
-  // A manager only ever staffs their own department (every backend route
-  // here enforces that already) — locking the field instead of just letting
-  // the request 403 avoids a confusing dead-end where the department picker
+  // A manager/assistant manager only ever staffs their own department
+  // (every backend route here enforces that already, identically for both —
+  // see hierarchy.js) — locking the field instead of just letting the
+  // request 403 avoids a confusing dead-end where the department picker
   // looks free to change but silently isn't.
-  const isDeptLocked = currentUser.role === 'manager';
+  const isDeptLocked = ['manager', 'assistant_manager'].includes(currentUser.role);
   // team_lead/assistant_manager/super_admin carry bookkeeping (teams.lead_id/
   // assistant_manager_id, the fixed Super Admin row) this form was never
   // built to rewrite — editing one of them falls back to a minimal Name/
@@ -48,7 +53,14 @@ export default function AddEmployeeModal({ user, onClose }) {
   // (see routes/users.js's canReshape).
   const isLockedRole = isEditing && !['manager', 'employee'].includes(user.role);
 
-  const roleOptions = isDeptLocked ? ROLE_OPTIONS.filter((o) => o.value !== 'manager') : ROLE_OPTIONS;
+  // Assistant Manager/Team Lead are new-hire-only choices: the backend's
+  // PATCH /:id reshape only ever accepts 'manager'/'employee' in the role
+  // field (see canReshape), so offering them while editing an existing
+  // person would silently do nothing — the role would just stay whatever it
+  // already was, with no error to explain why.
+  const roleOptions = ROLE_OPTIONS
+    .filter((o) => !isDeptLocked || o.value !== 'manager')
+    .filter((o) => !isEditing || !['assistant_manager', 'team_lead'].includes(o.value));
   const myDepartment = departments.find((d) => d.id === currentUser.departmentId);
 
   const [name, setName] = useState(user?.name || '');
@@ -64,8 +76,16 @@ export default function AddEmployeeModal({ user, onClose }) {
   const [saving, setSaving] = useState(false);
   const [created, setCreated] = useState(null);
 
-  const needsTeam = role !== 'manager';
+  // Manager has no team at all; Assistant Manager and Team Lead each have
+  // their own dedicated team field below (an existing-team picker and a
+  // new-team-name field respectively) instead of this general optional one.
+  const needsTeam = ['employee', 'intern', 'other'].includes(role);
+  const needsAssistantManagerTeam = role === 'assistant_manager';
+  const needsTeamLeadName = role === 'team_lead';
   const teamsForDept = deptSelection === OTHER_DEPT ? [] : teams.filter((t) => t.departmentId === deptSelection);
+  // One assistant manager per team (a real FK on the backend) — only offer
+  // teams that don't already have one.
+  const teamsWithoutAssistantManager = teamsForDept.filter((t) => !t.assistantManagerId);
   // Only forced when actually chosen — an empty teamsForDept used to force
   // this on by itself (no teams yet = you MUST create one), which fought
   // against Team being optional: a department with zero teams should still
@@ -90,9 +110,13 @@ export default function AddEmployeeModal({ user, onClose }) {
     }
     if (deptSelection === OTHER_DEPT && !customDept.trim()) e.customDept = true;
     if (role === 'other' && !customTitle.trim()) e.customTitle = true;
-    // Team is optional, full stop — including the "+ New team" text field:
-    // leaving it blank isn't an incomplete form, it just means the person
-    // ends up on no team, exactly as if "No team" had been picked instead.
+    // Unlike the general Team field below (optional, full stop — including
+    // its own "+ New team" text field, since leaving it blank just means no
+    // team, same as picking "No team" outright), Assistant Manager and Team
+    // Lead each require their one dedicated team field to be filled in —
+    // there's no "no team" option for either of them.
+    if (needsAssistantManagerTeam && !teamSelection) e.teamSelection = true;
+    if (needsTeamLeadName && !customTeam.trim()) e.customTeam = true;
     return e;
   };
 
@@ -141,6 +165,13 @@ export default function AddEmployeeModal({ user, onClose }) {
       let result;
       if (role === 'manager') {
         result = await addManager({ name: name.trim(), email: email.trim(), departmentId, ...(password ? { password } : {}) });
+      } else if (role === 'assistant_manager') {
+        // Placed onto the chosen existing team — the backend derives
+        // department from that team itself, so departmentId isn't sent here.
+        result = await addAssistantManager({ name: name.trim(), email: email.trim(), teamId: teamSelection, ...(password ? { password } : {}) });
+      } else if (role === 'team_lead') {
+        // Always a brand-new team, named on the spot — never an existing one.
+        result = await addTeamLead({ name: name.trim(), email: email.trim(), departmentId, teamName: customTeam.trim(), ...(password ? { password } : {}) });
       } else {
         let teamId = teamSelection;
         if (needsNewTeamField) {
@@ -264,6 +295,30 @@ export default function AddEmployeeModal({ user, onClose }) {
                 <TextInput value={customTeam} onChange={setCustomTeam} placeholder="e.g. Operations Team — leave blank for no team" />
               </Field>
             )}
+
+            {needsAssistantManagerTeam && (
+              teamsWithoutAssistantManager.length > 0 ? (
+                <Field label="Team" required>
+                  <Select
+                    value={teamSelection}
+                    onChange={setTeamSelection}
+                    options={[{ value: '', label: 'Select a team' }, ...teamsWithoutAssistantManager.map((t) => ({ value: t.id, label: t.name }))]}
+                  />
+                </Field>
+              ) : (
+                <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 500, fontSize: 12.5, color: 'var(--amber-text)' }}>
+                  No team available here — every team in this department already has an assistant manager, or the department has no teams yet. Add a team first.
+                </div>
+              )
+            )}
+            {errors.teamSelection && <ErrorText>Pick a team to place them on.</ErrorText>}
+
+            {needsTeamLeadName && (
+              <Field label="New team name" required>
+                <TextInput value={customTeam} onChange={setCustomTeam} placeholder="e.g. Operations Team" />
+              </Field>
+            )}
+            {needsTeamLeadName && errors.customTeam && <ErrorText>Enter the new team's name.</ErrorText>}
           </>
         )}
 

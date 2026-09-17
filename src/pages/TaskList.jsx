@@ -44,7 +44,7 @@ export default function TaskList() {
     [ROLES.SUPER_ADMIN]: 'All tasks — company-wide',
     [ROLES.ADMIN]: 'All tasks — company-wide',
     [ROLES.MANAGER]: 'Tasks across your department',
-    [ROLES.ASSISTANT_MANAGER]: "Your team's tasks",
+    [ROLES.ASSISTANT_MANAGER]: 'Tasks across your department',
     [ROLES.TEAM_LEAD]: "Your team's tasks",
     [ROLES.EMPLOYEE]: 'Tasks assigned to you',
   }[currentUser.role];

@@ -11,7 +11,6 @@ import Dashboard from './pages/Dashboard.jsx';
 import AdminDashboard from './pages/AdminDashboard.jsx';
 import ManagerDashboard from './pages/ManagerDashboard.jsx';
 import TeamLeadDashboard from './pages/TeamLeadDashboard.jsx';
-import AssistantManagerDashboard from './pages/AssistantManagerDashboard.jsx';
 import EmployeeDashboard from './pages/EmployeeDashboard.jsx';
 import TaskList from './pages/TaskList.jsx';
 import CreateTask from './pages/CreateTask.jsx';
@@ -52,7 +51,10 @@ function AppRoutes() {
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/manager" element={<ManagerDashboard />} />
           <Route path="/team-lead" element={<TeamLeadDashboard />} />
-          <Route path="/assistant-manager" element={<AssistantManagerDashboard />} />
+          {/* Assistant Manager is department-scoped identically to Manager
+              (see hierarchy.js) — same dashboard component, just its own
+              route so roleHome() keeps sending each role to a distinct URL. */}
+          <Route path="/assistant-manager" element={<ManagerDashboard />} />
           <Route path="/employee" element={<EmployeeDashboard />} />
           <Route path="/tasks" element={<TaskList />} />
           <Route path="/tasks/new" element={<CreateTask />} />

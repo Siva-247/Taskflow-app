@@ -46,16 +46,20 @@ export default function Settings() {
     setUserActive, deleteUser, resetUserPassword,
   } = useApp();
 
-  const isManager = currentUser.role === ROLES.MANAGER;
-  // Same page, same components, for every role this page serves — a Manager
-  // just gets `departments` pre-narrowed to their own, so every rollup/
-  // roster/tab built on top of it (Overview, Teams, Members, Roles &
-  // Permissions) is automatically department-scoped with no special-casing
-  // elsewhere. Generic on currentUser.departmentId, not any specific
-  // department, so a brand-new manager in a brand-new department gets
-  // exactly the same experience as every other one.
-  const departments = isManager ? allDepartments.filter((d) => d.id === currentUser.departmentId) : allDepartments;
-  const TABS = isManager ? MANAGER_TABS : ALL_TABS;
+  // Manager and Assistant Manager are both department-scoped (identically,
+  // per hierarchy.js) — this page treats them the same throughout, hence a
+  // name broader than a manager-only flag would suggest.
+  const isDeptManager = [ROLES.MANAGER, ROLES.ASSISTANT_MANAGER].includes(currentUser.role);
+  // Same page, same components, for every role this page serves — a
+  // department-scoped Manager/Assistant Manager just gets `departments`
+  // pre-narrowed to their own, so every rollup/roster/tab built on top of it
+  // (Overview, Teams, Members, Roles & Permissions) is automatically
+  // department-scoped with no special-casing elsewhere. Generic on
+  // currentUser.departmentId, not any specific department, so a brand-new
+  // manager/assistant manager in a brand-new department gets exactly the
+  // same experience as every other one.
+  const departments = isDeptManager ? allDepartments.filter((d) => d.id === currentUser.departmentId) : allDepartments;
+  const TABS = isDeptManager ? MANAGER_TABS : ALL_TABS;
 
   const [activeTab, setActiveTab] = useState('overview');
 
@@ -119,7 +123,7 @@ export default function Settings() {
   const [resettingPassword, setResettingPassword] = useState(false);
   const [passwordResetResult, setPasswordResetResult] = useState(null);
 
-  const allowed = useRoleGuard([ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.MANAGER]);
+  const allowed = useRoleGuard([ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.MANAGER, ROLES.ASSISTANT_MANAGER]);
 
   const rollups = useMemo(() => departments.map((dept, i) => {
     const deptTeams = teams.filter((t) => t.departmentId === dept.id);
@@ -214,7 +218,7 @@ export default function Settings() {
 
   if (!allowed) return null;
 
-  const nonAdminUsers = users.filter((u) => u.role !== ROLES.SUPER_ADMIN && u.role !== ROLES.ADMIN && (!isManager || u.departmentId === currentUser.departmentId));
+  const nonAdminUsers = users.filter((u) => u.role !== ROLES.SUPER_ADMIN && u.role !== ROLES.ADMIN && (!isDeptManager || u.departmentId === currentUser.departmentId));
   const activeMembers = nonAdminUsers.filter((u) => u.isActive === undefined || u.isActive).length;
   // Team count comes from `rollups` (already department-scoped) rather than
   // the raw `teams` list from context, which is never narrowed for a Manager.
@@ -363,7 +367,7 @@ export default function Settings() {
       <div>
         <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 800, fontSize: 24, color: 'var(--heading)' }}>Settings</div>
         <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 500, fontSize: 14, color: 'var(--text-secondary)', marginTop: 4 }}>
-          {isManager ? "Manage your department's teams, members, and structure." : 'Manage your organization, teams, members, and permissions.'}
+          {isDeptManager ? "Manage your department's teams, members, and structure." : 'Manage your organization, teams, members, and permissions.'}
         </div>
       </div>
 
@@ -380,7 +384,7 @@ export default function Settings() {
           departmentOptions={departmentOptions}
           departmentFilter={departmentFilter}
           onDepartmentFilterChange={setDepartmentFilter}
-          showDepartmentFilter={!isManager}
+          showDepartmentFilter={!isDeptManager}
           roleOptions={roleOptions}
           roleFilter={roleFilter}
           onRoleFilterChange={setRoleFilter}
@@ -393,12 +397,12 @@ export default function Settings() {
           onViewTeam={handleViewTeam}
           onViewDepartment={handleViewDepartment}
           hasAnyDepartments={departments.length > 0}
-          subtitle={isManager ? 'Your department, its teams, and reporting structure.' : 'Manage departments, teams, and reporting structure.'}
-          canAddDepartment={!isManager}
-          canEditDept={!isManager}
-          canDeleteDept={!isManager}
-          canEditTeam={!isManager}
-          canDeleteTeam={!isManager}
+          subtitle={isDeptManager ? 'Your department, its teams, and reporting structure.' : 'Manage departments, teams, and reporting structure.'}
+          canAddDepartment={!isDeptManager}
+          canEditDept={!isDeptManager}
+          canDeleteDept={!isDeptManager}
+          canEditTeam={!isDeptManager}
+          canDeleteTeam={!isDeptManager}
         />
       )}
 
@@ -427,10 +431,10 @@ export default function Settings() {
           onEditTeam={startEditTeam}
           onDeleteTeam={(team) => { setPendingDeleteTeam(team); setDeleteTeamError(''); }}
           onViewTeam={handleViewTeam}
-          subtitle={isManager ? "Your department's teams, with their lead and member count." : 'Every team across the company, with its lead and member count.'}
-          showDepartmentFilter={!isManager}
-          canEditTeam={!isManager}
-          canDeleteTeam={!isManager}
+          subtitle={isDeptManager ? "Your department's teams, with their lead and member count." : 'Every team across the company, with its lead and member count.'}
+          showDepartmentFilter={!isDeptManager}
+          canEditTeam={!isDeptManager}
+          canDeleteTeam={!isDeptManager}
         />
       )}
 
@@ -447,8 +451,8 @@ export default function Settings() {
           onReactivate={(user) => setUserActive(user.id, true)}
           onDelete={(user) => { setPendingDeleteMember(user); setDeleteMemberError(''); }}
           hasAnyDepartments={departments.length > 0}
-          subtitle={isManager ? "Your department's roster." : 'Every department across the company.'}
-          canResetPassword={!isManager}
+          subtitle={isDeptManager ? "Your department's roster." : 'Every department across the company.'}
+          canResetPassword={!isDeptManager}
           focusLabel={memberFocusLabel}
           onClearFocus={clearMemberFocus}
         />
@@ -456,8 +460,8 @@ export default function Settings() {
 
       {activeTab === 'roles' && (
         <RolesPermissionsSection
-          users={isManager ? users.filter((u) => u.departmentId === currentUser.departmentId) : users}
-          roleKeys={isManager ? ['manager', 'assistant_manager', 'team_lead', 'employee', 'intern'] : undefined}
+          users={isDeptManager ? users.filter((u) => u.departmentId === currentUser.departmentId) : users}
+          roleKeys={isDeptManager ? ['manager', 'assistant_manager', 'team_lead', 'employee', 'intern'] : undefined}
         />
       )}
 

@@ -10,6 +10,12 @@ const router = Router();
 router.use(requireAuth);
 
 const SELECT_USER = `SELECT id, name, role, team_id as "teamId", department_id as "departmentId", title, initial, email, is_active as "isActive" FROM users`;
+// Assistant-manager and team-lead creation below both change a team row
+// (assistant_manager_id or a brand-new team entirely) that the client
+// wouldn't otherwise see until its next full reload — returning the updated
+// team alongside the new user lets AppContext patch its local `teams` state
+// immediately, same reflection every other mutation in this app already gets.
+const SELECT_TEAM = `SELECT id, name, department_id as "departmentId", lead_id as "leadId", assistant_manager_id as "assistantManagerId" FROM teams`;
 const TITLE_OPTIONS = ['Intern', 'Developer'];
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -18,14 +24,15 @@ router.get('/', asyncRoute(async (req, res) => {
   res.json(scopeUsers(req.user, all));
 }));
 
-// Team leads and assistant managers can grow their own team with
-// interns/developers. Managers can add a new assistant manager (for an
-// existing team of theirs) or a new team lead (with a brand-new team for
-// them to run) or a new intern/developer directly, all scoped to their own
-// department — same reach as hierarchy.canManage, just for creation instead
-// of editing. Admin/Super Admin can additionally create managers (placed on
-// any department) and place a new intern/developer on any team. Everyone
-// else has no business creating accounts.
+// Team leads can grow their own team with interns/developers. Managers and
+// Assistant Managers (department-scoped exactly alike, per hierarchy.js) can
+// add a new assistant manager (for an existing team in their department) or
+// a new team lead (with a brand-new team for them to run) or a new
+// intern/developer directly onto any team in the department — same reach as
+// hierarchy.canManage, just for creation instead of editing. Admin/Super
+// Admin can additionally create managers (placed on any department) and
+// place a new intern/developer on any team. Everyone else has no business
+// creating accounts.
 router.post('/', requireRole('team_lead', 'assistant_manager', 'manager', 'admin', 'super_admin'), asyncRoute(async (req, res) => {
   const name = (req.body.name || '').trim();
   const email = (req.body.email || '').trim().toLowerCase();
@@ -41,11 +48,11 @@ router.post('/', requireRole('team_lead', 'assistant_manager', 'manager', 'admin
   if (wantsManager && !['admin', 'super_admin'].includes(req.user.role)) {
     return res.status(403).json({ error: 'Only an admin can add a manager' });
   }
-  if (wantsAssistantManager && !['admin', 'super_admin', 'manager'].includes(req.user.role)) {
-    return res.status(403).json({ error: 'Only an admin or manager can add an assistant manager' });
+  if (wantsAssistantManager && !['admin', 'super_admin', 'manager', 'assistant_manager'].includes(req.user.role)) {
+    return res.status(403).json({ error: 'Only an admin, manager, or assistant manager can add an assistant manager' });
   }
-  if (wantsTeamLead && !['admin', 'super_admin', 'manager'].includes(req.user.role)) {
-    return res.status(403).json({ error: 'Only an admin or manager can add a team lead' });
+  if (wantsTeamLead && !['admin', 'super_admin', 'manager', 'assistant_manager'].includes(req.user.role)) {
+    return res.status(403).json({ error: 'Only an admin, manager, or assistant manager can add a team lead' });
   }
 
   // No email delivery is wired up — a generated temp password is normally
@@ -94,7 +101,7 @@ router.post('/', requireRole('team_lead', 'assistant_manager', 'manager', 'admin
     if (!teamId) return res.status(400).json({ error: 'teamId is required' });
     const team = await prepare('SELECT * FROM teams WHERE id = ?').get(teamId);
     if (!team) return res.status(404).json({ error: 'Team not found' });
-    if (req.user.role === 'manager' && team.department_id !== req.user.department_id) {
+    if (['manager', 'assistant_manager'].includes(req.user.role) && team.department_id !== req.user.department_id) {
       return res.status(403).json({ error: 'You can only add an assistant manager to a team in your own department' });
     }
     if (team.assistant_manager_id) return res.status(409).json({ error: 'This team already has an assistant manager' });
@@ -108,33 +115,39 @@ router.post('/', requireRole('team_lead', 'assistant_manager', 'manager', 'admin
     await insertGlobalActivity('joined', `${await userName(req.user.id)} added ${name} as Assistant Manager of ${team.name}`, team.id);
     await insertNotification(id, req.user.id, 'appointed', `You've been appointed as Assistant Manager of ${team.name}`, null);
     const user = await prepare(`${SELECT_USER} WHERE id = ?`).get(id);
-    return res.status(201).json({ user, tempPassword });
+    const updatedTeam = await prepare(`${SELECT_TEAM} WHERE id = ?`).get(team.id);
+    return res.status(201).json({ user, tempPassword, team: updatedTeam });
   }
 
   if (wantsTeamLead) {
     const teamName = (req.body.teamName || '').trim();
     if (!teamName) return res.status(400).json({ error: 'Team name is required' });
-    // A manager can only staff their own department; only an admin may pick one.
-    const departmentId = req.user.role === 'manager' ? req.user.department_id : req.body.departmentId;
+    // A manager/assistant manager can only staff their own department; only an admin may pick one.
+    const departmentId = ['manager', 'assistant_manager'].includes(req.user.role) ? req.user.department_id : req.body.departmentId;
     if (!departmentId) return res.status(400).json({ error: 'departmentId is required' });
     const department = await prepare('SELECT * FROM departments WHERE id = ?').get(departmentId);
     if (!department) return res.status(404).json({ error: 'Department not found' });
 
     const id = await uniqueUserId(name);
     const teamId = await uniqueTeamId(teamName);
-    // teams.lead_id carries no FK constraint, so it's safe to point it at
-    // this not-yet-created user id before inserting the user row itself —
-    // but the user row's team_id DOES reference teams(id), so the team must
-    // be created first.
-    await prepare('INSERT INTO teams (id, name, department_id, lead_id) VALUES (?, ?, ?, ?)').run(teamId, teamName, department.id, id);
+    // teams.lead_id DOES carry a real FK (unlike assistant_manager_id, this
+    // isn't a "maybe someday" — it's live today), so the team has to be
+    // created with a NULL lead first, then the user (whose own team_id
+    // references teams(id), so the team must exist by then), then the team
+    // gets pointed at its now-real lead. Creating the team with lead_id set
+    // to this not-yet-inserted user id fails outright with a foreign key
+    // violation — confirmed live, not a hypothetical.
+    await prepare('INSERT INTO teams (id, name, department_id, lead_id) VALUES (?, ?, ?, NULL)').run(teamId, teamName, department.id);
     await prepare(`INSERT INTO users (id, name, role, team_id, department_id, title, initial, email, password_hash, must_change_password)
       VALUES (@id, @name, 'team_lead', @teamId, @departmentId, 'Team Lead', @initial, @email, @passwordHash, 1)`).run({
       id, name, teamId, departmentId: department.id, initial: initialsOf(name), email, passwordHash,
     });
+    await prepare('UPDATE teams SET lead_id = ? WHERE id = ?').run(id, teamId);
     await insertGlobalActivity('joined', `${await userName(req.user.id)} added ${name} as Team Lead of ${teamName}`, teamId);
     await insertNotification(id, req.user.id, 'appointed', `You've been appointed as Team Lead of ${teamName}`, null);
     const user = await prepare(`${SELECT_USER} WHERE id = ?`).get(id);
-    return res.status(201).json({ user, tempPassword });
+    const newTeam = await prepare(`${SELECT_TEAM} WHERE id = ?`).get(teamId);
+    return res.status(201).json({ user, tempPassword, team: newTeam });
   }
 
   // Intern/Developer are the two fixed titles; anything else typed via the
@@ -143,16 +156,17 @@ router.post('/', requireRole('team_lead', 'assistant_manager', 'manager', 'admin
   const title = TITLE_OPTIONS.includes(req.body.title) ? req.body.title : (req.body.title || '').trim();
   if (!title) return res.status(400).json({ error: 'Title is required' });
 
-  // Team is optional for an admin/super_admin/manager placing someone —
-  // e.g. a fresh hire who isn't slotted into a team yet. A team_lead/
-  // assistant_manager has no such choice, same as before: their own team,
-  // always. Department is still always required — unlike team_id it's what
-  // actually scopes this person to a manager at all (hierarchy.canManage's
-  // manager branch is department-scoped, not team-scoped) — so a team-less
-  // employee still needs a home department to be manageable/visible there.
+  // Team is optional for an admin/super_admin/manager/assistant_manager
+  // placing someone — e.g. a fresh hire who isn't slotted into a team yet.
+  // A team_lead has no such choice, same as before: their own team, always.
+  // Department is still always required — unlike team_id it's what actually
+  // scopes this person to a manager/assistant_manager at all
+  // (hierarchy.canManage's manager/assistant_manager branch is
+  // department-scoped, not team-scoped) — so a team-less employee still
+  // needs a home department to be manageable/visible there.
   let teamId = null;
   let team = null;
-  if (['team_lead', 'assistant_manager'].includes(req.user.role)) {
+  if (req.user.role === 'team_lead') {
     teamId = req.user.team_id;
     team = await prepare('SELECT * FROM teams WHERE id = ?').get(teamId);
     if (!team) return res.status(404).json({ error: 'Team not found' });
@@ -160,20 +174,21 @@ router.post('/', requireRole('team_lead', 'assistant_manager', 'manager', 'admin
     teamId = req.body.teamId;
     team = await prepare('SELECT * FROM teams WHERE id = ?').get(teamId);
     if (!team) return res.status(404).json({ error: 'Team not found' });
-    // A manager can staff any team in their own department directly (not
-    // just via that team's lead) — same reach hierarchy.canManage already
-    // grants them for editing. Never another department's team.
-    if (req.user.role === 'manager' && team.department_id !== req.user.department_id) {
+    // A manager/assistant manager can staff any team in their own department
+    // directly (not just via that team's lead) — same reach
+    // hierarchy.canManage already grants them for editing. Never another
+    // department's team.
+    if (['manager', 'assistant_manager'].includes(req.user.role) && team.department_id !== req.user.department_id) {
       return res.status(403).json({ error: 'You can only add members to a team in your own department' });
     }
   }
 
-  const departmentId = team ? team.department_id : (req.body.departmentId || (req.user.role === 'manager' ? req.user.department_id : null));
+  const departmentId = team ? team.department_id : (req.body.departmentId || (['manager', 'assistant_manager'].includes(req.user.role) ? req.user.department_id : null));
   if (!departmentId) return res.status(400).json({ error: 'departmentId is required' });
   if (!team) {
     const department = await prepare('SELECT * FROM departments WHERE id = ?').get(departmentId);
     if (!department) return res.status(404).json({ error: 'Department not found' });
-    if (req.user.role === 'manager' && departmentId !== req.user.department_id) {
+    if (['manager', 'assistant_manager'].includes(req.user.role) && departmentId !== req.user.department_id) {
       return res.status(403).json({ error: 'You can only add members to your own department' });
     }
   }
@@ -255,9 +270,10 @@ router.patch('/:id', asyncRoute(async (req, res) => {
       }
       if (!title) return res.status(400).json({ error: 'Title is required' });
     }
-    // A manager may only reshape someone within their own department —
-    // same reach hierarchy.canManage already grants them for editing at all.
-    if (req.user.role === 'manager' && departmentId !== req.user.department_id) {
+    // A manager/assistant manager may only reshape someone within their own
+    // department — same reach hierarchy.canManage already grants them for
+    // editing at all.
+    if (['manager', 'assistant_manager'].includes(req.user.role) && departmentId !== req.user.department_id) {
       return res.status(403).json({ error: 'You can only place members within your own department' });
     }
   }
