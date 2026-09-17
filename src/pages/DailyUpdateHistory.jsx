@@ -214,32 +214,10 @@ export default function DailyUpdateHistory() {
     [ROLES.EMPLOYEE]: 'Your daily updates',
   }[currentUser.role];
 
-  const availableEmployees = useMemo(() => {
-    const seen = new Map();
-    allUpdates.forEach((u) => {
-      const author = userById(u.userId);
-      if (author && !seen.has(author.id)) seen.set(author.id, author);
-    });
-    return Array.from(seen.values()).sort((a, b) => a.name.localeCompare(b.name));
-  }, [allUpdates]);
-
   const availableMilestones = useMemo(
     () => [...new Set([...DAILY_MILESTONES.filter((m) => m !== 'Other'), ...allUpdates.map((u) => u.milestone).filter(Boolean)])],
     [allUpdates],
   );
-
-  // Derived from the updates actually in scope (not the full company
-  // `departments` list) so a Manager/Assistant Manager/Team Lead/Employee —
-  // already scoped to one department by scopedDailyUpdates — never sees a
-  // department option that could only ever show "no updates match".
-  const availableDepartments = useMemo(() => {
-    const seen = new Map();
-    allUpdates.forEach((u) => {
-      const dept = departmentById(u.departmentId);
-      if (dept && !seen.has(dept.id)) seen.set(dept.id, dept);
-    });
-    return Array.from(seen.values()).sort((a, b) => a.name.localeCompare(b.name));
-  }, [allUpdates]);
 
   // Same "Employee" vs "Intern" split Settings.jsx's own Role filter and
   // AddEmployeeModal's Role field already use — an intern is role 'employee'
@@ -250,14 +228,74 @@ export default function DailyUpdateHistory() {
     if (filter === 'intern') return user.role === ROLES.EMPLOYEE && user.title === 'Intern';
     return user.role === filter;
   };
-  const roleOptions = [
-    { value: 'all', label: 'All Roles' },
-    { value: ROLES.MANAGER, label: 'Manager' },
-    { value: ROLES.ASSISTANT_MANAGER, label: 'Assistant Manager' },
-    { value: ROLES.TEAM_LEAD, label: 'Team Lead' },
-    { value: 'employee', label: 'Employee' },
-    { value: 'intern', label: 'Intern' },
-  ];
+  const roleCategoryOf = (user) => (user.role === ROLES.EMPLOYEE ? (user.title === 'Intern' ? 'intern' : 'employee') : user.role);
+
+  // Department -> Role -> Employee cascade, all three derived from the live
+  // roster (`users`/`departments`) rather than from which updates happen to
+  // exist yet — so a brand-new department or a freshly hired employee shows
+  // up here immediately (next load), and each dropdown narrows the ones
+  // after it instead of listing every category/person the viewer could ever
+  // see. Scope mirrors scopedDailyUpdates exactly: Manager gets their whole
+  // department, Assistant Manager/Team Lead their own team, Employee just
+  // themselves — never wider than the rows they can actually filter down to.
+  const rosterInScope = useMemo(() => {
+    if ([ROLES.SUPER_ADMIN, ROLES.ADMIN].includes(currentUser.role)) {
+      return users.filter((u) => u.role !== ROLES.SUPER_ADMIN && u.role !== ROLES.ADMIN);
+    }
+    if (currentUser.role === ROLES.MANAGER) {
+      return users.filter((u) => u.departmentId === currentUser.departmentId && u.role !== ROLES.SUPER_ADMIN && u.role !== ROLES.ADMIN);
+    }
+    if ([ROLES.ASSISTANT_MANAGER, ROLES.TEAM_LEAD].includes(currentUser.role)) {
+      return users.filter((u) => u.teamId === currentUser.teamId);
+    }
+    return users.filter((u) => u.id === currentUser.id);
+  }, [users, currentUser]);
+
+  // Only worth offering when there's more than one department in scope —
+  // Manager/Assistant Manager/Team Lead/Employee only ever have their own
+  // one, so this always naturally collapses to just "All Departments" for them.
+  const availableDepartments = useMemo(() => {
+    const seen = new Map();
+    rosterInScope.forEach((u) => {
+      const dept = departmentById(u.departmentId);
+      if (dept && !seen.has(dept.id)) seen.set(dept.id, dept);
+    });
+    return Array.from(seen.values()).sort((a, b) => a.name.localeCompare(b.name));
+  }, [rosterInScope]);
+
+  const rosterForDepartment = useMemo(
+    () => (departmentFilter === 'all' ? rosterInScope : rosterInScope.filter((u) => u.departmentId === departmentFilter)),
+    [rosterInScope, departmentFilter],
+  );
+
+  const ROLE_LABELS = {
+    [ROLES.MANAGER]: 'Manager', [ROLES.ASSISTANT_MANAGER]: 'Assistant Manager', [ROLES.TEAM_LEAD]: 'Team Lead',
+    employee: 'Employee', intern: 'Intern',
+  };
+  const roleOptions = useMemo(() => {
+    const present = new Set(rosterForDepartment.map(roleCategoryOf));
+    return [
+      { value: 'all', label: 'All Roles' },
+      ...Object.keys(ROLE_LABELS).filter((key) => present.has(key)).map((key) => ({ value: key, label: ROLE_LABELS[key] })),
+    ];
+  }, [rosterForDepartment]);
+
+  const availableEmployees = useMemo(() => {
+    const base = roleFilter === 'all' ? rosterForDepartment : rosterForDepartment.filter((u) => personMatchesRoleFilter(u, roleFilter));
+    return [...base].sort((a, b) => a.name.localeCompare(b.name));
+  }, [rosterForDepartment, roleFilter]);
+
+  // Narrowing Department (or Role) can leave a previously-picked Role (or
+  // Employee) pointing at someone no longer in the cascade — reset rather
+  // than silently keep filtering by a selection that's vanished from view.
+  useEffect(() => {
+    if (roleFilter !== 'all' && !roleOptions.some((o) => o.value === roleFilter)) setRoleFilter('all');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [departmentFilter, roleOptions]);
+  useEffect(() => {
+    if (employeeFilter !== 'all' && !availableEmployees.some((u) => u.id === employeeFilter)) setEmployeeFilter('all');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [departmentFilter, roleFilter, availableEmployees]);
 
   const filtered = useMemo(() => allUpdates.filter((u) => {
     if (dateFrom && u.date < dateFrom) return false;
