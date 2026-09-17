@@ -111,6 +111,8 @@ export default function DailyUpdateHistory() {
   const [employeeFilter, setEmployeeFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [milestoneFilter, setMilestoneFilter] = useState('all');
+  const [departmentFilter, setDepartmentFilter] = useState('all');
+  const [roleFilter, setRoleFilter] = useState('all');
   const [showUpdateForm, setShowUpdateForm] = useState(false);
   const [page, setPage] = useState(1);
   const [reviewingUpdate, setReviewingUpdate] = useState(null);
@@ -226,12 +228,48 @@ export default function DailyUpdateHistory() {
     [allUpdates],
   );
 
+  // Derived from the updates actually in scope (not the full company
+  // `departments` list) so a Manager/Assistant Manager/Team Lead/Employee —
+  // already scoped to one department by scopedDailyUpdates — never sees a
+  // department option that could only ever show "no updates match".
+  const availableDepartments = useMemo(() => {
+    const seen = new Map();
+    allUpdates.forEach((u) => {
+      const dept = departmentById(u.departmentId);
+      if (dept && !seen.has(dept.id)) seen.set(dept.id, dept);
+    });
+    return Array.from(seen.values()).sort((a, b) => a.name.localeCompare(b.name));
+  }, [allUpdates]);
+
+  // Same "Employee" vs "Intern" split Settings.jsx's own Role filter and
+  // AddEmployeeModal's Role field already use — an intern is role 'employee'
+  // with title 'Intern', not a distinct role value.
+  const personMatchesRoleFilter = (user, filter) => {
+    if (filter === 'all') return true;
+    if (filter === 'employee') return user.role === ROLES.EMPLOYEE && user.title !== 'Intern';
+    if (filter === 'intern') return user.role === ROLES.EMPLOYEE && user.title === 'Intern';
+    return user.role === filter;
+  };
+  const roleOptions = [
+    { value: 'all', label: 'All Roles' },
+    { value: ROLES.MANAGER, label: 'Manager' },
+    { value: ROLES.ASSISTANT_MANAGER, label: 'Assistant Manager' },
+    { value: ROLES.TEAM_LEAD, label: 'Team Lead' },
+    { value: 'employee', label: 'Employee' },
+    { value: 'intern', label: 'Intern' },
+  ];
+
   const filtered = useMemo(() => allUpdates.filter((u) => {
     if (dateFrom && u.date < dateFrom) return false;
     if (dateTo && u.date > dateTo) return false;
     if (employeeFilter !== 'all' && u.userId !== employeeFilter) return false;
     if (statusFilter !== 'all' && u.status !== statusFilter) return false;
     if (milestoneFilter !== 'all' && u.milestone !== milestoneFilter) return false;
+    if (departmentFilter !== 'all' && u.departmentId !== departmentFilter) return false;
+    if (roleFilter !== 'all') {
+      const author = userById(u.userId);
+      if (!author || !personMatchesRoleFilter(author, roleFilter)) return false;
+    }
     if (search.trim()) {
       const q = search.trim().toLowerCase();
       const author = userById(u.userId);
@@ -239,7 +277,7 @@ export default function DailyUpdateHistory() {
       if (!haystack.includes(q)) return false;
     }
     return true;
-  }), [allUpdates, dateFrom, dateTo, employeeFilter, statusFilter, milestoneFilter, search]);
+  }), [allUpdates, dateFrom, dateTo, employeeFilter, statusFilter, milestoneFilter, departmentFilter, roleFilter, search]);
 
   const updates = useMemo(() => {
     const withAuthor = filtered.map((u) => ({ ...u, employeeName: userById(u.userId)?.name || '' }));
@@ -248,7 +286,7 @@ export default function DailyUpdateHistory() {
 
   // A filter change redefines what "page 3" means; a background poll
   // refresh under unchanged filters should not reset it.
-  useEffect(() => setPage(1), [dateFrom, dateTo, employeeFilter, statusFilter, milestoneFilter, search]);
+  useEffect(() => setPage(1), [dateFrom, dateTo, employeeFilter, statusFilter, milestoneFilter, departmentFilter, roleFilter, search]);
 
   const pageCount = Math.max(1, Math.ceil(updates.length / PAGE_SIZE));
   useEffect(() => { if (page > pageCount) setPage(pageCount); }, [page, pageCount]);
@@ -260,10 +298,12 @@ export default function DailyUpdateHistory() {
   }, [updates]);
 
   const showEmployeeFilter = availableEmployees.length > 1;
-  const hasActiveFilters = search.trim() || dateFrom || dateTo || employeeFilter !== 'all' || statusFilter !== 'all' || milestoneFilter !== 'all';
+  const hasActiveFilters = search.trim() || dateFrom || dateTo || employeeFilter !== 'all' || statusFilter !== 'all'
+    || milestoneFilter !== 'all' || departmentFilter !== 'all' || roleFilter !== 'all';
 
   const clearFilters = () => {
-    setSearch(''); setDateFrom(''); setDateTo(''); setEmployeeFilter('all'); setStatusFilter('all'); setMilestoneFilter('all');
+    setSearch(''); setDateFrom(''); setDateTo(''); setEmployeeFilter('all'); setStatusFilter('all');
+    setMilestoneFilter('all'); setDepartmentFilter('all'); setRoleFilter('all');
   };
 
   const handleSaveReview = async (updateId, remarks) => {
@@ -334,6 +374,12 @@ export default function DailyUpdateHistory() {
           </div>
           <div className="filter-field" style={{ width: 150 }}>
             <Select value={statusFilter} onChange={setStatusFilter} options={[{ value: 'all', label: 'All statuses' }, ...DAILY_UPDATE_STATUSES.map((s) => ({ value: s, label: s }))]} />
+          </div>
+          <div className="filter-field" style={{ width: 170 }}>
+            <Select value={departmentFilter} onChange={setDepartmentFilter} options={[{ value: 'all', label: 'All Departments' }, ...availableDepartments.map((d) => ({ value: d.id, label: d.name }))]} />
+          </div>
+          <div className="filter-field" style={{ width: 160 }}>
+            <Select value={roleFilter} onChange={setRoleFilter} options={roleOptions} />
           </div>
           {showEmployeeFilter && (
             <div className="filter-field" style={{ width: 170 }}>
