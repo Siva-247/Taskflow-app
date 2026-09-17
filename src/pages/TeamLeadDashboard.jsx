@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext.jsx';
 import { STATUS, ROLES, teamById } from '../data/mockData.js';
 import StatBar, { defaultStatItems } from '../components/StatBar.jsx';
-import { Card } from '../components/ui.jsx';
-import { IconEye, IconAlertTriangle } from '../components/icons.jsx';
+import { Card, Button } from '../components/ui.jsx';
+import DailyUpdateForm from '../components/DailyUpdateForm.jsx';
+import { IconEye, IconAlertTriangle, IconPlus } from '../components/icons.jsx';
 import Donut from '../components/Donut.jsx';
 import ProjectTimelineBoard from '../components/ProjectTimelineBoard.jsx';
 import TeamCompletionChart from '../components/TeamCompletionChart.jsx';
@@ -14,6 +15,7 @@ export default function TeamLeadDashboard() {
   const { currentUser, users, departments, statsFor, scopedTasks, memberStats, TODAY } = useApp();
   const navigate = useNavigate();
   const allowed = useRoleGuard(ROLES.TEAM_LEAD);
+  const [showUpdateForm, setShowUpdateForm] = useState(false);
   if (!allowed) return null;
 
   const team = teamById(currentUser.teamId);
@@ -75,10 +77,24 @@ export default function TeamLeadDashboard() {
         </Card>
       </div>
 
-      <Card style={{ maxWidth: 420 }}>
-        <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 15.5, color: 'var(--heading)' }}>Team task completion</div>
-        <Donut stats={stats} />
-      </Card>
+      <div className="responsive-grid" style={{ display: 'grid', '--cols': '1fr 1fr', gap: 20 }}>
+        <Card>
+          <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 15.5, color: 'var(--heading)' }}>Today's work update</div>
+          <div style={{ marginTop: 13, padding: '13px 16px', border: '1px solid var(--border)', borderRadius: 10, background: 'var(--field-bg)', minHeight: 46, display: 'flex', alignItems: 'center' }}>
+            <span style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 500, fontSize: 13.5, color: 'var(--text-muted)' }}>What did you work on today?</span>
+          </div>
+          <Button onClick={() => setShowUpdateForm(true)} style={{ marginTop: 13 }}>
+            <IconPlus size={13} /> Add daily update
+          </Button>
+        </Card>
+
+        <Card>
+          <div style={{ fontFamily: "'Outfit',system-ui,sans-serif", fontWeight: 600, fontSize: 15.5, color: 'var(--heading)' }}>Team task completion</div>
+          <Donut stats={stats} />
+        </Card>
+      </div>
+
+      {showUpdateForm && <DailyUpdateForm onClose={() => setShowUpdateForm(false)} />}
     </div>
   );
 }
